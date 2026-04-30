@@ -1,0 +1,76 @@
+# =========================
+# OS Dateien
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Node / Angular
+# =========================
+node_modules/
+dist/
+.tmp/
+out-tsc/
+.angular/
+.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Java / Quarkus
+# =========================
+target/
+*.log
+
+# Maven / Gradle
+.mvn/
+.gradle/
+build/
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# =========================
+# IDE / Editor
+# =========================
+
+# VS Code
+.vscode/
+
+# IntelliJ / WebStorm
+.idea/
+*.iml
+
+# =========================
+# Sonstiges
+# =========================
+
+# Coverage / Tests
+coverage/
+
+# Temporary files
+tmp/
+temp/
+
+# Mac hidden files
+.AppleDouble
+.LSOverride
+
+# Windows hidden files
+ehthumbs.db
+
+# =========================
+# Optional (wenn ihr Uploads habt)
+# =========================
+uploads/
