@@ -43,14 +43,7 @@ Zur Verbesserung der Datenqualitaet und Abfragegeschwindigkeit werden Indexe ang
 
 ## Ausfuehrung
 
-Voraussetzung ist eine laufende MongoDB-Instanz und Zugriff auf die Mongo Shell.
-
-```bash
-mongosh < Datenbank/console.js
-```
+Voraussetzung ist eine laufende MongoDB-Instanz (Docker):
 
 Nach erfolgreicher Ausfuehrung wird die Datenbank `tischreservierung` erstellt und mit den Testdaten befuellt.
 
-## Meilensteinstatus
-
-Der Meilenstein ist umgesetzt, weil das Datenmodell fuer Benutzer:innen, Arbeitsplaetze und Reservierungen inklusive Testdaten und grundlegender Indexe vorhanden ist.
