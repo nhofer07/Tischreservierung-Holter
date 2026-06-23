@@ -1,0 +1,26 @@
+<aside class="details">
+  <p>Arbeitsplatz {{ tisch.tischnr }}</p>
+  <h2>{{ tisch.name }}</h2>
+  <span class="status" [class]="tisch.status">{{ tisch.status }}</span>
+
+  <dl>
+    <div>
+      <dt>Abteilung</dt>
+      <dd>{{ tisch.abteilungName }}</dd>
+    </div>
+    <div>
+      <dt>Raum</dt>
+      <dd>{{ raum.name }}</dd>
+    </div>
+  </dl>
+
+  <h3>Ausstattung</h3>
+  <ul>
+    <li *ngFor="let item of tisch.equipment">{{ item.name }}</li>
+  </ul>
+
+  <p class="error" *ngIf="fehler">{{ fehler }}</p>
+  <button type="button" [disabled]="tisch.status !== 'frei'" (click)="reservieren.emit()">
+    Arbeitsplatz reservieren
+  </button>
+</aside>

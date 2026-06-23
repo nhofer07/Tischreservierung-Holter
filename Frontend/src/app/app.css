@@ -1,0 +1,46 @@
+.page {
+  background: #f6f7f8;
+  color: #1f2328;
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+.topbar {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #d8dde3;
+  display: flex;
+  height: 68px;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 5vw, 72px);
+}
+
+.brand {
+  color: #9d1722;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+nav {
+  display: flex;
+  gap: 30px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+nav span {
+  color: #38404a;
+  padding: 24px 0 21px;
+}
+
+nav .active {
+  border-bottom: 3px solid #9d1722;
+  color: #9d1722;
+}
+
+@media (max-width: 760px) {
+  nav {
+    display: none;
+  }
+}

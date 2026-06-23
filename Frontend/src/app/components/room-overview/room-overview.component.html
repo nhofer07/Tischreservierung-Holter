@@ -1,0 +1,46 @@
+<section class="workspace">
+  <div class="room-header">
+    <div>
+      <button class="back-button" type="button" (click)="zurueck.emit()">Zurück</button>
+      <p>Raumübersicht</p>
+      <h1>{{ raum.name }}</h1>
+      <span>{{ raum.stockwerk }} · Abteilung {{ raum.abteilungName }}</span>
+    </div>
+
+    <div class="legend">
+      <span><i class="free"></i>frei</span>
+      <span><i class="reserved"></i>reserviert</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <section class="plan">
+      <div class="plan-title">Vogelperspektive</div>
+      <div class="room">
+        <div class="door"><span>Tür</span></div>
+
+        <button
+          *ngFor="let tisch of raum.arbeitsplaetze"
+          type="button"
+          class="desk"
+          [class.selected]="ausgewaehlterTisch?.id === tisch.id"
+          [class.free]="tisch.status === 'frei'"
+          [class.reserved]="tisch.status === 'reserviert'"
+          [style.left.%]="tisch.x"
+          [style.top.%]="tisch.y"
+          (click)="tischAuswaehlen.emit(tisch)"
+        >
+          <span>{{ tisch.tischnr }}</span>
+        </button>
+      </div>
+    </section>
+
+    <app-desk-details
+      *ngIf="ausgewaehlterTisch"
+      [tisch]="ausgewaehlterTisch"
+      [raum]="raum"
+      [fehler]="fehler"
+      (reservieren)="reservieren.emit()"
+    />
+  </div>
+</section>

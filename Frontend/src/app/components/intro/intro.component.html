@@ -1,0 +1,35 @@
+<section class="intro">
+  <div class="copy">
+    <p class="eyebrow">DeskVision</p>
+    <h1>Arbeitsplatz reservieren.</h1>
+    <p class="lead">
+      Standort wählen, Raum öffnen, Arbeitsplatz anklicken. Für diesen Sprint ist ein statischer
+      Testraum hinterlegt.
+    </p>
+
+    <label for="standort">Standort</label>
+    <select id="standort" [value]="selectedStandortId()" (change)="onStandortChanged($event)">
+      <option *ngFor="let standort of standorteSignal()" [value]="standort.id">
+        {{ standort.name }} · {{ standort.ort }}
+      </option>
+    </select>
+
+    <button type="button" (click)="openSelectedRoom()">Raum öffnen</button>
+  </div>
+
+  <div class="preview">
+    <span class="preview-title">{{ raumName() }}</span>
+    <strong>8 Tische · {{ freieTische() }} frei</strong>
+    <div class="preview-room" [ngClass]="previewLayout()">
+      <i class="preview-door"></i>
+      <i class="table free"></i>
+      <i class="table reserved"></i>
+      <i class="table free"></i>
+      <i class="table free"></i>
+      <i class="table free"></i>
+      <i class="table reserved"></i>
+      <i class="table free"></i>
+      <i class="table free"></i>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,103 @@
+.details {
+  background: #ffffff;
+  border: 1px solid #d9dee5;
+  border-radius: 6px;
+  box-shadow: 0 12px 28px rgba(28, 35, 43, .06);
+  padding: 28px;
+}
+
+p {
+  color: #9d1722;
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: 28px;
+  margin: 0 0 12px;
+}
+
+.status {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 24px;
+  padding: 7px 12px;
+  text-transform: uppercase;
+}
+
+.frei {
+  background: #edf6ef;
+  color: #27663a;
+}
+
+.reserviert {
+  background: #fff4da;
+  color: #7b530b;
+}
+
+dl {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+dl div {
+  display: flex;
+  justify-content: space-between;
+}
+
+dt {
+  color: #59636f;
+}
+
+dd {
+  color: #1f2328;
+  font-weight: 800;
+  margin: 0;
+}
+
+h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+li {
+  background: #f6f7f8;
+  border: 1px solid #e2e6eb;
+  border-radius: 4px;
+  padding: 10px 11px;
+}
+
+button {
+  background: #9d1722;
+  border: 0;
+  border-radius: 4px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 13px 16px;
+  width: 100%;
+}
+
+button:disabled {
+  background: #c3c9d1;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #9d1722;
+  text-transform: none;
+}

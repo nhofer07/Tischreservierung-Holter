@@ -1,0 +1,28 @@
+<main class="page">
+  <header class="topbar">
+    <div class="brand">HOLTER</div>
+    <nav>
+      <span class="active">DeskVision</span>
+      <span>Standorte</span>
+      <span>Räume</span>
+      <span>Reservierungen</span>
+    </nav>
+  </header>
+
+  <app-intro
+    *ngIf="aktiverSchritt() === 'start'"
+    [standorte]="standorte()"
+    [raum]="raum()"
+    (raumOeffnen)="raumOeffnen($event)"
+  />
+
+  <app-room-overview
+    *ngIf="aktiverSchritt() === 'raum' && raum()"
+    [raum]="raum()!"
+    [ausgewaehlterTisch]="ausgewaehlterTisch()"
+    [fehler]="fehler()"
+    (zurueck)="startOeffnen()"
+    (tischAuswaehlen)="tischAuswaehlen($event)"
+    (reservieren)="reservieren()"
+  />
+</main>
