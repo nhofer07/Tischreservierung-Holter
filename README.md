@@ -1,49 +1,104 @@
 # Tischreservierung Holter
 
-Dieses Repository enthaelt den Projektstand zum Meilenstein:
+Dieses Repository enthaelt den Projektstand fuer die Meilensteine:
 
 > Das Datenmodell fuer Benutzer:innen, Arbeitsplaetze und Reservierungen ist umgesetzt.
+
+> Die Arbeitsplatzdarstellung in Vogelperspektive ist umgesetzt und nutzbar.
 
 ## Inhalt
 
 - `Datenbank/console.js`: MongoDB-Skript zum Erstellen und Befuellen der Datenbank
+- `docker-compose.yml`: MongoDB-Container fuer die lokale Entwicklung
+- `Backend/`: Quarkus REST-Backend fuer Arbeitsplatzdaten
+- `Frontend/`: Angular-Oberflaeche fuer Einstieg, Standortauswahl und Raumuebersicht
 - `Dokumentation/`: Dokumente zur Anforderungsanalyse und zum Projekt
 
 ## Datenmodell
 
 Das Datenmodell wird in MongoDB umgesetzt. Das Skript erstellt folgende Collections:
 
-- `benutzer`: speichert Benutzer:innen mit Kontaktdaten, Rolle und Abteilung
-- `abteilungen`: speichert die organisatorischen Abteilungen
-- `arbeitsplaetze`: speichert die verfuegbaren Arbeitsplaetze mit Tischnummer und Abteilung
-- `ausstattungen`: speichert moegliche Ausstattungsmerkmale eines Arbeitsplatzes
-- `arbeitsplatz_ausstattung`: verbindet Arbeitsplaetze mit Ausstattungen und Mengenangaben
-- `reservierungen`: speichert Reservierungen mit Benutzer, Arbeitsplatz, Zeitraum und Status
+- `benutzer`: speichert Benutzer:innen mit Rolle, Abteilung und bevorzugtem Raum
+- `standorte`: speichert HOLTER-Standorte
+- `raeume`: speichert Raeume mit Standort, Stockwerk und Abteilung
+- `arbeitsplaetze`: speichert Tische mit Raum, Standort, Abteilung, Status, Position und Equipment
+- `reservierungen`: speichert Reservierungen mit Benutzer, Arbeitsplatz, Raum, Standort, Zeitraum und Status
 
-## Beziehungen
+## Umgesetztes Feedback
 
-- Ein:e Benutzer:in gehoert ueber `abteilungId` zu einer Abteilung.
-- Ein Arbeitsplatz gehoert ueber `abteilungId` zu einer Abteilung.
-- Eine Reservierung verweist ueber `benutzerId` auf eine:n Benutzer:in.
-- Eine Reservierung verweist ueber `tischnr` auf einen Arbeitsplatz.
-- Arbeitsplatz-Ausstattungen werden ueber `arbeitsplatz_ausstattung` abgebildet.
+- MongoDB-Image ist ueber `docker-compose.yml` eingebunden.
+- Standorte und Raeume sind im Datenmodell vorhanden.
+- Ausstattungen liegen direkt als Liste im Arbeitsplatz.
+- Abteilungen sind direkt am Arbeitsplatz und Raum hinterlegt.
+- Benutzer:innen haben einen bevorzugten Raum, der im Frontend vorgeschlagen wird.
+- Raeume und Tische haben eine AbteilungID.
+- IDs verwenden ein sprechendes Format wie `WELS-TISCH-101`, `LINZ-TISCH-201` oder `RAUM-WELS-OG1-TEAM`.
+- Reservieren ist auf Tische der eigenen Abteilung begrenzt.
+- Fuer die Reservierung ist keine extra Bestaetigungsseite vorgesehen.
 
-## Testdaten
+## MongoDB starten
 
-Das Skript fuegt Beispielabteilungen, Ausstattungen, Arbeitsplaetze, Benutzer:innen und eine Reservierung ein. Dadurch kann das Datenmodell direkt nach dem Ausfuehren nachvollzogen und getestet werden.
+Voraussetzung ist Docker und Zugriff auf die Mongo Shell.
 
-## Indexe
+```bash
+docker compose up -d
+mongosh < Datenbank/console.js
+```
 
-Zur Verbesserung der Datenqualitaet und Abfragegeschwindigkeit werden Indexe angelegt:
+Nach erfolgreicher Ausfuehrung wird die Datenbank `tischreservierung` erstellt und mit Testdaten befuellt.
 
-- eindeutiger Index auf `benutzer.email`
-- eindeutiger Index auf `arbeitsplaetze.tischnr`
-- Indexe auf Reservierungen nach Benutzer, Arbeitsplatz und Zeitraum
-- Indexe fuer die Arbeitsplatz-Ausstattungs-Zuordnung
+## Backend
 
-## Ausfuehrung
+Das Backend ist ein Quarkus-Projekt und ist aehnlich wie die Pokemon-Uebung aufgebaut:
 
-Voraussetzung ist eine laufende MongoDB-Instanz (Docker):
+- `boundary`: REST-Endpunkte
+- `model`: Mongo-Entity-/Model-Klassen fuer Benutzer, Standort, Raum, Arbeitsplatz, Position und Equipment
+- `repo`: einfache Datenlogik
+- `DTOs`: Datenobjekte fuer das Frontend
 
-Nach erfolgreicher Ausfuehrung wird die Datenbank `tischreservierung` erstellt und mit den Testdaten befuellt.
+REST-Endpunkte:
 
+- `GET /api/benutzer/demo`
+- `GET /api/standorte`
+- `GET /api/raeume/RAUM-WELS-OG1-TEAM`
+- `GET /api/raeume/RAUM-LINZ-EG-PROJEKT`
+- `POST /api/reservierungen`
+
+Start:
+
+```bash
+cd Backend
+./mvnw quarkus:dev
+```
+
+Falls kein Maven Wrapper vorhanden ist, kann alternativ Maven installiert und `mvn quarkus:dev` verwendet werden.
+
+## Frontend
+
+Das Frontend ist eine Angular-App. Es zeigt:
+
+- kurze Einfuehrung zur Arbeitsplatzreservierung
+- Standortauswahl
+- unterschiedliche Demo-Raeume fuer Wels und Linz
+- statischen Raum in Vogelperspektive mit 8 Tischen
+- klickbare Arbeitsplaetze
+- Status frei und reserviert
+- Detailansicht mit Ausstattung und Abteilung
+
+Die Angular-Oberflaeche ist in Components aufgeteilt:
+
+- `intro`: Einstieg mit Standortauswahl
+- `room-overview`: Raumplan in Vogelperspektive
+- `desk-details`: Detailansicht zum ausgewaehlten Arbeitsplatz
+
+Hinweis: Da MongoDB verwendet wird, sind die persistenten Models mit `@MongoEntity` annotiert. Bei einer SQL/JPA-Datenbank wuerde man stattdessen `@Entity` verwenden.
+
+Start:
+
+```bash
+cd Frontend
+npm install
+npm start
+```
+
+Danach ist die Anwendung unter `http://localhost:4200` erreichbar.
