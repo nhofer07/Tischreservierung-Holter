@@ -13,7 +13,7 @@ export class IntroComponent {
   raumSignal = signal<Raum | null>(null);
   selectedStandortId = signal('STANDORT-WELS');
 
-  @Output() raumOeffnen = new EventEmitter<string>();
+  @Output() standortOeffnen = new EventEmitter<string>();
 
   @Input() set standorte(value: Standort[]) {
     this.standorteSignal.set(value);
@@ -35,16 +35,11 @@ export class IntroComponent {
     this.selectedStandortId() === 'STANDORT-LINZ' ? 'linz-layout' : 'wels-layout'
   );
 
-  onStandortChanged(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    this.selectedStandortId.set(select.value);
+  standortAuswaehlen(standortId: string): void {
+    this.selectedStandortId.set(standortId);
   }
 
   openSelectedRoom(): void {
-    const roomId = this.selectedStandortId() === 'STANDORT-LINZ'
-      ? 'RAUM-LINZ-EG-PROJEKT'
-      : 'RAUM-WELS-OG1-TEAM';
-
-    this.raumOeffnen.emit(roomId);
+    this.standortOeffnen.emit(this.selectedStandortId());
   }
 }

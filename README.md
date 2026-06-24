@@ -61,7 +61,9 @@ REST-Endpunkte:
 - `GET /api/benutzer/demo`
 - `GET /api/standorte`
 - `GET /api/raeume/RAUM-WELS-OG1-TEAM`
+- `GET /api/raeume/RAUM-WELS-EG-MARKETING`
 - `GET /api/raeume/RAUM-LINZ-EG-PROJEKT`
+- `GET /api/raeume/RAUM-LINZ-OG2-MARKETING`
 - `POST /api/reservierungen`
 
 Start:
@@ -79,8 +81,11 @@ Das Frontend ist eine Angular-App. Es zeigt:
 
 - kurze Einfuehrung zur Arbeitsplatzreservierung
 - Standortauswahl
-- unterschiedliche Demo-Raeume fuer Wels und Linz
-- statischen Raum in Vogelperspektive mit 8 Tischen
+- Zeitraum-Auswahl vor dem Oeffnen eines Raums
+- je zwei Demo-Raeume fuer Wels und Linz
+- Raumwechsel innerhalb des ausgewaehlten Standorts
+- statische Raeume in Vogelperspektive mit je 8 Tischen
+- Verfuegbarkeit der Tische anhand vorhandener Reservierungen im ausgewaehlten Zeitraum
 - klickbare Arbeitsplaetze
 - Status frei und reserviert
 - Detailansicht mit Ausstattung und Abteilung

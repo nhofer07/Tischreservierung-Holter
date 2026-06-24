@@ -1,23 +1,88 @@
 <section class="workspace">
   <div class="room-header">
     <div>
-      <button class="back-button" type="button" (click)="zurueck.emit()">Zurück</button>
       <p>Raumübersicht</p>
       <h1>{{ raum.name }}</h1>
       <span>{{ raum.stockwerk }} · Abteilung {{ raum.abteilungName }}</span>
     </div>
 
-    <div class="legend">
-      <span><i class="free"></i>frei</span>
-      <span><i class="reserved"></i>reserviert</span>
+    <div class="header-tools">
+      <div class="room-switcher" aria-label="Raum wechseln">
+        <button
+          type="button"
+          class="room-arrow"
+          [attr.aria-label]="'Zu ' + vorherigerRaum.name + ' wechseln'"
+          (click)="raumWechseln.emit(vorherigerRaum.id)"
+        >
+          <span aria-hidden="true">&#8249;</span>
+        </button>
+
+        <div class="switcher-current">
+          <span>Abteilung</span>
+          <strong>{{ aktuelleAbteilung }}</strong>
+        </div>
+
+        <button
+          type="button"
+          class="room-arrow"
+          [attr.aria-label]="'Zu ' + naechsterRaum.name + ' wechseln'"
+          (click)="raumWechseln.emit(naechsterRaum.id)"
+        >
+          <span aria-hidden="true">&#8250;</span>
+        </button>
+      </div>
+
+      <div class="time-box">
+        <label>
+          Datum
+          <input
+            type="date"
+            [value]="zeitraumSignal().datum"
+            (input)="zeitraumAendern('datum', $event)"
+          />
+        </label>
+
+        <label>
+          Beginn
+          <input
+            type="time"
+            [value]="zeitraumSignal().beginn"
+            (input)="zeitraumAendern('beginn', $event)"
+          />
+        </label>
+
+        <label>
+          Ende
+          <input
+            type="time"
+            [value]="zeitraumSignal().ende"
+            (input)="zeitraumAendern('ende', $event)"
+          />
+        </label>
+
+        <button type="button" [disabled]="!zeitraumGueltig()" (click)="pruefen()">Prüfen</button>
+      </div>
     </div>
   </div>
 
   <div class="layout">
     <section class="plan">
-      <div class="plan-title">Vogelperspektive</div>
+      <div class="plan-head">
+        <div>
+          <span class="plan-title">Verfügbarkeit</span>
+          <strong>{{ zeitraumText }}</strong>
+        </div>
+
+        <div class="legend">
+          <span><i class="free"></i>frei</span>
+          <span><i class="reserved"></i>reserviert</span>
+        </div>
+      </div>
+
       <div class="room">
         <div class="door"><span>Tür</span></div>
+        <div class="plant plant-top" aria-hidden="true"></div>
+        <div class="plant plant-bottom" aria-hidden="true"></div>
 
         <button
           *ngFor="let tisch of raum.arbeitsplaetze"

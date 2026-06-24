@@ -24,11 +24,24 @@ export interface Raum {
   arbeitsplaetze: Arbeitsplatz[];
 }
 
+export interface RaumAuswahl {
+  id: string;
+  name: string;
+  standortId: string;
+  abteilungName: string;
+}
+
 export interface Standort {
   id: string;
   name: string;
   adresse: string;
   ort: string;
+}
+
+export interface Zeitraum {
+  datum: string;
+  beginn: string;
+  ende: string;
 }
 
 export interface Benutzer {

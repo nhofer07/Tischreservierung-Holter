@@ -1,6 +1,8 @@
 <main class="page">
   <header class="topbar">
-    <div class="brand">HOLTER</div>
+    <button class="brand" type="button" aria-label="Zur Startseite" (click)="startOeffnen()">
+      <img src="/holter-logo.png" alt="HOLTER" />
+    </button>
     <nav>
       <span class="active">DeskVision</span>
       <span>Standorte</span>
@@ -13,15 +15,18 @@
     *ngIf="aktiverSchritt() === 'start'"
     [standorte]="standorte()"
     [raum]="raum()"
-    (raumOeffnen)="raumOeffnen($event)"
+    (standortOeffnen)="standortOeffnen($event)"
   />
 
   <app-room-overview
     *ngIf="aktiverSchritt() === 'raum' && raum()"
     [raum]="raum()!"
+    [raeume]="raeume()"
     [ausgewaehlterTisch]="ausgewaehlterTisch()"
     [fehler]="fehler()"
-    (zurueck)="startOeffnen()"
+    [zeitraum]="zeitraum()"
+    (raumWechseln)="raumOeffnen($event)"
+    (zeitraumPruefen)="zeitraumPruefen($event)"
     (tischAuswaehlen)="tischAuswaehlen($event)"
     (reservieren)="reservieren()"
   />

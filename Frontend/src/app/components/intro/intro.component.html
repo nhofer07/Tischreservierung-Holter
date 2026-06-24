@@ -7,14 +7,22 @@
       Testraum hinterlegt.
     </p>
 
-    <label for="standort">Standort</label>
-    <select id="standort" [value]="selectedStandortId()" (change)="onStandortChanged($event)">
-      <option *ngFor="let standort of standorteSignal()" [value]="standort.id">
-        {{ standort.name }} · {{ standort.ort }}
-      </option>
-    </select>
+    <span class="selection-label">Standort</span>
+    <div class="location-list" aria-label="Standort auswählen">
+      <button
+        *ngFor="let standort of standorteSignal()"
+        type="button"
+        class="location-card"
+        [class.active]="selectedStandortId() === standort.id"
+        (click)="standortAuswaehlen(standort.id)"
+      >
+        <span>{{ standort.name }}</span>
+        <strong>{{ standort.ort }}</strong>
+        <small>{{ standort.adresse }}</small>
+      </button>
+    </div>
 
-    <button type="button" (click)="openSelectedRoom()">Raum öffnen</button>
+    <button class="open-button" type="button" (click)="openSelectedRoom()">Raum öffnen</button>
   </div>
 
   <div class="preview">
