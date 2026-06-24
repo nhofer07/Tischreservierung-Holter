@@ -1,12 +1,7 @@
 db = db.getSiblingDB("tischreservierung")
 
-db.benutzer.drop()
-db.standorte.drop()
-db.raeume.drop()
-db.arbeitsplaetze.drop()
-db.reservierungen.drop()
+db.dropDatabase()
 
-db.createCollection("benutzer")
 db.createCollection("standorte")
 db.createCollection("raeume")
 db.createCollection("arbeitsplaetze")
@@ -121,23 +116,9 @@ db.arbeitsplaetze.insertMany([
   arbeitsplatz("LINZ-MKT-408", 408, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 80, 61, "frei", ["2 Monitore", "Dockingstation", "Hoehenverstellbarer Tisch"])
 ])
 
-db.benutzer.insertMany([
-  {
-    _id: "USER-DEMO",
-    vorname: "Demo",
-    nachname: "Benutzer",
-    email: "demo@example.com",
-    rolle: "angestellter",
-    abteilungId: "ABT-IT",
-    abteilungName: "IT",
-    bevorzugterRaumId: "RAUM-WELS-OG1-TEAM"
-  }
-])
-
 db.reservierungen.insertMany([
   {
     _id: "RES-2026-06-24-102",
-    benutzerId: "USER-DEMO",
     arbeitsplatzId: "WELS-TISCH-102",
     raumId: "RAUM-WELS-OG1-TEAM",
     standortId: "STANDORT-WELS",
@@ -148,7 +129,6 @@ db.reservierungen.insertMany([
   },
   {
     _id: "RES-2026-06-24-106",
-    benutzerId: "USER-DEMO",
     arbeitsplatzId: "WELS-TISCH-106",
     raumId: "RAUM-WELS-OG1-TEAM",
     standortId: "STANDORT-WELS",
@@ -159,7 +139,6 @@ db.reservierungen.insertMany([
   },
   {
     _id: "RES-2026-06-24-302",
-    benutzerId: "USER-DEMO",
     arbeitsplatzId: "WELS-MKT-302",
     raumId: "RAUM-WELS-EG-MARKETING",
     standortId: "STANDORT-WELS",
@@ -170,7 +149,6 @@ db.reservierungen.insertMany([
   },
   {
     _id: "RES-2026-06-24-203",
-    benutzerId: "USER-DEMO",
     arbeitsplatzId: "LINZ-TISCH-203",
     raumId: "RAUM-LINZ-EG-PROJEKT",
     standortId: "STANDORT-LINZ",
@@ -181,7 +159,6 @@ db.reservierungen.insertMany([
   },
   {
     _id: "RES-2026-06-24-403",
-    benutzerId: "USER-DEMO",
     arbeitsplatzId: "LINZ-MKT-403",
     raumId: "RAUM-LINZ-OG2-MARKETING",
     standortId: "STANDORT-LINZ",
@@ -192,16 +169,12 @@ db.reservierungen.insertMany([
   }
 ])
 
-db.benutzer.createIndex({ email: 1 }, { unique: true })
-db.benutzer.createIndex({ abteilungId: 1 })
-db.benutzer.createIndex({ bevorzugterRaumId: 1 })
 db.raeume.createIndex({ standortId: 1 })
 db.raeume.createIndex({ abteilungId: 1 })
 db.arbeitsplaetze.createIndex({ tischnr: 1 }, { unique: true })
 db.arbeitsplaetze.createIndex({ raumId: 1 })
 db.arbeitsplaetze.createIndex({ abteilungId: 1 })
 db.arbeitsplaetze.createIndex({ standortId: 1, raumId: 1, abteilungId: 1 })
-db.reservierungen.createIndex({ benutzerId: 1 })
 db.reservierungen.createIndex({ arbeitsplatzId: 1 })
 db.reservierungen.createIndex({ raumId: 1 })
 db.reservierungen.createIndex({ reservierungAnfang: 1, reservierungEnde: 1 })

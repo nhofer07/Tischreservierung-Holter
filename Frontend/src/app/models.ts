@@ -43,14 +43,3 @@ export interface Zeitraum {
   beginn: string;
   ende: string;
 }
-
-export interface Benutzer {
-  id: string;
-  vorname: string;
-  nachname: string;
-  email: string;
-  rolle: string;
-  abteilungId: string;
-  abteilungName: string;
-  bevorzugterRaumId: string;
-}

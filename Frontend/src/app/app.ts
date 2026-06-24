@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Arbeitsplatz, Benutzer, Raum, RaumAuswahl, Standort, Zeitraum } from './models';
+import { Arbeitsplatz, Raum, RaumAuswahl, Standort, Zeitraum } from './models';
 import { ArbeitsplatzService } from './services/arbeitsplatz.service';
 import { IntroComponent } from './components/intro/intro.component';
 import { RoomOverviewComponent } from './components/room-overview/room-overview.component';
@@ -12,7 +12,6 @@ import { RoomOverviewComponent } from './components/room-overview/room-overview.
   styleUrl: './app.css'
 })
 export class App implements OnInit {
-  benutzer = signal<Benutzer | null>(null);
   standorte = signal<Standort[]>([]);
   raeume = signal<RaumAuswahl[]>([]);
   raum = signal<Raum | null>(null);
@@ -28,13 +27,6 @@ export class App implements OnInit {
   constructor(private arbeitsplatzService: ArbeitsplatzService) {}
 
   ngOnInit(): void {
-    this.arbeitsplatzService.getDemoBenutzer().subscribe((benutzer) => {
-      this.benutzer.set(benutzer);
-      this.arbeitsplatzService.getRaum(benutzer.bevorzugterRaumId, this.zeitraum()).subscribe((raum) => {
-        this.raumSetzen(raum);
-      });
-    });
-
     this.arbeitsplatzService.getStandorte().subscribe((standorte) => this.standorte.set(standorte));
   }
 
@@ -46,7 +38,7 @@ export class App implements OnInit {
   }
 
   standortOeffnen(standortId: string): void {
-    this.arbeitsplatzService.getRaeumeByStandort(standortId).subscribe((raeume) => {
+    this.arbeitsplatzService.getRaeumeByStandort(standortId).subscribe((raeume: RaumAuswahl[]) => {
       this.raeume.set(raeume);
 
       if (raeume.length > 0) {
@@ -75,14 +67,13 @@ export class App implements OnInit {
   }
 
   reservieren(): void {
-    const benutzer = this.benutzer();
     const tisch = this.ausgewaehlterTisch();
 
-    if (!benutzer || !tisch) {
+    if (!tisch) {
       return;
     }
 
-    this.arbeitsplatzService.reservieren(benutzer.id, tisch.id, this.zeitraum()).subscribe({
+    this.arbeitsplatzService.reservieren(tisch.id, this.zeitraum()).subscribe({
       next: (reservierterTisch) => {
         const raum = this.raum();
         if (!raum) {
@@ -115,6 +106,6 @@ export class App implements OnInit {
 
     this.arbeitsplatzService
       .getRaeumeByStandort(raum.standortId)
-      .subscribe((raeume) => this.raeume.set(raeume));
+      .subscribe((raeume: RaumAuswahl[]) => this.raeume.set(raeume));
   }
 }

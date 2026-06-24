@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Arbeitsplatz, Benutzer, Raum, RaumAuswahl, Standort, Zeitraum } from '../models';
+import { Observable } from 'rxjs';
+import { Arbeitsplatz, Raum, RaumAuswahl, Standort, Zeitraum } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -10,19 +11,15 @@ export class ArbeitsplatzService {
 
   constructor(private http: HttpClient) {}
 
-  getDemoBenutzer() {
-    return this.http.get<Benutzer>(`${this.apiUrl}/benutzer/demo`);
-  }
-
-  getStandorte() {
+  getStandorte(): Observable<Standort[]> {
     return this.http.get<Standort[]>(`${this.apiUrl}/standorte`);
   }
 
-  getRaeumeByStandort(standortId: string) {
+  getRaeumeByStandort(standortId: string): Observable<RaumAuswahl[]> {
     return this.http.get<RaumAuswahl[]>(`${this.apiUrl}/raeume/standort/${standortId}`);
   }
 
-  getRaum(raumId: string, zeitraum: Zeitraum) {
+  getRaum(raumId: string, zeitraum: Zeitraum): Observable<Raum> {
     return this.http.get<Raum>(`${this.apiUrl}/raeume/${raumId}`, {
       params: {
         von: this.toIsoDateTime(zeitraum.datum, zeitraum.beginn),
@@ -31,9 +28,8 @@ export class ArbeitsplatzService {
     });
   }
 
-  reservieren(benutzerId: string, arbeitsplatzId: string, zeitraum: Zeitraum) {
+  reservieren(arbeitsplatzId: string, zeitraum: Zeitraum): Observable<Arbeitsplatz> {
     return this.http.post<Arbeitsplatz>(`${this.apiUrl}/reservierungen`, {
-      benutzerId,
       arbeitsplatzId,
       reservierungAnfang: this.toIsoDateTime(zeitraum.datum, zeitraum.beginn),
       reservierungEnde: this.toIsoDateTime(zeitraum.datum, zeitraum.ende)

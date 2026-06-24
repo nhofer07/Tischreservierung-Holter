@@ -252,14 +252,14 @@ h1 {
 .wels-layout .table:nth-of-type(8) { left: 58%; top: 58%; }
 .wels-layout .table:nth-of-type(9) { left: 76%; top: 58%; }
 
-.linz-layout .table:nth-of-type(2) { left: 24%; top: 27%; }
-.linz-layout .table:nth-of-type(3) { left: 24%; top: 48%; }
-.linz-layout .table:nth-of-type(4) { left: 24%; top: 60%; }
-.linz-layout .table:nth-of-type(5) { left: 50%; top: 27%; }
-.linz-layout .table:nth-of-type(6) { left: 50%; top: 60%; }
-.linz-layout .table:nth-of-type(7) { left: 76%; top: 27%; }
-.linz-layout .table:nth-of-type(8) { left: 76%; top: 48%; }
-.linz-layout .table:nth-of-type(9) { left: 76%; top: 60%; }
+.linz-layout .table:nth-of-type(2) { left: 20%; top: 29%; }
+.linz-layout .table:nth-of-type(3) { left: 40%; top: 29%; }
+.linz-layout .table:nth-of-type(4) { left: 60%; top: 29%; }
+.linz-layout .table:nth-of-type(5) { left: 80%; top: 29%; }
+.linz-layout .table:nth-of-type(6) { left: 20%; top: 60%; }
+.linz-layout .table:nth-of-type(7) { left: 40%; top: 60%; }
+.linz-layout .table:nth-of-type(8) { left: 60%; top: 60%; }
+.linz-layout .table:nth-of-type(9) { left: 80%; top: 60%; }
 
 .free { border-left-color: #4d8f5b; }
 .reserved { border-left-color: #b27a18; }

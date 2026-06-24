@@ -2,7 +2,7 @@
 
 Dieses Repository enthaelt den Projektstand fuer die Meilensteine:
 
-> Das Datenmodell fuer Benutzer:innen, Arbeitsplaetze und Reservierungen ist umgesetzt.
+> Das Datenmodell fuer Standorte, Raeume, Arbeitsplaetze und Reservierungen ist umgesetzt.
 
 > Die Arbeitsplatzdarstellung in Vogelperspektive ist umgesetzt und nutzbar.
 
@@ -18,11 +18,10 @@ Dieses Repository enthaelt den Projektstand fuer die Meilensteine:
 
 Das Datenmodell wird in MongoDB umgesetzt. Das Skript erstellt folgende Collections:
 
-- `benutzer`: speichert Benutzer:innen mit Rolle, Abteilung und bevorzugtem Raum
 - `standorte`: speichert HOLTER-Standorte
 - `raeume`: speichert Raeume mit Standort, Stockwerk und Abteilung
 - `arbeitsplaetze`: speichert Tische mit Raum, Standort, Abteilung, Status, Position und Equipment
-- `reservierungen`: speichert Reservierungen mit Benutzer, Arbeitsplatz, Raum, Standort, Zeitraum und Status
+- `reservierungen`: speichert Reservierungen mit Arbeitsplatz, Raum, Standort, Zeitraum und Status
 
 ## Umgesetztes Feedback
 
@@ -30,10 +29,8 @@ Das Datenmodell wird in MongoDB umgesetzt. Das Skript erstellt folgende Collecti
 - Standorte und Raeume sind im Datenmodell vorhanden.
 - Ausstattungen liegen direkt als Liste im Arbeitsplatz.
 - Abteilungen sind direkt am Arbeitsplatz und Raum hinterlegt.
-- Benutzer:innen haben einen bevorzugten Raum, der im Frontend vorgeschlagen wird.
 - Raeume und Tische haben eine AbteilungID.
 - IDs verwenden ein sprechendes Format wie `WELS-TISCH-101`, `LINZ-TISCH-201` oder `RAUM-WELS-OG1-TEAM`.
-- Reservieren ist auf Tische der eigenen Abteilung begrenzt.
 - Fuer die Reservierung ist keine extra Bestaetigungsseite vorgesehen.
 
 ## MongoDB starten
@@ -52,14 +49,15 @@ Nach erfolgreicher Ausfuehrung wird die Datenbank `tischreservierung` erstellt u
 Das Backend ist ein Quarkus-Projekt und ist aehnlich wie die Pokemon-Uebung aufgebaut:
 
 - `boundary`: REST-Endpunkte
-- `model`: Mongo-Entity-/Model-Klassen fuer Benutzer, Standort, Raum, Arbeitsplatz, Position und Equipment
+- `model`: Mongo-Entity-/Model-Klassen fuer Standort, Raum, Arbeitsplatz, Position und Equipment
 - `repo`: einfache Datenlogik
 - `DTOs`: Datenobjekte fuer das Frontend
 
 REST-Endpunkte:
 
-- `GET /api/benutzer/demo`
 - `GET /api/standorte`
+- `GET /api/raeume/standort/STANDORT-WELS`
+- `GET /api/raeume/standort/STANDORT-LINZ`
 - `GET /api/raeume/RAUM-WELS-OG1-TEAM`
 - `GET /api/raeume/RAUM-WELS-EG-MARKETING`
 - `GET /api/raeume/RAUM-LINZ-EG-PROJEKT`
@@ -81,7 +79,7 @@ Das Frontend ist eine Angular-App. Es zeigt:
 
 - kurze Einfuehrung zur Arbeitsplatzreservierung
 - Standortauswahl
-- Zeitraum-Auswahl vor dem Oeffnen eines Raums
+- Zeitraum-Auswahl in der Raumansicht
 - je zwei Demo-Raeume fuer Wels und Linz
 - Raumwechsel innerhalb des ausgewaehlten Standorts
 - statische Raeume in Vogelperspektive mit je 8 Tischen
