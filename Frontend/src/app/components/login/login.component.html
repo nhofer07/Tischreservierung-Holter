@@ -1,0 +1,38 @@
+<main class="login-page">
+  <section class="login-panel">
+    <div class="login-brand">
+      <img src="/holter-logo.png" alt="HOLTER" />
+      <span>DeskVision</span>
+    </div>
+    <div class="login-copy">
+      <p>Interne Arbeitsplatzverwaltung</p>
+      <h1>Willkommen zurück</h1>
+      <span>Melde dich mit deinem Testkonto an, um einen Arbeitsplatz zu buchen.</span>
+    </div>
+    <form (ngSubmit)="login()">
+      <label>
+        E-Mail-Adresse
+        <input type="email" name="email" [(ngModel)]="email" autocomplete="username" required />
+      </label>
+      <label>
+        Passwort
+        <input type="password" name="passwort" [(ngModel)]="passwort" autocomplete="current-password" required />
+      </label>
+      <p class="login-error" *ngIf="fehler">{{ fehler }}</p>
+      <button type="submit" [disabled]="laden || !email || !passwort">
+        {{ laden ? 'Anmeldung läuft …' : 'Anmelden' }}
+      </button>
+    </form>
+    <div class="test-hint">
+      <strong>Testzugänge</strong>
+      <span>Mitarbeiter: anna.leitner@example.test / holter123</span>
+      <span>Verwaltung: eva.gruber@example.test / holter123</span>
+      <span>Abteilungsleitung: admin@holter.test / admin123</span>
+      <span>Superadmin: chef@holter.test / admin123</span>
+    </div>
+  </section>
+  <aside aria-hidden="true">
+    <div class="office-mark"><i></i><i></i><i></i><i></i></div>
+    <p>Arbeitsplätze einfach planen.<br />Räume übersichtlich verwalten.</p>
+  </aside>
+</main>

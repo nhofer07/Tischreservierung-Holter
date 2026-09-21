@@ -1,0 +1,166 @@
+<section class="admin-page">
+  <header>
+    <div><p>Administration</p><h1>Arbeitsplatzverwaltung</h1><span>Grundrisse, Stammdaten und Reservierungen zentral verwalten.</span></div>
+  </header>
+
+  <nav class="admin-tabs" aria-label="Admin-Bereiche">
+    <button type="button" [class.active]="bereich === 'builder'" (click)="bereichOeffnen('builder')">Room Builder</button>
+    <button *ngIf="istSuperadmin" type="button" [class.active]="bereich === 'stammdaten'" (click)="bereichOeffnen('stammdaten')">Stammdaten</button>
+    <button type="button" [class.active]="bereich === 'benutzer'" (click)="bereichOeffnen('benutzer')">Mitarbeiter</button>
+    <button type="button" [class.active]="bereich === 'reservierungen'" (click)="bereichOeffnen('reservierungen')">Alle Reservierungen</button>
+    <button type="button" [class.active]="bereich === 'audit'" (click)="bereichOeffnen('audit')">Protokoll</button>
+  </nav>
+
+  <ng-container *ngIf="bereich === 'builder'">
+    <section class="room-selection">
+      <div class="location-selection">
+        <label><span class="step-label">1 · Standort auswählen</span><select name="adminStandort" (change)="standortAendern($any($event.target).value)"><option value="" [selected]="!standortId">Standort wählen</option><option *ngFor="let standort of standorte" [value]="standort.id" [selected]="standort.id === standortId">{{ standort.name }}</option></select></label>
+        <button type="button" class="new-room" (click)="neuerRaum()">+ Neuen Raum anlegen</button>
+      </div>
+
+      <div class="room-groups" *ngIf="standortId">
+        <p class="selection-hint" *ngIf="laden">Räume werden geladen …</p>
+        <p class="selection-hint" *ngIf="!laden && raeume.length === 0">An diesem Standort sind noch keine Räume vorhanden.</p>
+        <section class="room-group" *ngFor="let gruppe of raumGruppen">
+          <div class="group-heading"><span>2 · Abteilung</span><strong>{{ gruppe.abteilung }}</strong></div>
+          <div class="room-cards">
+            <button *ngFor="let eintrag of gruppe.raeume" type="button" class="room-card" [class.active]="raumId === eintrag.id" (click)="raumAendern(eintrag.id)">
+              <span>{{ raumId === eintrag.id ? 'Ausgewählt' : 'Raum auswählen' }}</span>
+              <strong>{{ eintrag.name }}</strong>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div class="room-actions" *ngIf="raum">
+        <div><span>3 · Ausgewählter Raum</span><strong>{{ raum.name }}</strong><small>{{ raum.stockwerk }} · {{ raum.abteilungName }}</small></div>
+        <button type="button" (click)="raumBearbeiten()">Raumdaten</button>
+        <button type="button" (click)="grundrissBearbeiten()">Grundriss bearbeiten</button>
+        <button type="button" (click)="neuerTisch()">+ Arbeitsplatz</button>
+      </div>
+    </section>
+
+    <div class="builder-layout" *ngIf="modus === 'tisch' && raum">
+      <section class="canvas-card">
+        <div class="canvas-head"><div><strong>{{ raum.name }}</strong><span>{{ raum.stockwerk }} · {{ raum.abteilungName }}</span></div><small>Freie Fläche anklicken, um die Tischposition zu setzen</small></div>
+        <div class="builder-room" (click)="positionSetzen($event)">
+          <svg class="layout-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <g *ngFor="let element of raum.elemente" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + (element.x + element.breite / 2) + ' ' + (element.y + element.hoehe / 2) + ')'">
+              <rect *ngIf="element.typ === 'wand'" class="svg-wall" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+              <g *ngIf="element.typ === 'tuer'" class="svg-door"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe" [attr.x2]="element.x" [attr.y2]="element.y" /><path [attr.d]="'M ' + element.x + ' ' + element.y + ' A ' + element.breite + ' ' + element.hoehe + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe)" /></g>
+              <circle *ngIf="element.typ === 'pflanze'" class="svg-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.r]="element.breite / 2" />
+              <rect *ngIf="element.typ === 'fenster'" class="svg-window" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+              <g *ngIf="element.typ === 'klima'" class="svg-ac"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .7">AC</text></g>
+              <rect *ngIf="element.typ === 'saeule'" class="svg-column" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+              <g *ngIf="element.typ === 'feuerloescher'" class="svg-fire"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .72">F</text></g>
+              <g *ngIf="element.typ === 'beschriftung'" class="svg-label"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .68">{{ element.text }}</text></g>
+              <rect *ngIf="element.typ === 'gesperrt'" class="svg-blocked" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            </g>
+          </svg>
+          <button *ngFor="let tisch of raum.arbeitsplaetze" type="button" class="builder-desk" [class.selected]="ausgewaehlterTisch?.id === tisch.id" [class.reserved]="tisch.status === 'reserviert'" [style.left.%]="tisch.x" [style.top.%]="tisch.y" [style.--rotation]="(ausgewaehlterTisch?.id === tisch.id ? tischForm.rotation : tisch.rotation || 0) + 'deg'" [style.--counter-rotation]="(0 - (ausgewaehlterTisch?.id === tisch.id ? tischForm.rotation : tisch.rotation || 0)) + 'deg'" [style.--desk-width]="(ausgewaehlterTisch?.id === tisch.id ? tischForm.breite : tisch.breite || 12) + '%'" [style.--desk-height]="(ausgewaehlterTisch?.id === tisch.id ? tischForm.hoehe : tisch.hoehe || 12) + '%'" [attr.title]="tisch.tischnr" (click)="$event.stopPropagation(); tischAuswaehlen(tisch)" (pointerdown)="tischDragStart($event,tisch)" (pointermove)="tischBearbeitenPointerMove($event)" (pointerup)="tischDragEnd($event)"><span class="desk-label"><strong [class.long-number]="(ausgewaehlterTisch?.id === tisch.id ? tischForm.tischnr : tisch.tischnr).length > 5">{{ ausgewaehlterTisch?.id === tisch.id ? tischForm.tischnr : tisch.tischnr }}</strong><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span><ng-container *ngIf="ausgewaehlterTisch?.id === tisch.id"><i class="desk-handle nw" (pointerdown)="tischResizeStart($event,'nw')"></i><i class="desk-handle ne" (pointerdown)="tischResizeStart($event,'ne')"></i><i class="desk-handle sw" (pointerdown)="tischResizeStart($event,'sw')"></i><i class="desk-handle se" (pointerdown)="tischResizeStart($event,'se')"></i><i class="desk-rotate-line"></i><i class="desk-rotate-handle" (pointerdown)="tischDrehenStart($event)"></i></ng-container></button>
+          <div class="position-preview" *ngIf="!ausgewaehlterTisch" [style.left.%]="tischForm.x" [style.top.%]="tischForm.y" [style.--desk-width]="tischForm.breite + '%'" [style.--desk-height]="tischForm.hoehe + '%'" [style.--rotation]="tischForm.rotation + 'deg'" [style.--counter-rotation]="(0 - tischForm.rotation) + 'deg'"><span>{{ tischForm.tischnr }}</span></div>
+        </div>
+      </section>
+
+      <form class="editor" (ngSubmit)="tischSpeichern()">
+        <div class="editor-title"><div><p>{{ ausgewaehlterTisch ? 'Bearbeiten' : 'Neu anlegen' }}</p><h2>Arbeitsplatz</h2></div><button *ngIf="ausgewaehlterTisch" type="button" class="delete" (click)="tischLoeschen()">Löschen</button></div>
+        <label>Tischnummer<input type="text" name="tischnr" maxlength="12" [(ngModel)]="tischForm.tischnr" placeholder="z. B. A12" required /></label>
+        <label>Bezeichnung<input name="name" [(ngModel)]="tischForm.name" required /></label>
+        <div class="field-row"><label>Position X<input type="number" name="x" min="8" max="92" [(ngModel)]="tischForm.x" /></label><label>Position Y<input type="number" name="y" min="12" max="86" [(ngModel)]="tischForm.y" /></label></div>
+        <div class="desk-size-presets"><span>Größe für alle Tische im Raum</span><button type="button" (click)="tischGroesseSetzen('klein')">Klein</button><button type="button" (click)="tischGroesseSetzen('mittel')">Mittel</button><button type="button" (click)="tischGroesseSetzen('gross')">Groß</button></div>
+        <small *ngIf="ausgewaehlterTisch">Tisch direkt im Raum über die Eckpunkte vergrößern und am runden Griff drehen.</small>
+        <fieldset><legend>Ausstattung auswählen</legend><label class="check-option" *ngFor="let name of equipmentListe"><input type="checkbox" [checked]="hatEquipment(name)" (change)="equipmentUmschalten(name, $any($event.target).checked)" />{{ name }}</label></fieldset>
+        <button type="submit" class="save">Arbeitsplatz speichern</button>
+      </form>
+    </div>
+
+    <div class="floor-editor" *ngIf="modus === 'grundriss' && raum">
+      <aside class="toolbox">
+        <p>SVG-Werkzeuge</p><h2>Grundriss</h2>
+        <div class="history-actions"><button type="button" [disabled]="historie.length === 0" (click)="rueckgaengig()">↶ Rückgängig</button><button type="button" [disabled]="wiederholenHistorie.length === 0" (click)="wiederholen()">↷ Wiederholen</button></div>
+        <button type="button" [class.active]="werkzeug === 'auswahl'" (click)="werkzeug = 'auswahl'">Auswählen & verschieben</button>
+        <button type="button" [class.active]="werkzeug === 'wand'" (click)="werkzeug = 'wand'">Wand ziehen</button>
+        <button type="button" [class.active]="werkzeug === 'tuer'" (click)="werkzeug = 'tuer'">Tür platzieren</button>
+        <button type="button" [class.active]="werkzeug === 'fenster'" (click)="werkzeug = 'fenster'">Fenster platzieren</button>
+        <button type="button" [class.active]="werkzeug === 'pflanze'" (click)="werkzeug = 'pflanze'">Pflanze platzieren</button>
+        <button type="button" [class.active]="werkzeug === 'klima'" (click)="werkzeug = 'klima'">Klimagerät platzieren</button>
+        <button type="button" [class.active]="werkzeug === 'saeule'" (click)="werkzeug = 'saeule'">Säule platzieren</button>
+        <button type="button" [class.active]="werkzeug === 'feuerloescher'" (click)="werkzeug = 'feuerloescher'">Feuerlöscher markieren</button>
+        <button type="button" [class.active]="werkzeug === 'gesperrt'" (click)="werkzeug = 'gesperrt'">Sperrzone platzieren</button>
+        <button type="button" [class.active]="werkzeug === 'beschriftung'" (click)="werkzeug = 'beschriftung'">Beschriftung platzieren</button>
+        <button type="button" (click)="rechteckVorlage()">Vorlage: Rechteckiger Raum</button>
+        <button type="button" (click)="lFormVorlage()">Vorlage: L-förmiger Raum</button>
+        <label class="snap-option"><input type="checkbox" [(ngModel)]="rasterAktiv" /> Am Raster ausrichten</label>
+        <div class="element-fields" *ngIf="ausgewaehltesElement as element">
+          <strong>{{ element.typ | titlecase }}</strong>
+          <button *ngIf="element.typ === 'beschriftung'" type="button" class="edit-label" (click)="beschriftungBearbeiten(element)">Text bearbeiten</button>
+          <label *ngIf="element.typ !== 'tuer'">Breite<input type="number" min="1" max="100" [(ngModel)]="element.breite" /></label>
+          <label *ngIf="element.typ !== 'tuer'">Höhe<input type="number" min="1" max="100" [(ngModel)]="element.hoehe" /></label>
+          <label *ngIf="element.typ === 'tuer'">Türgröße (1:1)<input type="number" min="4" max="25" [ngModel]="element.breite" (ngModelChange)="tuerGroesseAendern(element, $event)" /></label>
+          <label>Drehung {{ element.rotation || 0 }}°<input type="range" min="0" max="359" step="1" [(ngModel)]="element.rotation" /></label>
+          <div class="align-actions" *ngIf="ausgewaehlteElementIds.length > 1"><button type="button" (click)="elementeAusrichten('links')">Links</button><button type="button" (click)="elementeAusrichten('oben')">Oben</button><button type="button" (click)="elementeAusrichten('horizontal')">Horizontal</button><button type="button" (click)="elementeAusrichten('vertikal')">Vertikal</button></div>
+          <button type="button" (click)="elementDrehen()">Um 90° drehen</button>
+          <div class="align-actions"><button type="button" (click)="ebeneAendern(false)">Nach hinten</button><button type="button" (click)="ebeneAendern(true)">Nach vorne</button></div>
+          <button type="button" (click)="elementDuplizieren()">Element duplizieren</button>
+          <button type="button" class="delete" (click)="elementLoeschen()">Element löschen</button>
+        </div>
+        <button type="button" class="secondary" (click)="grundrissVerwerfen()">Ungespeicherte Änderungen verwerfen</button>
+        <button type="button" class="save" [disabled]="!grundrissGeaendert" (click)="grundrissSpeichern()">{{ grundrissGeaendert ? 'Grundriss speichern' : 'Alles gespeichert' }}</button>
+      </aside>
+      <section class="svg-card">
+        <div class="canvas-head"><div><strong>{{ raum.name }}</strong><span>Shift-Klick wählt mehrere Elemente · Entf löscht · Pfeiltasten verschieben</span></div><div class="view-actions"><button type="button" (click)="zoomAendern(-.2)">−</button><span>{{ zoom * 100 | number:'1.0-0' }} %</span><button type="button" (click)="zoomAendern(.2)">+</button><button type="button" (click)="ansichtVerschieben(-10,0)">←</button><button type="button" (click)="ansichtVerschieben(10,0)">→</button><button type="button" (click)="ansichtVerschieben(0,-10)">↑</button><button type="button" (click)="ansichtVerschieben(0,10)">↓</button><button type="button" (click)="allesZuruecksetzen()">Standard zurücksetzen</button></div></div>
+        <svg class="floor-svg" [attr.viewBox]="svgViewBox" preserveAspectRatio="none" (pointerdown)="svgPointerDown($event)" (pointermove)="svgPointerMove($event)" (pointerup)="svgPointerUp($event)" (pointerleave)="svgPointerUp($event)">
+          <defs><pattern id="grid" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M 5 0 L 0 0 0 5" fill="none" stroke="#deded9" stroke-width=".25" /></pattern><pattern id="stripes" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#b23542" stroke-width="1" /></pattern></defs>
+          <rect width="100" height="100" fill="#f4f4f1" /><rect width="100" height="100" fill="url(#grid)" />
+          <rect *ngIf="wandVorschau as vorschau" class="wall-preview" [attr.x]="vorschau.x" [attr.y]="vorschau.y" [attr.width]="vorschau.breite" [attr.height]="vorschau.hoehe" />
+          <g *ngFor="let element of raum.elemente" class="editable-element" [class.selected]="ausgewaehlteElementIds.includes(element.id)" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + (element.x + element.breite / 2) + ' ' + (element.y + element.hoehe / 2) + ')'" (pointerdown)="elementPointerDown($event, element)">
+            <rect *ngIf="element.typ === 'wand'" class="svg-wall" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <g *ngIf="element.typ === 'tuer'" class="svg-door"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe" [attr.x2]="element.x" [attr.y2]="element.y" /><path [attr.d]="'M ' + element.x + ' ' + element.y + ' A ' + element.breite + ' ' + element.hoehe + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe)" /></g>
+            <circle *ngIf="element.typ === 'pflanze'" class="svg-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.r]="element.breite / 2" />
+            <rect *ngIf="element.typ === 'fenster'" class="svg-window" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <g *ngIf="element.typ === 'klima'" class="svg-ac"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .7">AC</text></g>
+            <rect *ngIf="element.typ === 'saeule'" class="svg-column" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <g *ngIf="element.typ === 'feuerloescher'" class="svg-fire"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .72">F</text></g>
+            <g *ngIf="element.typ === 'beschriftung'" class="svg-label"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .68" (pointerdown)="$event.stopPropagation(); beschriftungAuswaehlen(element)" (dblclick)="$event.stopPropagation(); beschriftungBearbeiten(element)">{{ element.text || 'Doppelklick zum Bearbeiten' }}</text><g *ngIf="ausgewaehlteElementIds.includes(element.id)" class="label-delete" (pointerdown)="$event.stopPropagation()" (click)="$event.stopPropagation(); beschriftungEntfernen(element)"><circle [attr.cx]="element.x + element.breite" [attr.cy]="element.y" r="1.7" /><text [attr.x]="element.x + element.breite" [attr.y]="element.y + .75">×</text></g></g>
+            <rect *ngIf="element.typ === 'gesperrt'" class="svg-blocked" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <rect class="selection-outline" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <rect *ngIf="ausgewaehlteElementIds.includes(element.id)" class="resize-handle" [attr.x]="element.x - 1.2" [attr.y]="element.y - 1.2" width="2.4" height="2.4" (pointerdown)="resizePointerDown($event, element, 'nw')" />
+            <rect *ngIf="ausgewaehlteElementIds.includes(element.id)" class="resize-handle" [attr.x]="element.x + element.breite - 1.2" [attr.y]="element.y - 1.2" width="2.4" height="2.4" (pointerdown)="resizePointerDown($event, element, 'ne')" />
+            <rect *ngIf="ausgewaehlteElementIds.includes(element.id)" class="resize-handle" [attr.x]="element.x - 1.2" [attr.y]="element.y + element.hoehe - 1.2" width="2.4" height="2.4" (pointerdown)="resizePointerDown($event, element, 'sw')" />
+            <rect *ngIf="ausgewaehlteElementIds.includes(element.id)" class="resize-handle" [attr.x]="element.x + element.breite - 1.2" [attr.y]="element.y + element.hoehe - 1.2" width="2.4" height="2.4" (pointerdown)="resizePointerDown($event, element, 'se')" />
+            <line *ngIf="ausgewaehlteElementIds.includes(element.id)" class="rotate-line" [attr.x1]="element.x + element.breite / 2" [attr.y1]="element.y" [attr.x2]="element.x + element.breite / 2" [attr.y2]="element.y - 5" />
+            <circle *ngIf="ausgewaehlteElementIds.includes(element.id)" class="rotate-handle" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y - 6" r="1.7" (pointerdown)="rotatePointerDown($event, element)" (pointermove)="rotatePointerMove($event)" (pointerup)="svgPointerUp($event)" />
+          </g>
+        </svg>
+      </section>
+    </div>
+
+    <form class="room-editor" *ngIf="modus === 'raum'" (ngSubmit)="raumSpeichern()">
+      <div class="editor-title"><div><p>Raumverwaltung</p><h2>{{ raumId ? 'Raum bearbeiten' : 'Neuen Raum anlegen' }}</h2></div><button *ngIf="raumId && istSuperadmin" type="button" class="delete" (click)="raumLoeschen()">Raum löschen</button></div>
+      <div class="field-row"><label>Name<input name="raumName" [(ngModel)]="raumForm.name" required /></label><label>Stockwerk<input name="stockwerk" [(ngModel)]="raumForm.stockwerk" required /></label></div>
+      <label>Standort<select name="raumStandort" [(ngModel)]="raumForm.standortId"><option *ngFor="let standort of standorte" [value]="standort.id">{{ standort.name }}</option></select></label>
+      <label>Abteilung<select name="abteilung" [(ngModel)]="raumForm.abteilungId" (change)="raumForm.abteilungName = $any($event.target).selectedOptions[0].text"><option *ngFor="let abteilung of abteilungen" [value]="abteilung.id">{{ abteilung.name }}</option></select></label>
+      <button type="submit" class="save">Raum speichern</button>
+    </form>
+  </ng-container>
+
+  <section class="master-grid" *ngIf="bereich === 'stammdaten'">
+    <article class="master-card rooms-card"><div><p>Organisation</p><h2>Räume</h2><span>Hier verwaltet der Superadmin alle Räume. Räume mit laufenden oder zukünftigen Reservierungen sind vor dem Löschen geschützt.</span></div><p class="empty-master-list" *ngIf="stammdatenRaeume.length === 0">Noch keine Räume vorhanden.</p><ul><li *ngFor="let eintrag of stammdatenRaeume"><span><strong>{{ eintrag.name }}</strong><small>{{ standortName(eintrag.standortId) }} · {{ eintrag.abteilungName }}</small></span><button type="button" (click)="stammdatenRaumLoeschen(eintrag.id, eintrag.name)">Löschen</button></li></ul></article>
+    <article class="master-card"><div><p>Organisation</p><h2>Abteilungen</h2><span>Eine verwendete Abteilung kann erst nach ihren Räumen und Testnutzern gelöscht werden.</span></div><form class="inline-form" (ngSubmit)="abteilungAnlegen()"><input name="neueAbteilung" [(ngModel)]="neueAbteilung" placeholder="Neue Abteilung" /><button type="submit">Hinzufügen</button></form><ul><li *ngFor="let abteilung of abteilungen"><span><strong>{{ abteilung.name }}</strong><small>{{ abteilung.id }}</small></span><button type="button" (click)="abteilungLoeschen(abteilung.id)">Löschen</button></li></ul></article>
+    <article class="master-card"><div><p>Ausstattung</p><h2>Equipment</h2><span>Diese Liste erscheint als fehlerfreie Checkbox-Auswahl bei jedem Arbeitsplatz.</span></div><form class="inline-form" (ngSubmit)="equipmentAnlegen()"><input name="neuesEquipment" [(ngModel)]="neuesEquipment" placeholder="Neues Equipment" /><button type="submit">Hinzufügen</button></form><ul><li *ngFor="let name of equipmentListe"><strong>{{ name }}</strong><button type="button" (click)="equipmentLoeschen(name)">Löschen</button></li></ul></article>
+    <article class="master-card location-card"><div><p>Organisation</p><h2>Standorte</h2><span>Standorte mit vorhandenen Räumen sind vor dem Löschen geschützt.</span></div><ul><li *ngFor="let standort of standorte"><span><strong>{{ standort.name }}</strong><small>{{ standort.adresse }} · {{ standort.ort }}</small></span><span class="row-actions"><button type="button" (click)="standortAuswaehlen(standort)">Bearbeiten</button><button type="button" (click)="standortLoeschen(standort.id)">Löschen</button></span></li></ul><form class="location-form" (ngSubmit)="standortSpeichern()"><h3>{{ bearbeiteterStandortId ? 'Standort bearbeiten' : 'Neuer Standort' }}</h3><input name="standortName" [(ngModel)]="standortForm.name" placeholder="Name" required /><input name="standortAdresse" [(ngModel)]="standortForm.adresse" placeholder="Adresse" required /><input name="standortOrt" [(ngModel)]="standortForm.ort" placeholder="Ort" required /><div class="row-actions"><button type="submit">Speichern</button><button type="button" (click)="neuerStandort()">Leeren</button></div></form></article>
+  </section>
+
+  <section class="user-management" *ngIf="bereich === 'benutzer'">
+    <div class="user-list"><div class="section-head"><div><p>Konten</p><h2>Mitarbeiterverwaltung</h2></div><button type="button" (click)="neuerBenutzer()">+ Mitarbeiter</button></div><button *ngFor="let eintrag of benutzerListe" type="button" class="user-row" [class.active]="ausgewaehlterBenutzerId === eintrag.id" (click)="benutzerAuswaehlen(eintrag)"><span><strong>{{ eintrag.vorname }} {{ eintrag.nachname }}</strong><small>{{ eintrag.email }} · {{ eintrag.abteilungName }}</small></span><i [class.inactive]="!eintrag.aktiv">{{ eintrag.aktiv ? 'Aktiv' : 'Deaktiviert' }}</i></button></div>
+    <form class="user-editor" (ngSubmit)="benutzerSpeichern()"><p>Konto</p><h2>{{ ausgewaehlterBenutzerId ? 'Mitarbeiter bearbeiten' : 'Mitarbeiter anlegen' }}</h2><div class="field-row"><label>Vorname<input name="userVorname" [(ngModel)]="benutzerForm.vorname" required /></label><label>Nachname<input name="userNachname" [(ngModel)]="benutzerForm.nachname" required /></label></div><label>E-Mail<input type="email" name="userEmail" [(ngModel)]="benutzerForm.email" required /></label><div class="field-row"><label>Rolle<select name="userRolle" [(ngModel)]="benutzerForm.rolle"><option value="USER">Mitarbeiter</option><option *ngIf="istSuperadmin" value="ADMIN">Abteilungsleitung</option><option *ngIf="istSuperadmin" value="SUPERADMIN">Superadmin</option></select></label><label>Abteilung<select name="userAbteilung" [(ngModel)]="benutzerForm.abteilungId"><option *ngFor="let abteilung of abteilungen" [value]="abteilung.id">{{ abteilung.name }}</option></select></label></div><label>Bevorzugter Raum<select name="userRaum" [(ngModel)]="benutzerForm.bevorzugterRaumId"><option value="">Kein bevorzugter Raum</option><option *ngFor="let eintrag of raeume" [value]="eintrag.id">{{ eintrag.name }}</option></select></label><label class="check-option"><input type="checkbox" name="userAktiv" [(ngModel)]="benutzerForm.aktiv" /> Benutzerkonto aktiv</label><button type="submit" class="save">Mitarbeiter speichern</button><button *ngIf="ausgewaehlterBenutzerId" type="button" class="password-reset" (click)="passwortZuruecksetzen()">Passwort auf holter123 zurücksetzen</button></form>
+  </section>
+
+  <section class="all-reservations" *ngIf="bereich === 'reservierungen'">
+    <div class="section-head"><div><p>Übersicht</p><h2>Reservierungen aller Mitarbeiter</h2></div><div class="section-actions"><span>{{ gefilterteReservierungen.length }} Einträge</span><button type="button" (click)="csvExportieren()">CSV exportieren</button><button type="button" (click)="reservierungenLaden()">Aktualisieren</button></div></div>
+    <div class="reservation-filters"><input [(ngModel)]="reservierungsSuche" placeholder="Mitarbeiter, Raum oder Arbeitsplatz suchen" /><select [(ngModel)]="reservierungsStandort" (ngModelChange)="reservierungsRaum=''"><option value="">Alle Standorte</option><option *ngFor="let standort of standorte" [value]="standort.id">{{ standort.name }}</option></select><select [(ngModel)]="reservierungsRaum"><option value="">Alle Räume</option><option *ngFor="let eintrag of reservierungsRaeume" [value]="eintrag.id">{{ eintrag.name }}</option></select><select [(ngModel)]="reservierungsStatus"><option value="">Alle Status</option><option value="aktiv">Aktiv</option><option value="abgelaufen">Abgelaufen</option><option value="storniert">Storniert</option></select><input type="date" [(ngModel)]="reservierungsDatum" /><input [(ngModel)]="stornierungsgrund" placeholder="Stornierungsgrund (Pflicht)" /></div>
+    <div class="table-wrap"><table><thead><tr><th>Mitarbeiter</th><th>Arbeitsplatz</th><th>Raum / Standort</th><th>Zeitraum</th><th>Status</th><th>Aktion</th></tr></thead><tbody><tr *ngFor="let eintrag of gefilterteReservierungen"><td><strong>{{ eintrag.benutzerName }}</strong></td><td>{{ eintrag.tischnr }} · {{ eintrag.arbeitsplatzName }}</td><td>{{ eintrag.raumName }}<small>{{ eintrag.standortName }}</small></td><td>{{ eintrag.reservierungAnfang | date:'dd.MM.yyyy HH:mm' }} – {{ eintrag.reservierungEnde | date:'HH:mm' }}</td><td><span class="reservation-status" [class.cancelled]="eintrag.status === 'storniert'">{{ reservierungsStatusText(eintrag) }}</span><small *ngIf="eintrag.stornierungsgrund">{{ eintrag.stornierungsgrund }}</small></td><td><button *ngIf="reservierungIstAktiv(eintrag)" type="button" class="cancel-reservation" (click)="reservierungStornieren(eintrag)">Stornieren</button><span *ngIf="!reservierungIstAktiv(eintrag)">–</span></td></tr></tbody></table></div>
+  </section>
+
+  <section class="all-reservations" *ngIf="bereich === 'audit'"><div class="section-head"><div><p>Nachvollziehbarkeit</p><h2>Admin-Protokoll</h2></div><button type="button" (click)="auditLaden()">Aktualisieren</button></div><div class="table-wrap"><table><thead><tr><th>Zeitpunkt</th><th>Admin</th><th>Aktion</th><th>Details</th></tr></thead><tbody><tr *ngFor="let eintrag of auditEintraege"><td>{{ eintrag.zeitpunkt | date:'dd.MM.yyyy HH:mm:ss' }}</td><td>{{ eintrag.adminId }}</td><td><strong>{{ eintrag.aktion }}</strong></td><td>{{ eintrag.details }}</td></tr></tbody></table></div></section>
+</section>

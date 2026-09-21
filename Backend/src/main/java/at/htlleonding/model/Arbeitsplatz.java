@@ -4,27 +4,35 @@ import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonId;
 
 import java.util.List;
+import java.util.Date;
 
 @MongoEntity(collection = "arbeitsplaetze")
 public class Arbeitsplatz {
     @BsonId
     private String id;
-    private int tischnr;
+    private String tischnr;
     private String raumId;
     private String standortId;
     private String abteilungId;
     private String abteilungName;
     private String name;
     private String status;
+    private String reserviertVon;
+    private String reservierungBenutzerId;
+    private Date reservierungAnfang;
+    private Date reservierungEnde;
+    private double rotation;
+    private double breite;
+    private double hoehe;
     private Position position;
     private List<Equipment> equipment;
 
     public Arbeitsplatz() {
     }
 
-    public Arbeitsplatz(String id, int tischnr, String raumId, String standortId, String abteilungId,
+    public Arbeitsplatz(String id, String tischnr, String raumId, String standortId, String abteilungId,
                         String abteilungName, String name, String status, Position position,
-                        List<Equipment> equipment) {
+                        List<Equipment> equipment, double rotation, double breite, double hoehe) {
         this.id = id;
         this.tischnr = tischnr;
         this.raumId = raumId;
@@ -35,6 +43,9 @@ public class Arbeitsplatz {
         this.status = status;
         this.position = position;
         this.equipment = equipment;
+        this.rotation = rotation;
+        this.breite = breite;
+        this.hoehe = hoehe;
     }
 
     public String getId() {
@@ -45,11 +56,11 @@ public class Arbeitsplatz {
         this.id = id;
     }
 
-    public int getTischnr() {
+    public String getTischnr() {
         return tischnr;
     }
 
-    public void setTischnr(int tischnr) {
+    public void setTischnr(String tischnr) {
         this.tischnr = tischnr;
     }
 
@@ -100,6 +111,20 @@ public class Arbeitsplatz {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    public String getReserviertVon() { return reserviertVon; }
+
+    public void setReserviertVon(String reserviertVon) { this.reserviertVon = reserviertVon; }
+    public String getReservierungBenutzerId() { return reservierungBenutzerId; }
+    public void setReservierungBenutzerId(String id) { this.reservierungBenutzerId = id; }
+    public Date getReservierungAnfang() { return reservierungAnfang; }
+    public void setReservierungAnfang(Date wert) { this.reservierungAnfang = wert; }
+    public Date getReservierungEnde() { return reservierungEnde; }
+    public void setReservierungEnde(Date wert) { this.reservierungEnde = wert; }
+    public double getRotation() { return rotation; }
+    public void setRotation(double rotation) { this.rotation = rotation; }
+    public double getBreite() { return breite; }
+    public double getHoehe() { return hoehe; }
 
     public Position getPosition() {
         return position;

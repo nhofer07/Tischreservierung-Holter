@@ -1,12 +1,12 @@
 <section class="intro">
   <div class="copy">
-    <p class="eyebrow">DeskVision</p>
-    <h1>Arbeitsplatz reservieren.</h1>
+    <p class="eyebrow">Arbeitsplatzübersicht</p>
+    <h1>Arbeitsplatz finden</h1>
     <p class="lead">
-      Standort wählen, Raum öffnen, Arbeitsplatz anklicken.
+      Wähle deinen Standort. Wir zeigen dir zuerst den passenden Raum für deine Abteilung.
     </p>
 
-    <span class="selection-label">Standort</span>
+    <span class="selection-label"><i>1</i> Standort auswählen</span>
     <div class="location-list" aria-label="Standort auswählen">
       <button
         *ngFor="let standort of standorteSignal()"
@@ -15,28 +15,62 @@
         [class.active]="selectedStandortId() === standort.id"
         (click)="standortAuswaehlen(standort.id)"
       >
-        <span>{{ standort.name }}</span>
+        <span>HOLTER Standort</span>
         <strong>{{ standort.ort }}</strong>
         <small>{{ standort.adresse }}</small>
       </button>
     </div>
 
-    <button class="open-button" type="button" (click)="openSelectedRoom()">Raum öffnen</button>
+    <button class="open-button" type="button" [disabled]="!benutzerSignal() || !raumSignal()" (click)="openSelectedRoom()">
+      <span>2</span> Raumübersicht öffnen
+    </button>
   </div>
 
-  <div class="preview">
-    <span class="preview-title">{{ raumName() }}</span>
-    <strong>8 Tische · {{ freieTische() }} frei</strong>
-    <div class="preview-room" [ngClass]="previewLayout()">
-      <i class="preview-door"></i>
-      <i class="table free"></i>
-      <i class="table reserved"></i>
-      <i class="table free"></i>
-      <i class="table free"></i>
-      <i class="table free"></i>
-      <i class="table reserved"></i>
-      <i class="table free"></i>
-      <i class="table free"></i>
+  <div class="preview" *ngIf="raumSignal() as raum; else previewLoading">
+    <div class="preview-head">
+      <div>
+        <span class="preview-label">Vorgeschlagener Raum</span>
+        <h2>{{ raum.name }}</h2>
+      </div>
+      <span class="department-badge">{{ raum.abteilungName }}</span>
+    </div>
+    <p>{{ reservierbareTische() }} reservierbar · {{ freieTische() }} insgesamt frei</p>
+
+    <div class="preview-room" aria-label="Vorschau des Raums">
+      <svg class="saved-layout" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs><pattern id="preview-stripes" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#b23542" stroke-width="1" /></pattern></defs>
+        <g *ngFor="let element of raum.elemente" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + (element.x + element.breite / 2) + ' ' + (element.y + element.hoehe / 2) + ')'">
+          <rect *ngIf="element.typ === 'wand'" class="layout-wall" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+          <g *ngIf="element.typ === 'tuer'" class="layout-door"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe" [attr.x2]="element.x" [attr.y2]="element.y" /><path [attr.d]="'M ' + element.x + ' ' + element.y + ' A ' + element.breite + ' ' + element.hoehe + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe)" /></g>
+          <circle *ngIf="element.typ === 'pflanze'" class="layout-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.r]="element.breite / 2" />
+          <rect *ngIf="element.typ === 'fenster'" class="layout-window" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+          <g *ngIf="element.typ === 'klima'" class="layout-ac"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .7">AC</text></g>
+          <rect *ngIf="element.typ === 'saeule'" class="layout-column" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+          <g *ngIf="element.typ === 'feuerloescher'" class="layout-fire"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .72">F</text></g>
+          <g *ngIf="element.typ === 'beschriftung'" class="layout-label"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .68">{{ element.text }}</text></g>
+          <rect *ngIf="element.typ === 'gesperrt'" class="layout-blocked" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+        </g>
+      </svg>
+      <i
+        *ngFor="let tisch of raum.arbeitsplaetze"
+        class="table"
+        [class.reserved]="tisch.status === 'reserviert'"
+        [class.own-reservation]="tisch.eigeneReservierung"
+        [class.locked]="!tisch.reservierbar && tisch.status === 'frei'"
+        [style.left.%]="tisch.x"
+        [style.top.%]="tisch.y"
+        [style.--rotation]="(tisch.rotation || 0) + 'deg'"
+        [style.--counter-rotation]="(0 - (tisch.rotation || 0)) + 'deg'"
+        [style.--desk-width]="(tisch.breite || 12) + '%'"
+        [style.--desk-height]="(tisch.hoehe || 12) + '%'"
+        aria-hidden="true"
+      ><span class="desk-label"><strong>{{ tisch.tischnr }}</strong><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span></i>
     </div>
   </div>
+
+  <ng-template #previewLoading>
+    <div class="preview preview-empty">
+      <span>{{ vorschauWurdeGeladen() ? 'Für diesen Standort ist kein passender Raum vorhanden.' : 'Raumvorschau wird geladen …' }}</span>
+    </div>
+  </ng-template>
 </section>

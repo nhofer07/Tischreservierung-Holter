@@ -13,4 +13,5 @@ export class DeskDetailsComponent {
   @Input({ required: true }) raum!: Raum;
   @Input() fehler = '';
   @Output() reservieren = new EventEmitter<void>();
+
 }

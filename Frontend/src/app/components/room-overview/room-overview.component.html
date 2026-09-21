@@ -7,8 +7,10 @@
     </div>
 
     <div class="header-tools">
-      <div class="room-switcher" aria-label="Raum wechseln">
+      <div class="booking-panel">
+      <div class="room-switcher" *ngIf="kannRaumWechseln" aria-label="Raum wechseln">
         <button
+          *ngIf="kannRaumWechseln"
           type="button"
           class="room-arrow"
           [attr.aria-label]="'Zu ' + vorherigerRaum.name + ' wechseln'"
@@ -18,11 +20,12 @@
         </button>
 
         <div class="switcher-current">
-          <span>Abteilung</span>
-          <strong>{{ aktuelleAbteilung }}</strong>
+          <span>Raum</span>
+          <strong>{{ raum.name }}</strong>
         </div>
 
         <button
+          *ngIf="kannRaumWechseln"
           type="button"
           class="room-arrow"
           [attr.aria-label]="'Zu ' + naechsterRaum.name + ' wechseln'"
@@ -62,11 +65,13 @@
 
         <button type="button" [disabled]="!zeitraumGueltig()" (click)="pruefen()">Prüfen</button>
       </div>
+      <div class="quick-times"><button type="button" (click)="schnellzeit('ganztag')">Ganztägig</button><button type="button" (click)="schnellzeit('vormittag')">Vormittag</button><button type="button" (click)="schnellzeit('nachmittag')">Nachmittag</button><label>Wöchentlich<select [value]="wiederholungen()" (change)="wiederholungen.set(+$any($event.target).value)"><option value="0">Einmalig</option><option value="3">4 Wochen</option><option value="7">8 Wochen</option><option value="11">12 Wochen</option></select></label></div>
+      </div>
     </div>
   </div>
 
   <div class="layout">
-    <section class="plan">
+    <section class="plan" [class.fullscreen-plan]="vollbild()">
       <div class="plan-head">
         <div>
           <span class="plan-title">Verfügbarkeit</span>
@@ -76,26 +81,58 @@
         <div class="legend">
           <span><i class="free"></i>frei</span>
           <span><i class="reserved"></i>reserviert</span>
+          <span><i class="locked"></i>andere Abteilung</span>
+          <span><i class="own"></i>deine Reservierung</span>
         </div>
+        <button type="button" class="fullscreen-button" (click)="vollbildUmschalten()" [attr.aria-label]="vollbild() ? 'Vollbild schließen' : 'Raum im Vollbild öffnen'">{{ vollbild() ? '× Schließen' : '⛶ Vollbild' }}</button>
+      </div>
+
+      <div class="filter-row">
+        <strong>Ausstattung</strong>
+        <div class="filter-options">
+          <label class="equipment-check" *ngFor="let ausstattung of ausstattungen">
+            <input type="checkbox" [checked]="ausstattungFilter().includes(ausstattung)" (change)="ausstattungAendern(ausstattung, $any($event.target).checked)" />
+            <span>{{ ausstattung }}</span>
+          </label>
+        </div>
+        <span class="filter-result">{{ sichtbareTische.length }} von {{ raum.arbeitsplaetze.length }} Tischen</span>
       </div>
 
       <div class="room">
-        <div class="door"><span>Tür</span></div>
-        <div class="plant plant-top" aria-hidden="true"></div>
-        <div class="plant plant-bottom" aria-hidden="true"></div>
+        <svg class="saved-layout" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Gespeicherter Raumgrundriss">
+          <defs><pattern id="room-stripes" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#b23542" stroke-width="1" /></pattern></defs>
+          <g *ngFor="let element of raum.elemente" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + (element.x + element.breite / 2) + ' ' + (element.y + element.hoehe / 2) + ')'">
+            <rect *ngIf="element.typ === 'wand'" class="layout-wall" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <g *ngIf="element.typ === 'tuer'" class="layout-door"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe" [attr.x2]="element.x" [attr.y2]="element.y" /><path [attr.d]="'M ' + element.x + ' ' + element.y + ' A ' + element.breite + ' ' + element.hoehe + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe)" /></g>
+            <circle *ngIf="element.typ === 'pflanze'" class="layout-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.r]="element.breite / 2" />
+            <rect *ngIf="element.typ === 'fenster'" class="layout-window" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <g *ngIf="element.typ === 'klima'" class="layout-ac"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .7">AC</text></g>
+            <rect *ngIf="element.typ === 'saeule'" class="layout-column" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+            <g *ngIf="element.typ === 'feuerloescher'" class="layout-fire"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .72">F</text></g>
+            <g *ngIf="element.typ === 'beschriftung'" class="layout-label"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .68">{{ element.text }}</text></g>
+            <rect *ngIf="element.typ === 'gesperrt'" class="layout-blocked" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+          </g>
+        </svg>
 
         <button
-          *ngFor="let tisch of raum.arbeitsplaetze"
+          *ngFor="let tisch of sichtbareTische"
           type="button"
           class="desk"
           [class.selected]="ausgewaehlterTisch?.id === tisch.id"
           [class.free]="tisch.status === 'frei'"
           [class.reserved]="tisch.status === 'reserviert'"
+          [class.locked]="!tisch.reservierbar && tisch.status === 'frei'"
+          [class.own-reservation]="tisch.eigeneReservierung"
           [style.left.%]="tisch.x"
           [style.top.%]="tisch.y"
+          [style.--rotation]="(tisch.rotation || 0) + 'deg'"
+          [style.--counter-rotation]="(0 - (tisch.rotation || 0)) + 'deg'"
+          [style.--desk-width]="(tisch.breite || 12) + '%'"
+          [style.--desk-height]="(tisch.hoehe || 12) + '%'"
+          [attr.title]="tooltip(tisch)"
           (click)="tischAuswaehlen.emit(tisch)"
         >
-          <span>{{ tisch.tischnr }}</span>
+          <span class="desk-label"><strong [class.long-number]="tisch.tischnr.length > 5">{{ tisch.tischnr }}</strong><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span>
         </button>
       </div>
     </section>
@@ -105,7 +142,7 @@
       [tisch]="ausgewaehlterTisch"
       [raum]="raum"
       [fehler]="fehler"
-      (reservieren)="reservieren.emit()"
+      (reservieren)="reservieren.emit(wiederholungen())"
     />
   </div>
 </section>

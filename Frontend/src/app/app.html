@@ -1,33 +1,92 @@
-<main class="page">
+<app-login
+  *ngIf="!aktiverBenutzer()"
+  [laden]="laden()"
+  [fehler]="fehler()"
+  (anmelden)="anmelden($event)"
+/>
+
+<main class="page" *ngIf="aktiverBenutzer() as benutzerAktiv">
   <header class="topbar">
     <button class="brand" type="button" aria-label="Zur Startseite" (click)="startOeffnen()">
       <img src="/holter-logo.png" alt="HOLTER" />
+      <span>DeskVision</span>
     </button>
-    <nav>
-      <span class="active">DeskVision</span>
-      <span>Standorte</span>
-      <span>Räume</span>
-      <span>Reservierungen</span>
+
+    <nav aria-label="Hauptnavigation">
+      <button
+        type="button"
+        [class.active]="aktiveAnsicht() === 'start' || aktiveAnsicht() === 'raum'"
+        (click)="startOeffnen()"
+      >
+        Arbeitsplatz finden
+      </button>
+      <button
+        type="button"
+        [class.active]="aktiveAnsicht() === 'reservierungen'"
+        (click)="reservierungenOeffnen()"
+      >
+        Meine Reservierungen
+      </button>
+      <button
+        *ngIf="istAdmin(benutzerAktiv)"
+        type="button"
+        [class.active]="aktiveAnsicht() === 'admin'"
+        (click)="adminOeffnen()"
+      >
+        Room Builder
+      </button>
     </nav>
+
+    <div class="profile-menu">
+      <span class="avatar">{{ benutzerAktiv.vorname.charAt(0) }}{{ benutzerAktiv.nachname.charAt(0) }}</span>
+      <span class="profile-name"><strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong><small>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Abteilungsleitung' : benutzerAktiv.abteilungName }}</small></span>
+      <button type="button" class="logout" (click)="abmelden()">Abmelden</button>
+    </div>
   </header>
 
+  <div class="global-message error-message" *ngIf="fehler()">{{ fehler() }}</div>
+  <div class="global-message success-message" *ngIf="nachricht()">{{ nachricht() }}</div>
+  <div class="loading-line" *ngIf="laden()"></div>
+
   <app-intro
-    *ngIf="aktiverSchritt() === 'start'"
+    *ngIf="aktiveAnsicht() === 'start'"
     [standorte]="standorte()"
     [raum]="raum()"
+    [benutzer]="aktiverBenutzer()"
+    (standortAusgewaehlt)="standortVorschauLaden($event)"
     (standortOeffnen)="standortOeffnen($event)"
   />
 
   <app-room-overview
-    *ngIf="aktiverSchritt() === 'raum' && raum()"
+    *ngIf="aktiveAnsicht() === 'raum' && raum() && aktiverBenutzer()"
     [raum]="raum()!"
     [raeume]="raeume()"
+    [benutzer]="aktiverBenutzer()!"
     [ausgewaehlterTisch]="ausgewaehlterTisch()"
     [fehler]="fehler()"
     [zeitraum]="zeitraum()"
     (raumWechseln)="raumOeffnen($event)"
     (zeitraumPruefen)="zeitraumPruefen($event)"
     (tischAuswaehlen)="tischAuswaehlen($event)"
-    (reservieren)="reservieren()"
+    (reservieren)="reservieren($event)"
+  />
+
+  <app-reservations
+    *ngIf="aktiveAnsicht() === 'reservierungen' && aktiverBenutzer()"
+    [benutzer]="aktiverBenutzer()!"
+    [reservierungen]="reservierungen()"
+    [laden]="laden()"
+    (stornieren)="stornieren($event)"
+    (bearbeiten)="reservierungBearbeiten($event)"
+    (arbeitsplatzSuchen)="startOeffnen()"
+  />
+
+  <app-admin-builder
+    *ngIf="aktiveAnsicht() === 'admin' && istAdmin(benutzerAktiv)"
+    [admin]="benutzerAktiv"
+    [standorte]="standorte()"
+    (nachricht)="meldungAnzeigen($event)"
+    (fehler)="fehlerAnzeigen($event)"
+    (standorteGeaendert)="standorteLaden()"
   />
 </main>

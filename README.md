@@ -1,102 +1,115 @@
-# Tischreservierung Holter
+# Tischreservierung HOLTER
 
-Dieses Repository enthaelt den Projektstand fuer die Meilensteine:
+DeskVision ist ein Prototyp fuer die Arbeitsplatzreservierung bei HOLTER. Benutzer:innen waehlen einen Standort und Raum, pruefen einen Zeitraum und reservieren einen freien Arbeitsplatz direkt in der Vogelperspektive.
 
-> Das Datenmodell fuer Standorte, Raeume, Arbeitsplaetze und Reservierungen ist umgesetzt.
+## Technologien
 
-> Die Arbeitsplatzdarstellung in Vogelperspektive ist umgesetzt und nutzbar.
+- Angular 21 fuer die Weboberflaeche
+- Quarkus 3 mit RESTEasy Reactive und MongoDB Panache fuer das Backend
+- MongoDB 7 als NoSQL-Datenbank
+- Docker Compose fuer die lokale MongoDB-Umgebung
 
-## Inhalt
+## Projektstruktur
 
-- `Datenbank/console.js`: MongoDB-Skript zum Erstellen und Befuellen der Datenbank
-- `docker-compose.yml`: MongoDB-Container fuer die lokale Entwicklung
-- `Backend/`: Quarkus REST-Backend fuer Arbeitsplatzdaten
-- `Frontend/`: Angular-Oberflaeche fuer Einstieg, Standortauswahl und Raumuebersicht
-- `Dokumentation/`: Dokumente zur Anforderungsanalyse und zum Projekt
+- `Frontend/`: Angular Components, Interfaces und Service fuer die REST-Aufrufe
+- `Backend/`: Quarkus mit `boundary`, `repo`, `model` und `DTOs`
+- `Datenbank/console.js`: Collections, Testdaten und Indizes
+- `docker-compose.yml`: MongoDB-Image mit Port und Healthcheck
+- `Dokumentation/`: Anforderungsdokument und Diplomarbeitsbeschreibung
 
-## Datenmodell
+## Umgesetzte Funktionen
 
-Das Datenmodell wird in MongoDB umgesetzt. Das Skript erstellt folgende Collections:
+- Standorte Wels und Linz mit jeweils einem IT- und Marketingraum
+- 32 unterschiedlich angeordnete Arbeitsplaetze mit Position und Ausstattung
+- Ausstattung als eingebettete Liste direkt am Arbeitsplatz
+- Abteilung und AbteilungID direkt an Raum und Arbeitsplatz
+- Benutzer-Testprofile mit Abteilung und bevorzugtem Raum
+- Index fuer Abteilungen zur schnellen Suche
+- Zeitraumpruefung direkt in der Raumansicht
+- Equipment-Filter in der Raumansicht
+- Reservierung ohne zusaetzliche Bestaetigungsseite
+- Serverseitige Sperre: Nur Tische der eigenen Abteilung sind reservierbar
+- Anzeige und Stornierung der eigenen Reservierungen
+- Login mit Mitarbeiter- und Admin-Testkonten
+- Rollenabhaengige Navigation
+- Room Builder fuer das Anlegen, Bearbeiten, Positionieren und Loeschen von Raeumen und Arbeitsplaetzen
+- SVG-Grundrisseditor: Waende ziehen sowie Tueren, Fenster, Pflanzen, Klima, Saeulen, Feuerloescher und Sperrzonen platzieren und verschieben
+- Rasterausrichtung, Wand-Andocken, Drehen, Duplizieren und Verwerfen ungespeicherter Grundrissaenderungen
+- Undo/Redo, Mehrfachauswahl, Ausrichten, Ebenen, Zoom/Pan, Tastatur- und Touchbedienung
+- Rechteckige und L-förmige Raumvorlagen sowie direkt bearbeitbare Beschriftungen
+- Kollisionserkennung fuer Tische gegen Waende, Sperrzonen, Saeulen und andere Tische
+- Neu angelegte Raeume werden direkt geladen und koennen ohne Seitenwechsel weiterbearbeitet werden
+- Zentrale Equipment-Verwaltung mit Checkbox-Auswahl statt fehleranfaelliger Texteingabe
+- Abteilungen anlegen und loeschen; fuer neue Abteilungen entsteht automatisch ein Testnutzer
+- Admin-Uebersicht ueber die Reservierungen aller Mitarbeiter
+- Reservierende Mitarbeiter werden direkt am belegten Tisch und im Detailbereich angezeigt
+- Admins koennen aktive Reservierungen aus der Gesamtuebersicht stornieren
+- Mitarbeiterkonten anlegen, deaktivieren, zuordnen und Passwort zuruecksetzen
+- Standorte anlegen und bearbeiten
+- Reservierungen suchen und nach Standort, Raum, Datum und Status filtern sowie als CSV exportieren
+- Stornierungsgruende, Sicherheitsabfragen und Audit-Protokoll fuer Admin-Aktionen
+- 14-Tage-Kalender, vergangene Reservierungen, Zeitraum bearbeiten und woechentliche Serien
+- Schnellwahl fuer Ganztag, Vormittag und Nachmittag sowie automatische Belegungsaktualisierung
+- Eigene Reservierungen blau markieren und genaue Reservierungszeiten im Raumplan anzeigen
+- Umschaltbare Namensanzeige: intern voller Name oder neutrale Anzeige `Belegt`
+- Geschuetztes Loeschen fuer verwendete Abteilungen, Raeume und Equipment
+- Admin-Aenderungen werden direkt in MongoDB gespeichert
+- Keine Frontend-Demodaten: Ist MongoDB oder das Backend nicht erreichbar, wird ein Fehler angezeigt
 
-- `standorte`: speichert HOLTER-Standorte
-- `raeume`: speichert Raeume mit Standort, Stockwerk und Abteilung
-- `arbeitsplaetze`: speichert Tische mit Raum, Standort, Abteilung, Status, Position und Equipment
-- `reservierungen`: speichert Reservierungen mit Arbeitsplatz, Raum, Standort, Zeitraum und Status
+## Datenbank starten
 
-## Umgesetztes Feedback
-
-- MongoDB-Image ist ueber `docker-compose.yml` eingebunden.
-- Standorte und Raeume sind im Datenmodell vorhanden.
-- Ausstattungen liegen direkt als Liste im Arbeitsplatz.
-- Abteilungen sind direkt am Arbeitsplatz und Raum hinterlegt.
-- Raeume und Tische haben eine AbteilungID.
-- IDs verwenden ein sprechendes Format wie `WELS-TISCH-101`, `LINZ-TISCH-201` oder `RAUM-WELS-OG1-TEAM`.
-- Fuer die Reservierung ist keine extra Bestaetigungsseite vorgesehen.
-
-## MongoDB starten
-
-Voraussetzung ist Docker und Zugriff auf die Mongo Shell.
+Docker Desktop muss laufen. Danach im Projektordner:
 
 ```bash
 docker compose up -d
-mongosh < Datenbank/console.js
+mongosh mongodb://localhost:27018/tischreservierung --file Datenbank/console.js
 ```
 
-Nach erfolgreicher Ausfuehrung wird die Datenbank `tischreservierung` erstellt und mit Testdaten befuellt.
+Das Skript setzt die lokale Datenbank bewusst neu auf und erstellt die Collections `benutzer`, `standorte`, `raeume`, `arbeitsplaetze`, `reservierungen`, `abteilungen` und `equipment`.
 
-## Backend
+Wenn bestehende Räume und Reservierungen erhalten bleiben sollen, werden nur die
+zusätzlichen HOLTER-Standorte und Standardräume ergänzt:
 
-Das Backend ist ein Quarkus-Projekt und ist aehnlich wie die Pokemon-Uebung aufgebaut:
+```bash
+mongosh mongodb://localhost:27018/tischreservierung --file Datenbank/standorte-erweitern.js
+```
 
-- `boundary`: REST-Endpunkte
-- `model`: Mongo-Entity-/Model-Klassen fuer Standort, Raum, Arbeitsplatz, Position und Equipment
-- `repo`: einfache Datenlogik
-- `DTOs`: Datenobjekte fuer das Frontend
+Enthalten sind Wels, Linz, Salzburg, Hall in Tirol und Premstätten. Das
+Erweiterungsskript kann mehrmals ausgeführt werden und überschreibt keine Räume,
+die bereits im Room Builder bearbeitet wurden.
 
-REST-Endpunkte:
-
-- `GET /api/standorte`
-- `GET /api/raeume/standort/STANDORT-WELS`
-- `GET /api/raeume/standort/STANDORT-LINZ`
-- `GET /api/raeume/RAUM-WELS-OG1-TEAM`
-- `GET /api/raeume/RAUM-WELS-EG-MARKETING`
-- `GET /api/raeume/RAUM-LINZ-EG-PROJEKT`
-- `GET /api/raeume/RAUM-LINZ-OG2-MARKETING`
-- `POST /api/reservierungen`
-
-Start:
+## Backend starten
 
 ```bash
 cd Backend
 ./mvnw quarkus:dev
 ```
 
-Falls kein Maven Wrapper vorhanden ist, kann alternativ Maven installiert und `mvn quarkus:dev` verwendet werden.
+Das Backend laeuft unter `http://localhost:8080`. Die MongoDB-Verbindung steht in `Backend/src/main/resources/application.properties`.
 
-## Frontend
+Wichtige REST-Endpunkte:
 
-Das Frontend ist eine Angular-App. Es zeigt:
+- `GET /api/benutzer`
+- `POST /api/benutzer/login`
+- `GET /api/standorte`
+- `GET /api/raeume/standort/{standortId}`
+- `GET /api/raeume/{raumId}?datum=...&beginn=...&ende=...&benutzerId=...`
+- `POST /api/reservierungen`
+- `GET /api/reservierungen/benutzer/{benutzerId}`
+- `DELETE /api/reservierungen/{id}?benutzerId=...`
+- `POST|PUT|DELETE /api/admin/raeume...`
+- `POST|PUT|DELETE /api/admin/arbeitsplaetze...`
+- `GET|POST|DELETE /api/admin/abteilungen...`
+- `GET|POST|DELETE /api/admin/equipment...`
+- `GET /api/admin/reservierungen`
+- `DELETE /api/admin/reservierungen/{id}`
+- `GET|POST|PUT /api/admin/benutzer...`
+- `PUT /api/admin/benutzer/{id}/passwort`
+- `POST|PUT|DELETE /api/admin/standorte...`
+- `GET /api/admin/audit`
+- `PUT /api/reservierungen/{id}`
 
-- kurze Einfuehrung zur Arbeitsplatzreservierung
-- Standortauswahl
-- Zeitraum-Auswahl in der Raumansicht
-- je zwei Demo-Raeume fuer Wels und Linz
-- Raumwechsel innerhalb des ausgewaehlten Standorts
-- statische Raeume in Vogelperspektive mit je 8 Tischen
-- Verfuegbarkeit der Tische anhand vorhandener Reservierungen im ausgewaehlten Zeitraum
-- klickbare Arbeitsplaetze
-- Status frei und reserviert
-- Detailansicht mit Ausstattung und Abteilung
-
-Die Angular-Oberflaeche ist in Components aufgeteilt:
-
-- `intro`: Einstieg mit Standortauswahl
-- `room-overview`: Raumplan in Vogelperspektive
-- `desk-details`: Detailansicht zum ausgewaehlten Arbeitsplatz
-
-Hinweis: Da MongoDB verwendet wird, sind die persistenten Models mit `@MongoEntity` annotiert. Bei einer SQL/JPA-Datenbank wuerde man stattdessen `@Entity` verwenden.
-
-Start:
+## Frontend starten
 
 ```bash
 cd Frontend
@@ -104,4 +117,21 @@ npm install
 npm start
 ```
 
-Danach ist die Anwendung unter `http://localhost:4200` erreichbar.
+Die Anwendung ist unter `http://localhost:4200` erreichbar.
+
+Testkonten:
+
+- Mitarbeiter: `anna.leitner@example.test` / `holter123`
+- Admin: `admin@holter.test` / `admin123`
+
+Weitere Mitarbeiterkonten aus `Datenbank/console.js` verwenden ebenfalls das Passwort `holter123`.
+
+## Aufbau kurz erklaert
+
+Beim Start ruft `app.ts` ueber den `ArbeitsplatzService` Benutzer und Standorte vom Quarkus-Backend ab und speichert sie in Angular Signals. Die Components erhalten die aktuellen Daten ueber Inputs und melden Klicks oder Aenderungen ueber Outputs an `app.ts` zurueck. Quarkus liest und schreibt ausschliesslich in MongoDB und prueft beim Reservieren Zeitraum, Ueberschneidungen und die Abteilung des aktiven Benutzers.
+
+Der Raumeditor ist mit SVG umgesetzt. Waende, Tueren, Pflanzen und Sperrzonen werden als einfache Geometrieobjekte im Feld `elemente` des Raums gespeichert. Der Admin bearbeitet genau diese Objekte; Mitarbeiter erhalten sie beim normalen REST-Abruf desselben Raums und sehen daher den aktuellen Grundriss. Arbeitsplaetze bleiben eigene MongoDB-Dokumente und werden mit Prozentkoordinaten ueber dem SVG dargestellt.
+
+MongoDB verwendet keine JPA-Annotation `@Entity`. Die persistenten Dokumentklassen sind mit `@MongoEntity` annotiert, weil das Projekt eine dokumentenorientierte Datenbank verwendet.
+
+Eine kurze Erklaerung der verwendeten Angular- und Backend-Techniken sowie eine moegliche spaetere Commit-Aufteilung steht in `TECHNIKEN.md`.

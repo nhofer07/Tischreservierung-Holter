@@ -1,0 +1,57 @@
+<section class="reservations-page">
+  <header>
+    <div>
+      <p>Persönlicher Bereich</p>
+      <h1>Meine Reservierungen</h1>
+      <span>{{ benutzer.vorname }} {{ benutzer.nachname }}</span>
+    </div>
+    <button type="button" class="primary-action" (click)="arbeitsplatzSuchen.emit()">
+      Arbeitsplatz suchen
+    </button>
+  </header>
+
+  <div class="view-switch"><button type="button" [class.active]="ansicht === 'liste'" (click)="ansicht='liste'">Liste</button><button type="button" [class.active]="ansicht === 'kalender'" (click)="ansicht='kalender'">14-Tage-Kalender</button></div>
+
+  <div class="reservation-list" *ngIf="ansicht === 'liste' && aktiveReservierungen.length > 0; else emptyState">
+    <article *ngFor="let reservierung of aktiveReservierungen">
+      <div class="date-block">
+        <span>{{ datum(reservierung.reservierungAnfang) }}</span>
+        <strong>
+          {{ uhrzeit(reservierung.reservierungAnfang) }}–{{ uhrzeit(reservierung.reservierungEnde) }}
+        </strong>
+      </div>
+
+      <div class="reservation-main">
+        <span class="status">Reserviert</span>
+        <h2>Arbeitsplatz {{ reservierung.tischnr }}</h2>
+        <p>{{ reservierung.raumName }} · {{ reservierung.standortName }}</p>
+      </div>
+
+      <button
+        type="button"
+        class="cancel-button"
+        [disabled]="laden"
+        (click)="stornieren.emit(reservierung.id)"
+      >
+        Stornieren
+      </button>
+      <button type="button" class="edit-button" (click)="bearbeitungStarten(reservierung)">Zeitraum ändern</button>
+      <div class="edit-times" *ngIf="bearbeiteteId === reservierung.id"><label>Beginn<input type="datetime-local" [(ngModel)]="bearbeitungAnfang" /></label><label>Ende<input type="datetime-local" [(ngModel)]="bearbeitungEnde" /></label><button type="button" (click)="bearbeitungSpeichern(reservierung)">Änderung speichern</button><button type="button" (click)="bearbeiteteId=''">Abbrechen</button></div>
+    </article>
+  </div>
+
+  <div class="calendar-grid" *ngIf="ansicht === 'kalender'"><article *ngFor="let tag of kalenderTage"><header><strong>{{ datum(tag.datum.toISOString()) }}</strong><span>{{ tag.reservierungen.length }} {{ tag.reservierungen.length === 1 ? 'Termin' : 'Termine' }}</span></header><div *ngFor="let reservierung of tag.reservierungen"><b>{{ uhrzeit(reservierung.reservierungAnfang) }}–{{ uhrzeit(reservierung.reservierungEnde) }}</b><span>Tisch {{ reservierung.tischnr }} · {{ reservierung.raumName }}</span></div><small *ngIf="tag.reservierungen.length === 0">Frei</small></article></div>
+
+  <section class="past-reservations" *ngIf="vergangeneReservierungen.length"><h2>Vergangen und storniert</h2><article *ngFor="let reservierung of vergangeneReservierungen"><span>{{ datum(reservierung.reservierungAnfang) }} · {{ reservierung.raumName }} · Tisch {{ reservierung.tischnr }}</span><strong>{{ vergangenerStatus(reservierung) }}</strong><small *ngIf="reservierung.stornierungsgrund">{{ reservierung.stornierungsgrund }}</small></article></section>
+
+  <ng-template #emptyState><ng-container *ngIf="ansicht === 'liste'">
+    <div class="empty-state">
+      <span>Keine aktiven Reservierungen</span>
+      <h2>Dein Kalender ist frei.</h2>
+      <p>Wähle einen Standort und reserviere einen passenden Arbeitsplatz.</p>
+      <button type="button" class="primary-action" (click)="arbeitsplatzSuchen.emit()">
+        Arbeitsplatz finden
+      </button>
+    </div>
+  </ng-container></ng-template>
+</section>

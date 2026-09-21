@@ -2,6 +2,7 @@
   <p>Arbeitsplatz {{ tisch.tischnr }}</p>
   <h2>{{ tisch.name }}</h2>
   <span class="status" [class]="tisch.status">{{ tisch.status }}</span>
+  <p class="notice" *ngIf="tisch.hinweis">{{ tisch.hinweis }}</p>
 
   <dl>
     <div>
@@ -12,7 +13,21 @@
       <dt>Raum</dt>
       <dd>{{ raum.name }}</dd>
     </div>
+    <div>
+    </div>
+    <div *ngIf="tisch.reserviertVon">
+      <dt>Reserviert von</dt>
+      <dd>{{ tisch.reserviertVon }}</dd>
+    </div>
+    <div>
+    </div>
   </dl>
+
+  <section class="reservation-time" *ngIf="tisch.reservierungAnfang">
+    <span>Reservierungszeitraum</span>
+    <strong>{{ tisch.reservierungAnfang | date:'EEEE, dd.MM.yyyy' }}</strong>
+    <div><b>{{ tisch.reservierungAnfang | date:'HH:mm' }}</b><i>bis</i><b>{{ tisch.reservierungEnde | date:'HH:mm' }}</b><small>Uhr</small></div>
+  </section>
 
   <h3>Ausstattung</h3>
   <ul>
@@ -20,7 +35,7 @@
   </ul>
 
   <p class="error" *ngIf="fehler">{{ fehler }}</p>
-  <button type="button" [disabled]="tisch.status !== 'frei'" (click)="reservieren.emit()">
+  <button type="button" [disabled]="!tisch.reservierbar" (click)="reservieren.emit()">
     Arbeitsplatz reservieren
   </button>
 </aside>

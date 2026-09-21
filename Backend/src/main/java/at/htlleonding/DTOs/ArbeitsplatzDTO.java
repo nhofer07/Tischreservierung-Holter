@@ -4,11 +4,20 @@ import java.util.List;
 
 public record ArbeitsplatzDTO(
         String id,
-        int tischnr,
+        String tischnr,
         String name,
         String status,
         String abteilungId,
         String abteilungName,
+        boolean reservierbar,
+        String hinweis,
+        String reserviertVon,
+        boolean eigeneReservierung,
+        String reservierungAnfang,
+        String reservierungEnde,
+        double rotation,
+        double breite,
+        double hoehe,
         int x,
         int y,
         List<EquipmentDTO> equipment

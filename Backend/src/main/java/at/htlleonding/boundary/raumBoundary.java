@@ -34,8 +34,9 @@ public class raumBoundary {
     public RaumDTO getRaum(
             @PathParam("id") String id,
             @QueryParam("von") String von,
-            @QueryParam("bis") String bis
+            @QueryParam("bis") String bis,
+            @QueryParam("benutzerId") String benutzerId
     ) {
-        return arbeitsplatzRepo.getRaum(id, von, bis);
+        return arbeitsplatzRepo.getRaum(id, von, bis, benutzerId);
     }
 }

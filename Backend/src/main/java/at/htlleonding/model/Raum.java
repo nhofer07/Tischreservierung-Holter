@@ -14,19 +14,21 @@ public class Raum {
     private String standortId;
     private String abteilungId;
     private String abteilungName;
+    private List<RaumElement> elemente;
     private List<Arbeitsplatz> arbeitsplaetze;
 
     public Raum() {
     }
 
     public Raum(String id, String name, String stockwerk, String standortId, String abteilungId,
-                String abteilungName, List<Arbeitsplatz> arbeitsplaetze) {
+                String abteilungName, List<RaumElement> elemente, List<Arbeitsplatz> arbeitsplaetze) {
         this.id = id;
         this.name = name;
         this.stockwerk = stockwerk;
         this.standortId = standortId;
         this.abteilungId = abteilungId;
         this.abteilungName = abteilungName;
+        this.elemente = elemente;
         this.arbeitsplaetze = arbeitsplaetze;
     }
 
@@ -77,6 +79,9 @@ public class Raum {
     public void setAbteilungName(String abteilungName) {
         this.abteilungName = abteilungName;
     }
+
+    public List<RaumElement> getElemente() { return elemente; }
+    public void setElemente(List<RaumElement> elemente) { this.elemente = elemente; }
 
     public List<Arbeitsplatz> getArbeitsplaetze() {
         return arbeitsplaetze;
