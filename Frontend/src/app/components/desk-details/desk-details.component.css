@@ -45,6 +45,11 @@ dl {
   margin: 0 0 24px;
 }
 .reservation-time { background:#f6f7f8; border-left:4px solid #9d1722; display:grid; gap:5px; margin:-8px 0 24px; padding:14px 16px; }.reservation-time > span { color:#6a737d; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }.reservation-time strong { color:#252b31; font-size:14px; text-transform:capitalize; }.reservation-time div { align-items:baseline; display:flex; gap:8px; margin-top:3px; }.reservation-time b { color:#9d1722; font-size:20px; }.reservation-time i { color:#7a838c; font-size:11px; font-style:normal; }.reservation-time small { color:#7a838c; font-size:10px; }
+.future-booking { background:#f2f6f8; border-left:4px solid #2877ad; display:grid; gap:5px; margin:-8px 0 24px; padding:14px 16px; }
+.future-booking > span { color:#64727c; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+.future-booking strong { color:#252b31; font-size:14px; text-transform:capitalize; }
+.future-booking div { color:#2877ad; font-size:17px; font-weight:800; }
+.future-booking small { color:#59636f; line-height:1.4; }
 
 dl div {
   display: flex;
@@ -118,3 +123,7 @@ button:disabled {
   min-width: 0;
   width: 100%;
 }
+.details > p:first-child,.error { color:var(--primary-color); }
+.details > button { background:var(--primary-color); }
+.reservation-time { border-left-color:var(--primary-color); }
+.reservation-time b { color:var(--primary-color); }

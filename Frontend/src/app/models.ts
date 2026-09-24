@@ -15,6 +15,8 @@ export interface Arbeitsplatz {
   eigeneReservierung: boolean;
   reservierungAnfang: string;
   reservierungEnde: string;
+  naechsteReservierungAnfang: string;
+  naechsteReservierungEnde: string;
   rotation: number;
   breite: number;
   hoehe: number;
@@ -61,6 +63,7 @@ export interface Standort {
 
 export interface Zeitraum {
   datum: string;
+  endDatum: string;
   beginn: string;
   ende: string;
 }
@@ -83,6 +86,19 @@ export interface BenutzerRequest {
 }
 
 export interface StandortRequest { name: string; adresse: string; ort: string; }
+
+export interface FirmenEinstellung {
+  firmenname: string;
+  produktname: string;
+  primaerfarbe: string;
+  akzentfarbe: string;
+  logoUrl: string;
+}
+
+export interface FirmenDesignHistorie extends FirmenEinstellung {
+  id: string;
+  zeitpunkt: string;
+}
 
 export interface AuditEintrag { _id: string; adminId: string; aktion: string; details: string; zeitpunkt: string; }
 

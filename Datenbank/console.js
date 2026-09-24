@@ -131,6 +131,7 @@ db.benutzer.insertMany([
     vorname: "Sophie",
     nachname: "Admin",
     email: "admin@holter.test",
+    entraEmail: "n.hofer@htblaleonding.onmicrosoft.com",
     passwortHash: "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
     rolle: "ADMIN",
     abteilungId: "ABT-IT",
@@ -142,6 +143,7 @@ db.benutzer.insertMany([
     vorname: "Thomas",
     nachname: "Holter",
     email: "chef@holter.test",
+    entraEmail: "d.bernecker@htblaleonding.onmicrosoft.com",
     passwortHash: "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
     rolle: "SUPERADMIN",
     abteilungId: "ABT-IT",
@@ -314,7 +316,17 @@ db.reservierungen.insertMany([
   }
 ])
 
+db.einstellungen.insertOne({
+  _id: "FIRMA",
+  firmenname: "HOLTER",
+  produktname: "DeskVision",
+  primaerfarbe: "#a51e2d",
+  akzentfarbe: "#343638",
+  logoUrl: "/holter-logo.png"
+})
+
 db.benutzer.createIndex({ email: 1 }, { unique: true })
+db.benutzer.createIndex({ entraEmail: 1 }, { unique: true, sparse: true })
 db.benutzer.createIndex({ abteilungId: 1 })
 db.benutzer.createIndex({ bevorzugterRaumId: 1 })
 db.raeume.createIndex({ standortId: 1 })
@@ -330,8 +342,11 @@ db.reservierungen.createIndex({ reservierungAnfang: 1, reservierungEnde: 1 })
 db.abteilungen.createIndex({ name: 1 }, { unique: true })
 db.equipment.createIndex({ name: 1 }, { unique: true })
 db.auditLog.createIndex({ zeitpunkt: -1 })
+db.designHistorie.createIndex({ zeitpunkt: -1 })
 
-load("Datenbank/standorte-erweitern.js")
-load("Datenbank/raeume-realistisch-gestalten.js")
+// Das Skript aus dem Ordner Datenbank starten, damit die Pfade auf
+// macOS, Linux und Windows gleich funktionieren.
+load("standorte-erweitern.js")
+load("raeume-realistisch-gestalten.js")
 
 print("Datenbank wurde erfolgreich erstellt.")

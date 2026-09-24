@@ -45,7 +45,7 @@ h1 {
 }
 
 .header-tools {
-  width: min(100%, 590px);
+  width: min(100%, 700px);
 }
 
 .booking-panel { background:#fff; border:1px solid #d9dee5; box-shadow:0 10px 24px rgba(28,35,43,.06); display:grid; gap:12px; padding:14px; }
@@ -119,7 +119,7 @@ h1 {
   box-shadow: none;
   display: grid;
   gap: 10px;
-  grid-template-columns: 142px 104px 104px auto;
+  grid-template-columns: minmax(112px, 1.35fr) minmax(112px, 1.35fr) 88px 88px;
   padding: 0;
 }
 
@@ -139,6 +139,10 @@ h1 {
   margin-top: 5px;
   padding: 8px 9px;
   width: 100%;
+}
+
+.time-box label:nth-child(-n + 2) input {
+  border-bottom: 3px solid var(--primary-color);
 }
 
 .time-box button {
@@ -229,18 +233,16 @@ h1 {
   background-color: #f0f0ed;
   background-image: linear-gradient(#deded9 1px, transparent 1px), linear-gradient(90deg, #deded9 1px, transparent 1px);
   background-size: 32px 32px;
-  border: 9px solid #2f363d;
+  border: 1px solid #cfd1ce;
   border-radius: 2px;
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, .38),
-    inset 0 0 24px rgba(31, 35, 40, .12);
+  box-shadow: 0 10px 26px rgba(31, 35, 40, .08);
   aspect-ratio: 16 / 9;
   height: auto;
   overflow: hidden;
   position: relative;
 }
 .saved-layout { inset: 0; pointer-events: none; position: absolute; width: 100%; height: 100%; z-index: 1; }
-.layout-wall { fill: #343638; }.layout-door rect { fill:#f0f0ed; stroke:#a51e2d; stroke-width:.8; }.layout-door path { fill:none; stroke:#6e7274; stroke-width:.5; }.layout-plant { fill:#5d7f4b; stroke:#36512d; stroke-width:.5; }.layout-blocked { fill:url(#room-stripes); stroke:#a51e2d; stroke-width:.5; }.layout-window { fill:#b9e1ed; stroke:#32778d; stroke-width:.7; }.layout-ac rect { fill:#e8eff2; stroke:#647985; stroke-width:.5; }.layout-ac text,.layout-fire text { font-size:3px; font-weight:900; text-anchor:middle; }.layout-column { fill:#73777a; stroke:#343638; stroke-width:.5; }.layout-fire rect { fill:#c32b37; }.layout-fire text { fill:#fff; }
+.layout-wall { fill:none; stroke:#343638; stroke-linecap:square; stroke-width:12px; vector-effect:non-scaling-stroke; }.layout-door rect { fill:#f0f0ed; stroke:#a51e2d; stroke-width:.8; }.layout-door path { fill:none; stroke:#6e7274; stroke-width:.5; }.layout-plant { fill:#5d7f4b; stroke:#36512d; stroke-width:.5; }.layout-blocked { fill:url(#room-stripes); stroke:#a51e2d; stroke-width:.5; }.layout-window { fill:none; stroke:#32778d; stroke-linecap:square; stroke-width:7px; vector-effect:non-scaling-stroke; }.layout-ac rect { fill:#e8eff2; stroke:#647985; stroke-width:.5; }.layout-ac text,.layout-fire text { font-size:3px; font-weight:900; text-anchor:middle; }.layout-column { fill:#73777a; stroke:#343638; stroke-width:.5; }.layout-fire rect { fill:#c32b37; }.layout-fire text { fill:#fff; }
 .layout-label rect { fill:rgba(255,255,255,.88); stroke:#8a8d8f; stroke-dasharray:1 1; stroke-width:.3; }.layout-label text { fill:#35393b; font-size:3px; font-weight:800; text-anchor:middle; }
 .layout-door rect { fill:#f0f0ed; stroke:none; }
 .layout-door line { stroke:#a51e2d; stroke-width:1.1; }
@@ -568,6 +570,20 @@ h1 {
     width: 42px;
   }
 }
+
+.room-header > div:first-child > p,.plan-title { color:var(--primary-color); }
+.time-box button { background:var(--primary-color); border-color:var(--primary-color); }
+.room-header { border-left-color:var(--primary-color); }
+.plan { border-top-color:var(--accent-color); }
+.layout-wall { stroke:var(--accent-color); }
+.quick-times button:hover,.fullscreen-button:hover { border-color:var(--primary-color); color:var(--primary-color); }
+.equipment-check input { accent-color:var(--primary-color); }
+.layout-door line,.layout-blocked { stroke:var(--primary-color); }
+.desk.selected { border-left-color:var(--primary-color); outline-color:color-mix(in srgb,var(--primary-color) 18%,transparent); }
+.desk-label strong { background:var(--accent-color); }
+.room-arrow { color:var(--primary-color); }
+.room-arrow:hover { background:var(--primary-color); border-color:var(--primary-color); color:#fff; }
+.filter-row .equipment-check:has(input:checked) { background:color-mix(in srgb,var(--primary-color) 8%,#fff); border-color:var(--primary-color); color:var(--primary-color); }
 
 @media (max-width: 620px) {
   .workspace { padding-inline: 10px; }

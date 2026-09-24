@@ -28,6 +28,42 @@ public class adminBoundary {
     ArbeitsplatzRepo arbeitsplatzRepo;
 
     @GET
+    @Path("/einstellungen")
+    public at.htlleonding.DTOs.FirmenEinstellungDTO einstellungen(@QueryParam("adminId") String adminId) {
+        arbeitsplatzRepo.pruefeSuperadminZugriff(adminId);
+        return arbeitsplatzRepo.getFirmenEinstellungen();
+    }
+
+    @PUT
+    @Path("/einstellungen")
+    public at.htlleonding.DTOs.FirmenEinstellungDTO einstellungenSpeichern(
+            @QueryParam("adminId") String adminId,
+            at.htlleonding.DTOs.FirmenEinstellungDTO request) {
+        return arbeitsplatzRepo.firmenEinstellungenSpeichern(adminId, request);
+    }
+
+    @GET
+    @Path("/einstellungen/historie")
+    public List<at.htlleonding.DTOs.FirmenDesignHistorieDTO> einstellungenHistorie(@QueryParam("adminId") String adminId) {
+        return arbeitsplatzRepo.getFirmenDesignHistorie(adminId);
+    }
+
+    @PUT
+    @Path("/einstellungen/historie/{id}")
+    public at.htlleonding.DTOs.FirmenEinstellungDTO einstellungenHistorieVerwenden(
+            @PathParam("id") String id, @QueryParam("adminId") String adminId) {
+        return arbeitsplatzRepo.firmenDesignAusHistorieVerwenden(adminId, id);
+    }
+
+    @DELETE
+    @Path("/einstellungen/historie/{id}")
+    public Response einstellungenHistorieLoeschen(
+            @PathParam("id") String id, @QueryParam("adminId") String adminId) {
+        arbeitsplatzRepo.firmenDesignHistorieLoeschen(adminId, id);
+        return Response.noContent().build();
+    }
+
+    @GET
     @Path("/benutzer")
     public List<at.htlleonding.DTOs.BenutzerDTO> benutzer(@QueryParam("adminId") String adminId) {
         return arbeitsplatzRepo.getBenutzerAlsAdmin(adminId);
@@ -51,6 +87,13 @@ public class adminBoundary {
     public Response passwort(@PathParam("id") String id, @QueryParam("adminId") String adminId,
                              at.htlleonding.DTOs.PasswortRequestDTO request) {
         arbeitsplatzRepo.passwortZuruecksetzen(adminId, id, request); return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("/benutzer/{id}")
+    public Response benutzerLoeschen(@PathParam("id") String id, @QueryParam("adminId") String adminId) {
+        arbeitsplatzRepo.benutzerLoeschen(adminId, id);
+        return Response.noContent().build();
     }
 
     @POST

@@ -4,13 +4,18 @@ import at.htlleonding.DTOs.*;
 import at.htlleonding.model.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import org.bson.Document;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -20,6 +25,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.HashSet;
+import java.util.Set;
 
 @ApplicationScoped
 public class ArbeitsplatzRepo {
@@ -27,10 +35,121 @@ public class ArbeitsplatzRepo {
     @Inject
     MongoClient mongoClient;
 
+    @Inject
+    SecurityIdentity securityIdentity;
+
+    public FirmenEinstellungDTO getFirmenEinstellungen() {
+        Document dokument = database().getCollection("einstellungen")
+                .find(new Document("_id", "FIRMA")).first();
+        if (dokument == null) {
+            return new FirmenEinstellungDTO("HOLTER", "DeskVision", "#a51e2d", "#343638", "/holter-logo.png");
+        }
+        return new FirmenEinstellungDTO(
+                dokument.getString("firmenname"), "DeskVision",
+                dokument.getString("primaerfarbe"), dokument.getString("akzentfarbe"),
+                dokument.getString("logoUrl"));
+    }
+
+    public void pruefeSuperadminZugriff(String adminId) {
+        pruefeSuperadmin(adminId);
+    }
+
+    public FirmenEinstellungDTO firmenEinstellungenSpeichern(String adminId, FirmenEinstellungDTO request) {
+        pruefeSuperadmin(adminId);
+        if (request == null || leer(request.firmenname())) {
+            throw new BadRequestException("Der Firmenname ist erforderlich.");
+        }
+        if (!gueltigeFarbe(request.primaerfarbe()) || !gueltigeFarbe(request.akzentfarbe())) {
+            throw new BadRequestException("Farben müssen als Hex-Wert wie #a51e2d angegeben werden.");
+        }
+        String logoUrl = leer(request.logoUrl()) ? "" : request.logoUrl().trim();
+        Document werte = new Document("firmenname", request.firmenname().trim())
+                .append("produktname", "DeskVision")
+                .append("primaerfarbe", request.primaerfarbe().toLowerCase())
+                .append("akzentfarbe", request.akzentfarbe().toLowerCase())
+                .append("logoUrl", logoUrl);
+        einstellungenAktualisieren(werte);
+        Document letzterEintrag = database().getCollection("designHistorie").find()
+                .sort(new Document("zeitpunkt", -1)).first();
+        if (!gleichesDesign(letzterEintrag, werte)) {
+            Document historie = new Document("_id", "DESIGN-" + System.nanoTime())
+                    .append("zeitpunkt", new Date());
+            historie.putAll(werte);
+            database().getCollection("designHistorie").insertOne(historie);
+        }
+        protokollieren(adminId, "FIRMENDESIGN_GEAENDERT", request.firmenname().trim());
+        return getFirmenEinstellungen();
+    }
+
+    public FirmenEinstellungDTO firmenDesignAusHistorieVerwenden(String adminId, String historieId) {
+        pruefeSuperadmin(adminId);
+        Document historie = database().getCollection("designHistorie")
+                .find(new Document("_id", historieId)).first();
+        if (historie == null) throw new NotFoundException("Designvariante wurde nicht gefunden.");
+        Document werte = new Document("firmenname", historie.getString("firmenname"))
+                .append("produktname", "DeskVision")
+                .append("primaerfarbe", historie.getString("primaerfarbe"))
+                .append("akzentfarbe", historie.getString("akzentfarbe"))
+                .append("logoUrl", historie.getString("logoUrl"));
+        einstellungenAktualisieren(werte);
+        protokollieren(adminId, "FIRMENDESIGN_VERWENDET", historieId);
+        return getFirmenEinstellungen();
+    }
+
+    public void firmenDesignHistorieLoeschen(String adminId, String historieId) {
+        pruefeSuperadmin(adminId);
+        Document historie = database().getCollection("designHistorie")
+                .find(new Document("_id", historieId)).first();
+        if (historie == null) throw new NotFoundException("Designvariante wurde nicht gefunden.");
+        Document gleichesDesign = new Document("firmenname", historie.getString("firmenname"))
+                .append("primaerfarbe", historie.getString("primaerfarbe"))
+                .append("akzentfarbe", historie.getString("akzentfarbe"))
+                .append("logoUrl", historie.getString("logoUrl"));
+        long geloescht = database().getCollection("designHistorie")
+                .deleteMany(gleichesDesign).getDeletedCount();
+        if (geloescht == 0) throw new NotFoundException("Designvariante wurde nicht gefunden.");
+        protokollieren(adminId, "FIRMENDESIGN_HISTORIE_GELOESCHT", historieId);
+    }
+
+    private void einstellungenAktualisieren(Document werte) {
+        database().getCollection("einstellungen").updateOne(
+                new Document("_id", "FIRMA"), new Document("$set", werte),
+                new com.mongodb.client.model.UpdateOptions().upsert(true));
+    }
+
+    private boolean gleichesDesign(Document links, Document rechts) {
+        if (links == null) return false;
+        return Objects.equals(links.getString("firmenname"), rechts.getString("firmenname"))
+                && Objects.equals(links.getString("primaerfarbe"), rechts.getString("primaerfarbe"))
+                && Objects.equals(links.getString("akzentfarbe"), rechts.getString("akzentfarbe"))
+                && Objects.equals(links.getString("logoUrl"), rechts.getString("logoUrl"));
+    }
+
+    public List<FirmenDesignHistorieDTO> getFirmenDesignHistorie(String adminId) {
+        pruefeSuperadmin(adminId);
+        List<FirmenDesignHistorieDTO> ergebnis = new ArrayList<>();
+        Set<String> bekannteDesigns = new HashSet<>();
+        for (Document dokument : database().getCollection("designHistorie").find().sort(new Document("zeitpunkt", -1))) {
+            String schluessel = dokument.getString("firmenname") + "|" + dokument.getString("primaerfarbe") + "|"
+                    + dokument.getString("akzentfarbe") + "|" + dokument.getString("logoUrl");
+            if (!bekannteDesigns.add(schluessel)) continue;
+            ergebnis.add(new FirmenDesignHistorieDTO(
+                    dokument.getString("_id"), dokument.getString("firmenname"), "DeskVision",
+                    dokument.getString("primaerfarbe"), dokument.getString("akzentfarbe"),
+                    dokument.getString("logoUrl"), dokument.getDate("zeitpunkt").toInstant().toString()));
+            if (ergebnis.size() == 6) break;
+        }
+        return ergebnis;
+    }
+
+    private boolean gueltigeFarbe(String farbe) {
+        return farbe != null && farbe.matches("#[0-9a-fA-F]{6}");
+    }
+
     public List<BenutzerDTO> getBenutzer() {
         List<BenutzerDTO> benutzer = database()
                 .getCollection("benutzer")
-                .find()
+                .find(new Document("geloescht", new Document("$ne", true)))
                 .sort(new Document("nachname", 1))
                 .map(this::toBenutzer)
                 .map(this::toDTO)
@@ -58,6 +177,22 @@ public class ArbeitsplatzRepo {
 
         if (!dokument.getBoolean("aktiv", true)) throw new BadRequestException("Dieses Benutzerkonto ist deaktiviert.");
 
+        return toDTO(toBenutzer(dokument));
+    }
+
+    public BenutzerDTO loginEntra(String email) {
+        if (email == null || email.isBlank()) {
+            throw new BadRequestException("Das Entra-Token enthält keine E-Mail-Adresse.");
+        }
+
+        Document dokument = benutzerNachEntraEmail(email);
+
+        if (dokument == null) {
+            throw new NotFoundException("Für dieses Microsoft-Konto wurde noch kein Mitarbeiterprofil angelegt.");
+        }
+        if (!dokument.getBoolean("aktiv", true)) {
+            throw new BadRequestException("Dieses Benutzerkonto ist deaktiviert.");
+        }
         return toDTO(toBenutzer(dokument));
     }
 
@@ -133,7 +268,8 @@ public class ArbeitsplatzRepo {
     public List<BenutzerDTO> getBenutzerAlsAdmin(String adminId) {
         BenutzerDTO admin = pruefeAdmin(adminId);
         if (istSuperadmin(admin)) return getBenutzer();
-        return database().getCollection("benutzer").find(new Document("abteilungId", admin.abteilungId()))
+        return database().getCollection("benutzer").find(new Document("abteilungId", admin.abteilungId())
+                        .append("geloescht", new Document("$ne", true)))
                 .sort(new Document("nachname", 1)).map(this::toBenutzer).map(this::toDTO).into(new ArrayList<>());
     }
 
@@ -176,6 +312,18 @@ public class ArbeitsplatzRepo {
                 new Document("$set", new Document("passwortHash", hash(request.passwort())))).getMatchedCount() == 0)
             throw new NotFoundException("Benutzer wurde nicht gefunden.");
         protokollieren(adminId, "PASSWORT_ZURUECKGESETZT", id);
+    }
+
+    public void benutzerLoeschen(String adminId, String id) {
+        pruefeSuperadmin(adminId);
+        Document benutzer = database().getCollection("benutzer").find(new Document("_id", id)).first();
+        if (benutzer == null) throw new NotFoundException("Benutzer wurde nicht gefunden.");
+        if (!"USER".equals(benutzer.getString("rolle"))) {
+            throw new BadRequestException("Admin-Konten werden über die Rollenverwaltung geändert und nicht als Mitarbeiter gelöscht.");
+        }
+        database().getCollection("benutzer").updateOne(new Document("_id", id),
+                new Document("$set", new Document("aktiv", false).append("geloescht", true)));
+        protokollieren(adminId, "BENUTZER_GELOESCHT", benutzer.getString("email"));
     }
 
     public StandortDTO standortAnlegen(String adminId, StandortRequestDTO request) {
@@ -462,6 +610,8 @@ public class ArbeitsplatzRepo {
             throw new BadRequestException("Bitte einen Benutzer auswaehlen.");
         }
 
+        pruefeAngemeldeteIdentitaet(id);
+
         Document dokument = database().getCollection("benutzer").find(new Document("_id", id)).first();
         if (dokument == null) {
             throw new NotFoundException("Benutzer wurde nicht gefunden.");
@@ -470,12 +620,36 @@ public class ArbeitsplatzRepo {
         return toDTO(toBenutzer(dokument));
     }
 
+    private void pruefeAngemeldeteIdentitaet(String benutzerId) {
+        if (securityIdentity == null || securityIdentity.isAnonymous()) return;
+        if (!(securityIdentity.getPrincipal() instanceof JsonWebToken token)) {
+            throw new ForbiddenException("Die angemeldete Identität ist ungültig.");
+        }
+
+        String email = token.getClaim("email");
+        if (email == null || email.isBlank()) email = token.getClaim("preferred_username");
+        if (email == null || email.isBlank()) email = token.getClaim("upn");
+        Document konto = email == null ? null : benutzerNachEntraEmail(email);
+        if (konto == null || !benutzerId.equals(konto.getString("_id"))) {
+            throw new ForbiddenException("Die Benutzer-ID gehört nicht zum angemeldeten Microsoft-Konto.");
+        }
+    }
+
     private BenutzerDTO pruefeAdmin(String id) {
         BenutzerDTO benutzer = getBenutzer(id);
         if (!"ADMIN".equals(benutzer.rolle()) && !"SUPERADMIN".equals(benutzer.rolle())) {
             throw new BadRequestException("Diese Funktion ist nur fuer Administratoren verfuegbar.");
         }
         return benutzer;
+    }
+
+    private Document benutzerNachEntraEmail(String email) {
+        String normalisiert = email.trim().toLowerCase();
+        Document filter = new Document("$or", List.of(
+                new Document("email", normalisiert),
+                new Document("entraEmail", normalisiert)
+        ));
+        return database().getCollection("benutzer").find(filter).first();
     }
 
     private BenutzerDTO pruefeSuperadmin(String id) {
@@ -623,6 +797,17 @@ public class ArbeitsplatzRepo {
                 arbeitsplatz.setReservierungAnfang(daten.getDate("reservierungAnfang"));
                 arbeitsplatz.setReservierungEnde(daten.getDate("reservierungEnde"));
             }
+
+            Document naechsteReservierung = db.getCollection("reservierungen")
+                    .find(new Document("arbeitsplatzId", arbeitsplatz.getId())
+                            .append("status", "reserviert")
+                            .append("reservierungAnfang", new Document("$gte", ende)))
+                    .sort(new Document("reservierungAnfang", 1))
+                    .first();
+            if (naechsteReservierung != null) {
+                arbeitsplatz.setNaechsteReservierungAnfang(naechsteReservierung.getDate("reservierungAnfang"));
+                arbeitsplatz.setNaechsteReservierungEnde(naechsteReservierung.getDate("reservierungEnde"));
+            }
         }
     }
 
@@ -641,7 +826,9 @@ public class ArbeitsplatzRepo {
                 .first();
 
         if (konflikt != null) {
-            throw new BadRequestException("Dieser Arbeitsplatz ist im ausgewaehlten Zeitraum reserviert.");
+            String datum = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                    .withZone(ZoneId.of("Europe/Vienna")).format(anfang.toInstant());
+            throw new BadRequestException("Dieser Arbeitsplatz ist am " + datum + " bereits reserviert.");
         }
     }
 
@@ -652,7 +839,9 @@ public class ArbeitsplatzRepo {
                 .append("reservierungEnde", new Document("$gt", anfang));
         if (ausnahmeId != null) filter.append("_id", new Document("$ne", ausnahmeId));
         if (db.getCollection("reservierungen").find(filter).first() != null) {
-            throw new BadRequestException("Ein Mitarbeiter kann im selben Zeitraum nur einen Arbeitsplatz reservieren.");
+            String datum = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                    .withZone(ZoneId.of("Europe/Vienna")).format(anfang.toInstant());
+            throw new BadRequestException("Am " + datum + " besteht bereits eine eigene Reservierung.");
         }
     }
 
@@ -830,6 +1019,8 @@ public class ArbeitsplatzRepo {
                 benutzer.id().equals(arbeitsplatz.getReservierungBenutzerId()),
                 arbeitsplatz.getReservierungAnfang() == null ? "" : arbeitsplatz.getReservierungAnfang().toInstant().toString(),
                 arbeitsplatz.getReservierungEnde() == null ? "" : arbeitsplatz.getReservierungEnde().toInstant().toString(),
+                arbeitsplatz.getNaechsteReservierungAnfang() == null ? "" : arbeitsplatz.getNaechsteReservierungAnfang().toInstant().toString(),
+                arbeitsplatz.getNaechsteReservierungEnde() == null ? "" : arbeitsplatz.getNaechsteReservierungEnde().toInstant().toString(),
                 arbeitsplatz.getRotation(),
                 arbeitsplatz.getBreite(),
                 arbeitsplatz.getHoehe(),

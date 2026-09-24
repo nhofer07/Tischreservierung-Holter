@@ -34,6 +34,7 @@
 .brand img {
   display: block;
   height: 42px;
+  max-width: 170px;
   object-fit: contain;
   width: auto;
 }
@@ -69,12 +70,12 @@ nav button:hover { background:#f7f7f5; color:#292b2d; }
 
 nav button.active {
   background:linear-gradient(to top,rgba(165,30,45,.055),transparent 55%);
-  border-bottom-color: #a51e2d;
-  color: #a51e2d;
+  border-bottom-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .profile-menu { align-items: center; border-left:1px solid #e2e2de; display: flex; gap: 10px; padding-left:18px; }
-.avatar { align-items: center; background: #343638; border-radius: 50%; color: #fff; display: flex; font-size: 11px; font-weight: 800; height: 36px; justify-content: center; width: 36px; }
+.avatar { align-items: center; background: var(--accent-color); border-radius: 50%; color: #fff; display: flex; font-size: 11px; font-weight: 800; height: 36px; justify-content: center; width: 36px; }
 .profile-name { display: grid; line-height: 1.2; min-width: 120px; }.profile-name strong { font-size: 12px; }.profile-name small { color: #777a7c; font-size: 11px; margin-top: 3px; }
 .logout { background: #fff; border: 1px solid #cdcdc8; border-radius: 2px; color: #4d5052; cursor: pointer; font-size: 12px; font-weight: 700; padding: 9px 12px; }
 .logout:hover { border-color: #a51e2d; color: #a51e2d; }
@@ -101,10 +102,12 @@ nav button.active {
 
 .loading-line {
   animation: loading 1.2s ease-in-out infinite;
-  background: #a51e2d;
+  background: var(--primary-color);
   height: 3px;
   transform-origin: left;
 }
+
+.logout:hover { border-color:var(--primary-color); color:var(--primary-color); }
 
 @keyframes loading {
   0% { transform: scaleX(.12); }

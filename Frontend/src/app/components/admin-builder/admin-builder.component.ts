@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, BenutzerRequest, Raum, RaumAuswahl, RaumElement, RaumRequest, Reservierung, Standort, StandortRequest, Zeitraum } from '../../models';
+import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, BenutzerRequest, FirmenDesignHistorie, FirmenEinstellung, Raum, RaumAuswahl, RaumElement, RaumRequest, Reservierung, Standort, StandortRequest, Zeitraum } from '../../models';
 import { ArbeitsplatzService } from '../../services/arbeitsplatz.service';
 import { forkJoin } from 'rxjs';
 
@@ -15,6 +15,7 @@ export class AdminBuilderComponent implements OnInit {
   @Output() nachricht = new EventEmitter<string>();
   @Output() fehler = new EventEmitter<string>();
   @Output() standorteGeaendert = new EventEmitter<void>();
+  @Output() designGeaendert = new EventEmitter<FirmenEinstellung>();
 
   private adminWert: Benutzer | null = null;
   private standortListe: Standort[] = [];
@@ -64,6 +65,8 @@ export class AdminBuilderComponent implements OnInit {
   stornierungsgrund = '';
   neueAbteilung = '';
   neuesEquipment = '';
+  firmenEinstellung: FirmenEinstellung = { firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' };
+  designHistorie: FirmenDesignHistorie[] = [];
   laden = false;
   benutzerWerdenGeladen = false;
   reservierungenWerdenGeladen = false;
@@ -71,6 +74,7 @@ export class AdminBuilderComponent implements OnInit {
   zoom = 1;
   ansichtX = 0;
   ansichtY = 0;
+  grundrissVollbild = false;
   ausgewaehlteElementIds: string[] = [];
   historie: RaumElement[][] = [];
   wiederholenHistorie: RaumElement[][] = [];
@@ -98,6 +102,80 @@ export class AdminBuilderComponent implements OnInit {
     this.stammdatenLaden();
     this.benutzerLaden();
     this.reservierungenLaden();
+    if (this.istSuperadmin) this.firmenEinstellungenLaden();
+  }
+
+  firmenEinstellungenLaden(): void {
+    this.service.getFirmenEinstellungen().subscribe({
+      next: (einstellung) => { this.firmenEinstellung = einstellung; this.cdr.detectChanges(); },
+      error: () => this.fehler.emit('Firmendesign konnte nicht geladen werden.')
+    });
+    this.service.getFirmenDesignHistorie(this.admin.id).subscribe((historie) => {
+      this.designHistorie = historie;
+      this.cdr.detectChanges();
+    });
+  }
+
+  firmenEinstellungenSpeichern(): void {
+    this.service.firmenEinstellungenSpeichern(this.admin.id, this.firmenEinstellung).subscribe({
+      next: (einstellung) => {
+        this.firmenEinstellung = einstellung;
+        this.designGeaendert.emit(einstellung);
+        this.firmenEinstellungenLaden();
+        this.nachricht.emit('Firmendesign wurde gespeichert.');
+      },
+      error: () => this.fehler.emit('Firmendesign konnte nicht gespeichert werden. Bitte Eingaben prüfen.')
+    });
+  }
+
+  firmenDesignZuruecksetzen(): void {
+    this.firmenEinstellung = { firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' };
+    this.firmenEinstellungenSpeichern();
+  }
+
+  designAusHistorieVerwenden(eintrag: FirmenDesignHistorie): void {
+    this.service.firmenDesignAusHistorieVerwenden(this.admin.id, eintrag.id).subscribe({
+      next: (einstellung) => {
+        this.firmenEinstellung = einstellung;
+        this.designGeaendert.emit(einstellung);
+        this.nachricht.emit('Designvariante wurde angewendet.');
+      },
+      error: () => this.fehler.emit('Designvariante konnte nicht angewendet werden.')
+    });
+  }
+
+  designHistorieLoeschen(eintrag: FirmenDesignHistorie, event: Event): void {
+    event.stopPropagation();
+    this.service.firmenDesignHistorieLoeschen(this.admin.id, eintrag.id).subscribe({
+      next: () => {
+        this.designHistorie = this.designHistorie.filter((item) => item.id !== eintrag.id);
+        this.nachricht.emit('Designvariante wurde aus der Historie entfernt.');
+      },
+      error: () => this.fehler.emit('Designvariante konnte nicht entfernt werden.')
+    });
+  }
+
+  logoAuswaehlen(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const datei = input.files?.[0];
+    if (!datei) return;
+    if (!datei.type.startsWith('image/')) { this.fehler.emit('Bitte eine Bilddatei auswählen.'); return; }
+    if (datei.size > 2_000_000) { this.fehler.emit('Das Logo darf maximal 2 MB groß sein.'); input.value = ''; return; }
+    const leser = new FileReader();
+    leser.onerror = () => this.fehler.emit('Die Bilddatei konnte nicht gelesen werden.');
+    leser.onload = () => {
+      const logoUrl = String(leser.result);
+      const bild = new Image();
+      bild.onerror = () => this.fehler.emit('Die ausgewählte Datei ist kein gültiges Bild.');
+      bild.onload = () => {
+        this.firmenEinstellung.logoUrl = logoUrl;
+        this.cdr.detectChanges();
+        this.firmenEinstellungenSpeichern();
+        input.value = '';
+      };
+      bild.src = logoUrl;
+    };
+    leser.readAsDataURL(datei);
   }
 
   bereichOeffnen(bereich: 'builder' | 'stammdaten' | 'benutzer' | 'reservierungen' | 'audit'): void {
@@ -167,9 +245,29 @@ export class AdminBuilderComponent implements OnInit {
 
   raumLaden(id: string): void {
     this.raumId = id;
-    const zeitraum: Zeitraum = { datum: this.heute(), beginn: '08:00', ende: '16:00' };
+    const zeitraum: Zeitraum = { datum: this.heute(), endDatum: this.heute(), beginn: '08:00', ende: '16:00' };
     this.service.getRaum(id, zeitraum, this.admin.id).subscribe({
       next: (raum) => {
+        raum.elemente = raum.elemente.map((element) => {
+          if (element.typ === 'tuer') {
+            const hoehe = element.breite * 16 / 9;
+            return { ...element, y: element.y + element.hoehe / 2 - hoehe / 2, hoehe };
+          }
+          if (element.typ === 'wand' || element.typ === 'fenster') {
+            const mitteX = element.x + element.breite / 2;
+            const mitteY = element.y + element.hoehe / 2;
+            const gedreht = Math.round((element.rotation || 0) / 90) % 2 !== 0;
+            const waagrecht = gedreht ? element.breite < element.hoehe : element.breite >= element.hoehe;
+            const laenge = Math.max(element.breite, element.hoehe);
+            const breite = waagrecht ? laenge : 2;
+            const hoehe = waagrecht ? 2 : laenge;
+            return { ...element,
+              x: this.begrenzen(mitteX - breite / 2, 0, 100 - breite),
+              y: this.begrenzen(mitteY - hoehe / 2, 0, 100 - hoehe),
+              breite, hoehe, rotation: 0 };
+          }
+          return element;
+        });
         this.raum = raum;
         this.raumForm = { name: raum.name, stockwerk: raum.stockwerk, standortId: raum.standortId,
           abteilungId: raum.abteilungId, abteilungName: raum.abteilungName, elemente: [...raum.elemente] };
@@ -401,7 +499,11 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   svgPointerDown(event: PointerEvent): void {
-    if (!this.raum || this.werkzeug === 'auswahl') return;
+    if (!this.raum) return;
+    if (this.werkzeug === 'auswahl') {
+      this.auswahlLeeren();
+      return;
+    }
     const punkt = this.svgPunkt(event);
     if (this.rotateElementId) {
       const element = this.raum.elemente.find((eintrag) => eintrag.id === this.rotateElementId);
@@ -413,7 +515,7 @@ export class AdminBuilderComponent implements OnInit {
     }
     if (this.werkzeug === 'wand') {
       this.zustandMerken();
-      this.startpunkt = punkt;
+      this.startpunkt = this.punktAnWandAndocken(punkt);
       (event.currentTarget as SVGElement).setPointerCapture(event.pointerId);
       return;
     }
@@ -430,10 +532,7 @@ export class AdminBuilderComponent implements OnInit {
     if (!this.raum) return;
     const punkt = this.svgPunkt(event);
     if (this.startpunkt && this.werkzeug === 'wand') {
-      this.wandVorschau = {
-        x: Math.min(this.startpunkt.x, punkt.x), y: Math.min(this.startpunkt.y, punkt.y),
-        breite: Math.abs(punkt.x - this.startpunkt.x), hoehe: Math.abs(punkt.y - this.startpunkt.y)
-      };
+      this.wandVorschau = this.wandBerechnen(this.startpunkt, punkt);
       return;
     }
     if (this.resizeElementId && this.resizeStart) {
@@ -444,12 +543,16 @@ export class AdminBuilderComponent implements OnInit {
       const deltaX = punkt.x - this.resizeStart.mausX;
       const deltaY = punkt.y - this.resizeStart.mausY;
       if (element.typ === 'tuer') {
-        const delta = Math.abs(deltaX) >= Math.abs(deltaY) ? (links ? -deltaX : deltaX) : (oben ? -deltaY : deltaY);
+        const deltaYAlsBreite = deltaY * 9 / 16;
+        const delta = Math.abs(deltaX) >= Math.abs(deltaYAlsBreite)
+          ? (links ? -deltaX : deltaX)
+          : (oben ? -deltaYAlsBreite : deltaYAlsBreite);
         const seite = this.begrenzen(this.raster(this.resizeStart.breite + delta), 4, 25);
+        const hoehe = seite * 16 / 9;
         element.x = links ? this.resizeStart.x + this.resizeStart.breite - seite : this.resizeStart.x;
-        element.y = oben ? this.resizeStart.y + this.resizeStart.hoehe - seite : this.resizeStart.y;
+        element.y = oben ? this.resizeStart.y + this.resizeStart.hoehe - hoehe : this.resizeStart.y;
         element.breite = seite;
-        element.hoehe = seite;
+        element.hoehe = hoehe;
         return;
       }
       if (links) {
@@ -486,11 +589,8 @@ export class AdminBuilderComponent implements OnInit {
         this.wandVorschau = null;
         return;
       }
-      const x = this.raster(Math.min(this.startpunkt.x, ende.x));
-      const y = this.raster(Math.min(this.startpunkt.y, ende.y));
-      const breite = Math.max(1.2, this.raster(Math.abs(ende.x - this.startpunkt.x)));
-      const hoehe = Math.max(1.2, this.raster(Math.abs(ende.y - this.startpunkt.y)));
-      const wand = this.neuesElement('wand', x + breite / 2, y + hoehe / 2, breite, hoehe);
+      const form = this.wandBerechnen(this.startpunkt, ende);
+      const wand = this.neuesElement('wand', form.x + form.breite / 2, form.y + form.hoehe / 2, form.breite, form.hoehe);
       this.wandendenVerbinden(wand);
       this.raum.elemente.push(wand);
       this.ausgewaehltesElement = wand;
@@ -500,6 +600,11 @@ export class AdminBuilderComponent implements OnInit {
     if (this.raum && this.resizeElementId) {
       const element = this.raum.elemente.find((eintrag) => eintrag.id === this.resizeElementId);
       if (element?.typ === 'tuer' || element?.typ === 'fenster') this.anWandAndocken(element);
+      if (element?.typ === 'wand') this.wandAndocken(element);
+    }
+    if (this.raum && this.dragElementId) {
+      const element = this.raum.elemente.find((eintrag) => eintrag.id === this.dragElementId);
+      if (element?.typ === 'wand') this.wandAndocken(element);
     }
     this.startpunkt = null;
     this.wandVorschau = null;
@@ -598,13 +703,45 @@ export class AdminBuilderComponent implements OnInit {
   elementDrehen(): void {
     if (!this.ausgewaehltesElement) return;
     this.zustandMerken();
+    if (this.ausgewaehltesElement.typ === 'wand' || this.ausgewaehltesElement.typ === 'fenster') {
+      const element = this.ausgewaehltesElement;
+      const mitteX = element.x + element.breite / 2;
+      const mitteY = element.y + element.hoehe / 2;
+      const alteBreite = element.breite;
+      element.breite = element.hoehe;
+      element.hoehe = alteBreite;
+      element.x = this.begrenzen(mitteX - element.breite / 2, 0, 100 - element.breite);
+      element.y = this.begrenzen(mitteY - element.hoehe / 2, 0, 100 - element.hoehe);
+      element.rotation = 0;
+      if (element.typ === 'wand') this.wandAndocken(element); else this.anWandAndocken(element);
+      return;
+    }
     this.ausgewaehltesElement.rotation = ((this.ausgewaehltesElement.rotation || 0) + 90) % 360;
+  }
+
+  linienLaenge(element: RaumElement): number {
+    return Math.max(element.breite, element.hoehe);
+  }
+
+  linienLaengeAendern(element: RaumElement, wert: number): void {
+    const laenge = this.begrenzen(Number(wert), 2, 100);
+    const waagrecht = element.breite >= element.hoehe;
+    if (waagrecht) {
+      element.y = this.begrenzen(element.y + element.hoehe / 2 - 1, 0, 98);
+      element.breite = this.begrenzen(laenge, 2, 100 - element.x);
+      element.hoehe = 2;
+    } else {
+      element.x = this.begrenzen(element.x + element.breite / 2 - 1, 0, 98);
+      element.breite = 2;
+      element.hoehe = this.begrenzen(laenge, 2, 100 - element.y);
+    }
+    if (element.typ === 'wand') this.wandAndocken(element); else this.anWandAndocken(element);
   }
 
   tuerGroesseAendern(element: RaumElement, wert: number): void {
     const seite = this.begrenzen(Number(wert), 4, 25);
     element.breite = seite;
-    element.hoehe = seite;
+    element.hoehe = seite * 16 / 9;
     this.anWandAndocken(element);
   }
 
@@ -618,11 +755,11 @@ export class AdminBuilderComponent implements OnInit {
 
   get svgViewBox(): string {
     const groesse = 100 / this.zoom;
-    return `${this.ansichtX} ${this.ansichtY} ${groesse} ${groesse}`;
+    return `${this.ansichtX * 1.6} ${this.ansichtY * .9} ${groesse * 1.6} ${groesse * .9}`;
   }
 
   zoomAendern(richtung: number): void {
-    this.zoom = this.begrenzen(Math.round((this.zoom + richtung) * 10) / 10, 1, 2.5);
+    this.zoom = this.begrenzen(Math.round((this.zoom + richtung) * 10) / 10, 1, 4);
     const max = 100 - 100 / this.zoom;
     this.ansichtX = this.begrenzen(this.ansichtX, 0, max);
     this.ansichtY = this.begrenzen(this.ansichtY, 0, max);
@@ -639,6 +776,16 @@ export class AdminBuilderComponent implements OnInit {
     this.ansichtX = 0;
     this.ansichtY = 0;
     this.auswahlLeeren();
+  }
+
+  mausradZoom(event: WheelEvent): void {
+    event.preventDefault();
+    this.zoomAendern(event.deltaY < 0 ? .2 : -.2);
+  }
+
+  grundrissVollbildUmschalten(): void {
+    this.grundrissVollbild = !this.grundrissVollbild;
+    if (!this.grundrissVollbild) this.ansichtZuruecksetzen();
   }
 
   allesZuruecksetzen(): void {
@@ -715,38 +862,61 @@ export class AdminBuilderComponent implements OnInit {
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
+  neuerTischDragStart(event: PointerEvent): void {
+    event.stopPropagation();
+    this.tischWirdGezogen = true;
+    this.tischAktion = 'verschieben';
+    this.tischStart = { mausX: 0, mausY: 0, x: this.tischForm.x, y: this.tischForm.y,
+      breite: this.tischForm.breite, hoehe: this.tischForm.hoehe, rotation: this.tischForm.rotation };
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
   tischDrag(event: PointerEvent): void {
-    if (!this.tischWirdGezogen || !this.ausgewaehlterTisch || this.tischAktion !== 'verschieben') return;
+    if (!this.tischWirdGezogen || this.tischAktion !== 'verschieben') return;
     const raum = (event.currentTarget as HTMLElement).parentElement!;
     const rect = raum.getBoundingClientRect();
     const x = this.begrenzen(((event.clientX - rect.left) / rect.width) * 100, 8, 92);
     const y = this.begrenzen(((event.clientY - rect.top) / rect.height) * 100, 12, 86);
     this.tischForm.x = Math.round(x); this.tischForm.y = Math.round(y);
-    this.ausgewaehlterTisch.x = this.tischForm.x; this.ausgewaehlterTisch.y = this.tischForm.y;
+    if (this.ausgewaehlterTisch) {
+      this.ausgewaehlterTisch.x = this.tischForm.x;
+      this.ausgewaehlterTisch.y = this.tischForm.y;
+    }
   }
 
   tischDragEnd(event: PointerEvent): void {
     if (!this.tischWirdGezogen) return;
+    if (event.type === 'pointercancel') {
+      this.tischStartWiederherstellen();
+      return;
+    }
     if (this.tischAktion === 'verschieben') this.tischDrag(event);
     this.tischFormInRaumUebernehmen();
     this.tischWirdGezogen = false;
     this.tischAktion = '';
-    if (this.ausgewaehlterTisch && this.tischHatKollision(this.tischForm.x, this.tischForm.y, this.ausgewaehlterTisch.id)) {
+    if (this.tischHatKollision(this.tischForm.x, this.tischForm.y, this.ausgewaehlterTisch?.id)) {
       this.fehler.emit('Der Arbeitsplatz überlappt eine Wand, Sperrzone oder einen anderen Tisch.');
-      if (this.tischStart) {
-        this.tischForm.x = this.tischStart.x;
-        this.tischForm.y = this.tischStart.y;
-        this.tischForm.breite = this.tischStart.breite;
-        this.tischForm.hoehe = this.tischStart.hoehe;
-        this.tischForm.rotation = this.tischStart.rotation;
-        this.tischFormInRaumUebernehmen();
-      }
+      this.tischStartWiederherstellen();
+      return;
     }
     this.tischStart = null;
   }
 
+  private tischStartWiederherstellen(): void {
+    if (this.tischStart) {
+      this.tischForm.x = this.tischStart.x;
+      this.tischForm.y = this.tischStart.y;
+      this.tischForm.breite = this.tischStart.breite;
+      this.tischForm.hoehe = this.tischStart.hoehe;
+      this.tischForm.rotation = this.tischStart.rotation;
+      this.tischFormInRaumUebernehmen();
+    }
+    this.tischWirdGezogen = false;
+    this.tischAktion = '';
+    this.tischStart = null;
+  }
+
   tischResizeStart(event: PointerEvent, richtung: 'nw' | 'ne' | 'sw' | 'se'): void {
-    if (!this.ausgewaehlterTisch) return;
     event.stopPropagation();
     const punkt = this.tischPunkt(event);
     this.tischWirdGezogen = true;
@@ -758,7 +928,6 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   tischDrehenStart(event: PointerEvent): void {
-    if (!this.ausgewaehlterTisch) return;
     event.stopPropagation();
     this.tischWirdGezogen = true;
     this.tischAktion = 'drehen';
@@ -768,7 +937,7 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   tischBearbeitenPointerMove(event: PointerEvent): void {
-    if (!this.tischWirdGezogen || !this.ausgewaehlterTisch) return;
+    if (!this.tischWirdGezogen) return;
     if (this.tischAktion === 'verschieben') { this.tischDrag(event); return; }
     if (this.tischAktion === 'drehen') {
       const raum = (event.currentTarget as HTMLElement).closest('.builder-room') as HTMLElement;
@@ -813,7 +982,10 @@ export class AdminBuilderComponent implements OnInit {
     if (ziel.matches('input, textarea, select')) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? this.wiederholen() : this.rueckgaengig(); return; }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); this.wiederholen(); return; }
-    if (event.key === 'Escape') { this.auswahlLeeren(); this.werkzeug = 'auswahl'; return; }
+    if (event.key === 'Escape') {
+      if (this.grundrissVollbild) this.grundrissVollbild = false;
+      this.auswahlLeeren(); this.werkzeug = 'auswahl'; return;
+    }
     if ((event.key === 'Delete' || event.key === 'Backspace') && this.ausgewaehltesElement) { event.preventDefault(); this.elementLoeschen(); return; }
     if (this.ausgewaehltesElement && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) {
       event.preventDefault(); this.zustandMerken(); const schritt = event.shiftKey ? 5 : 1;
@@ -823,6 +995,8 @@ export class AdminBuilderComponent implements OnInit {
       if (event.key === 'ArrowDown') this.ausgewaehltesElement.y += schritt;
       this.ausgewaehltesElement.x = this.begrenzen(this.ausgewaehltesElement.x, 0, 100 - this.ausgewaehltesElement.breite);
       this.ausgewaehltesElement.y = this.begrenzen(this.ausgewaehltesElement.y, 0, 100 - this.ausgewaehltesElement.hoehe);
+      if (this.ausgewaehltesElement.typ === 'wand') this.wandAndocken(this.ausgewaehltesElement);
+      if (this.ausgewaehltesElement.typ === 'tuer' || this.ausgewaehltesElement.typ === 'fenster') this.anWandAndocken(this.ausgewaehltesElement);
     }
   }
 
@@ -965,6 +1139,15 @@ export class AdminBuilderComponent implements OnInit {
       error: () => this.fehler.emit('Passwort konnte nicht zurückgesetzt werden.') });
   }
 
+  benutzerLoeschen(): void {
+    if (!this.istSuperadmin || !this.ausgewaehlterBenutzerId || this.benutzerForm.rolle !== 'USER') return;
+    if (!confirm(`Mitarbeiter ${this.benutzerForm.vorname} ${this.benutzerForm.nachname} wirklich löschen?`)) return;
+    this.service.benutzerLoeschen(this.admin.id, this.ausgewaehlterBenutzerId).subscribe({
+      next: () => { this.nachricht.emit('Mitarbeiter wurde gelöscht.'); this.neuerBenutzer(); this.benutzerLaden(); },
+      error: (error) => this.fehler.emit(error?.error?.details || 'Mitarbeiter konnte nicht gelöscht werden.')
+    });
+  }
+
   standortAuswaehlen(standort: Standort): void {
     this.bearbeiteterStandortId = standort.id;
     this.standortForm = { name:standort.name, adresse:standort.adresse, ort:standort.ort };
@@ -1003,7 +1186,33 @@ export class AdminBuilderComponent implements OnInit {
     punkt.x = event.clientX;
     punkt.y = event.clientY;
     const umgerechnet = punkt.matrixTransform(svg.getScreenCTM()!.inverse());
-    return { x: umgerechnet.x, y: umgerechnet.y };
+    return { x: umgerechnet.x / 1.6, y: umgerechnet.y / .9 };
+  }
+
+  private wandBerechnen(start: { x: number; y: number }, ende: { x: number; y: number }, ignorierteId = ''): { x: number; y: number; breite: number; hoehe: number } {
+    const deltaX = Math.abs(ende.x - start.x);
+    const deltaY = Math.abs(ende.y - start.y);
+    const staerke = 2;
+    if (deltaX >= deltaY) {
+      const linieY = this.wandLinieAndocken(true, start.y, Math.min(start.x, ende.x), Math.max(start.x, ende.x), ignorierteId);
+      const startAngedockt = this.punktAnWandAndocken({ x: start.x, y: linieY }, ignorierteId);
+      const endeAngedockt = this.punktAnWandAndocken({ x: ende.x, y: linieY }, ignorierteId);
+      return {
+        x: this.begrenzen(this.raster(Math.min(startAngedockt.x, endeAngedockt.x)), 0, 100 - staerke),
+        y: this.begrenzen(this.raster(linieY - staerke / 2), 0, 100 - staerke),
+        breite: Math.max(2, this.raster(Math.abs(endeAngedockt.x - startAngedockt.x))),
+        hoehe: staerke
+      };
+    }
+    const linieX = this.wandLinieAndocken(false, start.x, Math.min(start.y, ende.y), Math.max(start.y, ende.y), ignorierteId);
+    const startAngedockt = this.punktAnWandAndocken({ x: linieX, y: start.y }, ignorierteId);
+    const endeAngedockt = this.punktAnWandAndocken({ x: linieX, y: ende.y }, ignorierteId);
+    return {
+      x: this.begrenzen(this.raster(linieX - staerke / 2), 0, 100 - staerke),
+      y: this.begrenzen(this.raster(Math.min(startAngedockt.y, endeAngedockt.y)), 0, 100 - staerke),
+      breite: staerke,
+      hoehe: Math.max(2, this.raster(Math.abs(endeAngedockt.y - startAngedockt.y)))
+    };
   }
 
   private neuesElement(typ: RaumElement['typ'], x: number, y: number, breite: number, hoehe: number): RaumElement {
@@ -1015,46 +1224,47 @@ export class AdminBuilderComponent implements OnInit {
 
   private standardGroesse(typ: RaumElement['typ']): { breite: number; hoehe: number } {
     if (typ === 'gesperrt') return { breite: 18, hoehe: 12 };
-    if (typ === 'tuer') return { breite: 10, hoehe: 10 };
+    if (typ === 'tuer') return { breite: 10, hoehe: 10 * 16 / 9 };
     if (typ === 'fenster') return { breite: 14, hoehe: 2 };
     if (typ === 'klima') return { breite: 10, hoehe: 5 };
-    if (typ === 'saeule') return { breite: 5, hoehe: 5 };
+    if (typ === 'saeule') return { breite: 5, hoehe: 5 * 16 / 9 };
     if (typ === 'feuerloescher') return { breite: 4, hoehe: 6 };
     if (typ === 'beschriftung') return { breite: 18, hoehe: 5 };
-    return { breite: 7, hoehe: 9 };
+    return { breite: 7, hoehe: 7 * 16 / 9 };
   }
 
   private anWandAndocken(element: RaumElement): void {
     if (!this.raum) return;
     const waende = this.raum.elemente.filter((eintrag) => eintrag.typ === 'wand');
     let besteWand: RaumElement | undefined;
-    let kleinsterAbstand = 12;
+    let kleinsterAbstand = 8;
     const mitteX = element.x + element.breite / 2;
     const mitteY = element.y + element.hoehe / 2;
     for (const wand of waende) {
       const waagrecht = wand.breite >= wand.hoehe;
       const naechstesX = this.begrenzen(mitteX, wand.x, wand.x + wand.breite);
       const naechstesY = this.begrenzen(mitteY, wand.y, wand.y + wand.hoehe);
-      const abstand = waagrecht
-        ? Math.hypot(mitteX - naechstesX, mitteY - (wand.y + wand.hoehe / 2))
-        : Math.hypot(mitteX - (wand.x + wand.breite / 2), mitteY - naechstesY);
+      const deltaX = waagrecht ? mitteX - naechstesX : mitteX - (wand.x + wand.breite / 2);
+      const deltaY = waagrecht ? mitteY - (wand.y + wand.hoehe / 2) : mitteY - naechstesY;
+      const abstand = Math.hypot(deltaX * 1.6, deltaY * .9);
       if (abstand < kleinsterAbstand) { kleinsterAbstand = abstand; besteWand = wand; }
     }
     if (!besteWand) return;
     const waagrecht = besteWand.breite >= besteWand.hoehe;
     if (element.typ === 'tuer') {
-      const seite = Math.max(4, Math.min(25, Math.max(element.breite, element.hoehe)));
+      const seite = Math.max(4, Math.min(25, element.breite));
+      const hoehe = seite * 16 / 9;
       element.breite = seite;
-      element.hoehe = seite;
+      element.hoehe = hoehe;
       if (waagrecht) {
         const wandMitte = besteWand.y + besteWand.hoehe / 2;
         element.x = this.begrenzen(mitteX - seite / 2, besteWand.x, besteWand.x + besteWand.breite - seite);
-        element.y = mitteY <= wandMitte ? wandMitte - seite : wandMitte;
+        element.y = mitteY <= wandMitte ? wandMitte - hoehe : wandMitte;
         element.rotation = mitteY <= wandMitte ? 0 : 180;
       } else {
         const wandMitte = besteWand.x + besteWand.breite / 2;
         element.x = mitteX <= wandMitte ? wandMitte - seite : wandMitte;
-        element.y = this.begrenzen(mitteY - seite / 2, besteWand.y, besteWand.y + besteWand.hoehe - seite);
+        element.y = this.begrenzen(mitteY - hoehe / 2, besteWand.y, besteWand.y + besteWand.hoehe - hoehe);
         element.rotation = mitteX <= wandMitte ? 270 : 90;
       }
       return;
@@ -1075,16 +1285,64 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   private wandendenVerbinden(wand: RaumElement): void {
-    if (!this.raum) return;
-    const toleranz = 3;
-    for (const andere of this.raum.elemente.filter((element) => element.typ === 'wand')) {
-      const andereRechts = andere.x + andere.breite;
-      const andereUnten = andere.y + andere.hoehe;
-      if (Math.abs(wand.x - andereRechts) < toleranz) wand.x = andereRechts;
-      if (Math.abs(wand.x + wand.breite - andere.x) < toleranz) wand.breite = andere.x - wand.x;
-      if (Math.abs(wand.y - andereUnten) < toleranz) wand.y = andereUnten;
-      if (Math.abs(wand.y + wand.hoehe - andere.y) < toleranz) wand.hoehe = andere.y - wand.y;
+    this.wandAndocken(wand);
+  }
+
+  private wandAndocken(wand: RaumElement): void {
+    const waagrecht = wand.breite >= wand.hoehe;
+    const start = waagrecht
+      ? { x: wand.x, y: wand.y + wand.hoehe / 2 }
+      : { x: wand.x + wand.breite / 2, y: wand.y };
+    const ende = waagrecht
+      ? { x: wand.x + wand.breite, y: wand.y + wand.hoehe / 2 }
+      : { x: wand.x + wand.breite / 2, y: wand.y + wand.hoehe };
+    const form = this.wandBerechnen(start, ende, wand.id);
+    wand.x = form.x;
+    wand.y = form.y;
+    wand.breite = form.breite;
+    wand.hoehe = form.hoehe;
+    wand.rotation = 0;
+  }
+
+  private punktAnWandAndocken(punkt: { x: number; y: number }, ignorierteId = ''): { x: number; y: number } {
+    if (!this.raum) return punkt;
+    let ergebnis = { ...punkt };
+    let kleinsterAbstand = 7;
+    for (const wand of this.raum.elemente.filter((element) => element.typ === 'wand' && element.id !== ignorierteId)) {
+      const waagrecht = wand.breite >= wand.hoehe;
+      const x = waagrecht
+        ? this.begrenzen(punkt.x, wand.x, wand.x + wand.breite)
+        : wand.x + wand.breite / 2;
+      const y = waagrecht
+        ? wand.y + wand.hoehe / 2
+        : this.begrenzen(punkt.y, wand.y, wand.y + wand.hoehe);
+      const abstand = Math.hypot((punkt.x - x) * 1.6, (punkt.y - y) * .9);
+      if (abstand < kleinsterAbstand) {
+        kleinsterAbstand = abstand;
+        ergebnis = { x, y };
+      }
     }
+    return ergebnis;
+  }
+
+  private wandLinieAndocken(waagrecht: boolean, wert: number, von: number, bis: number, ignorierteId: string): number {
+    if (!this.raum) return wert;
+    let ergebnis = wert;
+    let kleinsterAbstand = 3;
+    for (const wand of this.raum.elemente.filter((element) => element.typ === 'wand' && element.id !== ignorierteId)) {
+      const andereWaagrecht = wand.breite >= wand.hoehe;
+      if (andereWaagrecht !== waagrecht) continue;
+      const andereVon = waagrecht ? wand.x : wand.y;
+      const andereBis = waagrecht ? wand.x + wand.breite : wand.y + wand.hoehe;
+      if (bis < andereVon - 4 || von > andereBis + 4) continue;
+      const linie = waagrecht ? wand.y + wand.hoehe / 2 : wand.x + wand.breite / 2;
+      const abstand = Math.abs(wert - linie);
+      if (abstand < kleinsterAbstand) {
+        kleinsterAbstand = abstand;
+        ergebnis = linie;
+      }
+    }
+    return ergebnis;
   }
 
   private raster(wert: number): number { return this.rasterAktiv ? Math.round(wert) : Math.round(wert * 10) / 10; }

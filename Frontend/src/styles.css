@@ -1,3 +1,8 @@
+:root {
+  --primary-color: #a51e2d;
+  --accent-color: #343638;
+}
+
 * {
   box-sizing: border-box;
 }

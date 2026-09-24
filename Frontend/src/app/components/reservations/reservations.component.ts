@@ -37,8 +37,10 @@ export class ReservationsComponent {
     const start = new Date(); start.setHours(0,0,0,0);
     return Array.from({length:14}, (_, index) => {
       const datum = new Date(start); datum.setDate(start.getDate() + index);
-      const schluessel = this.tagSchluessel(datum);
-      return { datum, reservierungen:this.aktiveReservierungen.filter((r) => this.tagSchluessel(new Date(r.reservierungAnfang)) === schluessel) };
+      const tagesEnde = new Date(datum); tagesEnde.setDate(datum.getDate() + 1);
+      return { datum, reservierungen:this.aktiveReservierungen.filter((r) =>
+        new Date(r.reservierungAnfang) < tagesEnde && new Date(r.reservierungEnde) > datum
+      ) };
     });
   }
 
@@ -57,8 +59,6 @@ export class ReservationsComponent {
     const datum = new Date(iso); const lokal = new Date(datum.getTime() - datum.getTimezoneOffset() * 60000);
     return lokal.toISOString().slice(0,16);
   }
-
-  private tagSchluessel(datum: Date): string { return `${datum.getFullYear()}-${datum.getMonth()}-${datum.getDate()}`; }
 
   datum(isoDatum: string): string {
     return new Intl.DateTimeFormat('de-AT', {

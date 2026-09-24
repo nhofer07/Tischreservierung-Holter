@@ -1,35 +1,35 @@
 <main class="login-page">
   <section class="login-panel">
     <div class="login-brand">
-      <img src="/holter-logo.png" alt="HOLTER" />
-      <span>DeskVision</span>
+      <img *ngIf="firmenEinstellung.logoUrl" [src]="firmenEinstellung.logoUrl" [alt]="firmenEinstellung.firmenname" />
+      <span>{{ firmenEinstellung.produktname }}</span>
     </div>
     <div class="login-copy">
       <p>Interne Arbeitsplatzverwaltung</p>
       <h1>Willkommen zurück</h1>
-      <span>Melde dich mit deinem Testkonto an, um einen Arbeitsplatz zu buchen.</span>
+      <span>Melde dich sicher mit deinem Unternehmenskonto an, um einen Arbeitsplatz zu buchen.</span>
     </div>
-    <form (ngSubmit)="login()">
+    <button type="button" class="microsoft-login" [disabled]="laden" (click)="entraAnmelden.emit()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#f25022" d="M2 2h9v9H2z"/><path fill="#7fba00" d="M13 2h9v9h-9z"/><path fill="#00a4ef" d="M2 13h9v9H2z"/><path fill="#ffb900" d="M13 13h9v9h-9z"/></svg>
+      <span>{{ laden ? 'Anmeldung wird vorbereitet …' : 'Mit Microsoft anmelden' }}</span>
+    </button>
+    <p class="login-security">Die Anmeldung erfolgt über Microsoft Entra ID. Dein Passwort wird nicht in DeskVision gespeichert.</p>
+    <p class="login-error" *ngIf="fehler">{{ fehler }}</p>
+
+    <button *ngIf="lokalerTestLoginAktiv" type="button" class="test-toggle" (click)="testLoginOffen = !testLoginOffen">{{ testLoginOffen ? 'Testzugang schließen' : 'Lokalen Testzugang verwenden' }}</button>
+    <form *ngIf="lokalerTestLoginAktiv && testLoginOffen" class="test-form" (ngSubmit)="login()">
       <label>
-        E-Mail-Adresse
+        Test-E-Mail
         <input type="email" name="email" [(ngModel)]="email" autocomplete="username" required />
       </label>
       <label>
         Passwort
         <input type="password" name="passwort" [(ngModel)]="passwort" autocomplete="current-password" required />
       </label>
-      <p class="login-error" *ngIf="fehler">{{ fehler }}</p>
       <button type="submit" [disabled]="laden || !email || !passwort">
-        {{ laden ? 'Anmeldung läuft …' : 'Anmelden' }}
+        {{ laden ? 'Anmeldung läuft …' : 'Lokal anmelden' }}
       </button>
     </form>
-    <div class="test-hint">
-      <strong>Testzugänge</strong>
-      <span>Mitarbeiter: anna.leitner@example.test / holter123</span>
-      <span>Verwaltung: eva.gruber@example.test / holter123</span>
-      <span>Abteilungsleitung: admin@holter.test / admin123</span>
-      <span>Superadmin: chef@holter.test / admin123</span>
-    </div>
   </section>
   <aside aria-hidden="true">
     <div class="office-mark"><i></i><i></i><i></i><i></i></div>

@@ -5,8 +5,9 @@ import { ReservationsComponent } from './components/reservations/reservations.co
 import { RoomOverviewComponent } from './components/room-overview/room-overview.component';
 import { LoginComponent } from './components/login/login.component';
 import { AdminBuilderComponent } from './components/admin-builder/admin-builder.component';
-import { Arbeitsplatz, Benutzer, Raum, RaumAuswahl, Reservierung, Standort, Zeitraum } from './models';
+import { Arbeitsplatz, Benutzer, FirmenEinstellung, Raum, RaumAuswahl, Reservierung, Standort, Zeitraum } from './models';
 import { ArbeitsplatzService } from './services/arbeitsplatz.service';
+import { EntraAuthService } from './auth/entra-auth.service';
 
 @Component({
   selector: 'app-root',
@@ -26,24 +27,48 @@ export class App implements OnInit {
   fehler = signal('');
   nachricht = signal('');
   laden = signal(false);
+  firmenEinstellung = signal<FirmenEinstellung>({ firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' });
   private raumAnfrage = 0;
   zeitraum = signal<Zeitraum>({
     datum: this.heutigesDatum(),
+    endDatum: this.heutigesDatum(),
     beginn: '08:00',
     ende: '16:00'
   });
 
-  constructor(private arbeitsplatzService: ArbeitsplatzService) {}
+  constructor(private arbeitsplatzService: ArbeitsplatzService, private entraAuth: EntraAuthService) {}
 
   ngOnInit(): void {
     this.laden.set(true);
-    this.standorteLaden();
-    this.laden.set(false);
+    this.firmenEinstellungenLaden();
+    this.entraAuth.initialisieren()
+      .then((angemeldet) => angemeldet ? this.entraBenutzerLaden() : this.laden.set(false))
+      .catch((fehler) => {
+        console.error('Microsoft-Anmeldung konnte nicht initialisiert werden:', fehler);
+        const grund = fehler?.errorMessage || fehler?.message || '';
+        this.fehler.set(grund
+          ? `Microsoft-Anmeldung fehlgeschlagen: ${grund}`
+          : 'Microsoft-Anmeldung konnte nicht initialisiert werden. Bitte Verbindung und Entra-Konfiguration prüfen.');
+        this.laden.set(false);
+      });
   }
 
-  standorteLaden(): void {
+  firmenEinstellungenLaden(): void {
+    this.arbeitsplatzService.getFirmenEinstellungen().subscribe({
+      next: (einstellung) => this.firmenDesignAnwenden(einstellung),
+      error: () => this.firmenDesignAnwenden(this.firmenEinstellung())
+    });
+  }
+
+  firmenDesignAnwenden(einstellung: FirmenEinstellung): void {
+    this.firmenEinstellung.set(einstellung);
+    document.documentElement.style.setProperty('--primary-color', einstellung.primaerfarbe);
+    document.documentElement.style.setProperty('--accent-color', einstellung.akzentfarbe);
+  }
+
+  standorteLaden(nachLaden?: () => void): void {
     this.arbeitsplatzService.getStandorte().subscribe({
-      next: (standorte) => this.standorte.set(standorte),
+      next: (standorte) => { this.standorte.set(standorte); nachLaden?.(); },
       error: () => this.fehler.set('Standorte konnten nicht geladen werden. Läuft MongoDB?')
     });
   }
@@ -52,12 +77,7 @@ export class App implements OnInit {
     this.laden.set(true);
     this.fehler.set('');
     this.arbeitsplatzService.login(zugang.email, zugang.passwort).subscribe({
-      next: (benutzer) => {
-        this.aktiverBenutzer.set(benutzer);
-        this.aktiveAnsicht.set('start');
-        this.laden.set(false);
-        this.ersteRaumvorschauLaden(benutzer);
-      },
+      next: (benutzer) => this.anmeldungAbschliessen(benutzer),
       error: () => {
         this.fehler.set('E-Mail oder Passwort ist falsch.');
         this.laden.set(false);
@@ -65,7 +85,36 @@ export class App implements OnInit {
     });
   }
 
+  entraAnmelden(): void {
+    this.laden.set(true);
+    this.fehler.set('');
+    this.entraAuth.anmelden().catch(() => {
+      this.fehler.set('Die Weiterleitung zu Microsoft Entra ID ist fehlgeschlagen.');
+      this.laden.set(false);
+    });
+  }
+
+  private entraBenutzerLaden(): void {
+    this.arbeitsplatzService.entraBenutzer().subscribe({
+      next: (benutzer) => this.anmeldungAbschliessen(benutzer),
+      error: (error) => {
+        this.fehler.set(error?.status === 404
+          ? 'Dein Microsoft-Konto ist gültig, aber noch keinem Mitarbeiterprofil zugeordnet. Bitte die Entra-E-Mail in der Mitarbeiterverwaltung eintragen.'
+          : 'Microsoft-Anmeldung war erfolgreich, aber das Mitarbeiterprofil konnte nicht geladen werden. Bitte Backend und E-Mail-Zuordnung prüfen.');
+        this.laden.set(false);
+      }
+    });
+  }
+
+  private anmeldungAbschliessen(benutzer: Benutzer): void {
+    this.aktiverBenutzer.set(benutzer);
+    this.aktiveAnsicht.set('start');
+    this.laden.set(false);
+    this.standorteLaden(() => this.ersteRaumvorschauLaden(benutzer));
+  }
+
   abmelden(): void {
+    const warEntraAnmeldung = this.entraAuth.istAngemeldet();
     this.aktiverBenutzer.set(null);
     this.raum.set(null);
     this.raeume.set([]);
@@ -74,6 +123,7 @@ export class App implements OnInit {
     this.aktiveAnsicht.set('start');
     this.fehler.set('');
     this.nachricht.set('');
+    if (warEntraAnmeldung) this.entraAuth.abmelden();
   }
 
   adminOeffnen(): void {
@@ -187,6 +237,12 @@ export class App implements OnInit {
     this.nachricht.set('');
   }
 
+  arbeitsplatzFindenOeffnen(): void {
+    this.aktiveAnsicht.set(this.raum() ? 'raum' : 'start');
+    this.fehler.set('');
+    this.nachricht.set('');
+  }
+
   reservierungenOeffnen(): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
@@ -203,7 +259,7 @@ export class App implements OnInit {
     this.nachricht.set('');
   }
 
-  reservieren(wiederholungen = 0): void {
+  reservieren(): void {
     const benutzer = this.aktiverBenutzer();
     const tisch = this.ausgewaehlterTisch();
 
@@ -212,16 +268,16 @@ export class App implements OnInit {
     }
 
     this.laden.set(true);
-    this.arbeitsplatzService.reservieren(benutzer.id, tisch.id, this.zeitraum(), wiederholungen).subscribe({
+    this.arbeitsplatzService.reservieren(benutzer.id, tisch.id, this.zeitraum()).subscribe({
       next: () => {
-        this.nachricht.set(wiederholungen ? `Arbeitsplatz ${tisch.tischnr} wurde für ${wiederholungen + 1} Wochen reserviert.` : `Arbeitsplatz ${tisch.tischnr} wurde reserviert.`);
+        this.nachricht.set(`Arbeitsplatz ${tisch.tischnr} wurde für den gewählten Zeitraum reserviert.`);
         const aktuellerRaum = this.raum();
         if (aktuellerRaum) {
           this.raumOeffnen(aktuellerRaum.id);
         }
       },
-      error: () => {
-        this.fehler.set('Die Reservierung ist nicht möglich. Zeitraum oder Abteilung prüfen.');
+      error: (error) => {
+        this.fehler.set(error?.error?.details || error?.error?.message || 'Die Reservierung ist nicht möglich. Zeitraum oder Abteilung prüfen.');
         this.laden.set(false);
       }
     });

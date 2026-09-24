@@ -27,6 +27,14 @@
     <span>Reservierungszeitraum</span>
     <strong>{{ tisch.reservierungAnfang | date:'EEEE, dd.MM.yyyy' }}</strong>
     <div><b>{{ tisch.reservierungAnfang | date:'HH:mm' }}</b><i>bis</i><b>{{ tisch.reservierungEnde | date:'HH:mm' }}</b><small>Uhr</small></div>
+    <small>Wieder frei ab {{ tisch.reservierungEnde | date:'dd.MM.yyyy, HH:mm' }} Uhr.</small>
+  </section>
+
+  <section class="future-booking" *ngIf="!tisch.reservierungAnfang && tisch.naechsteReservierungAnfang">
+    <span>Nächste Belegung</span>
+    <strong>{{ tisch.naechsteReservierungAnfang | date:'EEEE, dd.MM.yyyy' }}</strong>
+    <div>{{ tisch.naechsteReservierungAnfang | date:'HH:mm' }}–{{ tisch.naechsteReservierungEnde | date:'HH:mm' }} Uhr</div>
+    <small>Danach wieder frei ab {{ tisch.naechsteReservierungEnde | date:'dd.MM.yyyy, HH:mm' }} Uhr.</small>
   </section>
 
   <h3>Ausstattung</h3>
@@ -36,6 +44,6 @@
 
   <p class="error" *ngIf="fehler">{{ fehler }}</p>
   <button type="button" [disabled]="!tisch.reservierbar" (click)="reservieren.emit()">
-    Arbeitsplatz reservieren
+    Arbeitsplatz für Zeitraum reservieren
   </button>
 </aside>

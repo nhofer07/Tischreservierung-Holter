@@ -17,18 +17,21 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   @Input() fehler = '';
 
   @Output() tischAuswaehlen = new EventEmitter<Arbeitsplatz>();
-  @Output() reservieren = new EventEmitter<number>();
+  @Output() reservieren = new EventEmitter<void>();
   @Output() raumWechseln = new EventEmitter<string>();
   @Output() zeitraumPruefen = new EventEmitter<Zeitraum>();
 
-  zeitraumSignal = signal<Zeitraum>({ datum: '', beginn: '08:00', ende: '16:00' });
+  zeitraumSignal = signal<Zeitraum>({ datum: '', endDatum: '', beginn: '08:00', ende: '16:00' });
   ausstattungFilter = signal<string[]>([]);
-  wiederholungen = signal(0);
   vollbild = signal(false);
   private aktualisierung?: ReturnType<typeof setInterval>;
+  private zeitraumTimer?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void { this.aktualisierung = setInterval(() => this.pruefen(), 30000); }
-  ngOnDestroy(): void { if (this.aktualisierung) clearInterval(this.aktualisierung); }
+  ngOnDestroy(): void {
+    if (this.aktualisierung) clearInterval(this.aktualisierung);
+    if (this.zeitraumTimer) clearTimeout(this.zeitraumTimer);
+  }
 
   @Input({ required: true }) set zeitraum(value: Zeitraum) {
     this.zeitraumSignal.set(value);
@@ -36,7 +39,8 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
 
   zeitraumGueltig = computed(() => {
     const zeitraum = this.zeitraumSignal();
-    return !!zeitraum.datum && !!zeitraum.beginn && !!zeitraum.ende && zeitraum.beginn < zeitraum.ende;
+    if (!zeitraum.datum || !zeitraum.endDatum || !zeitraum.beginn || !zeitraum.ende) return false;
+    return `${zeitraum.datum}T${zeitraum.beginn}` < `${zeitraum.endDatum}T${zeitraum.ende}`;
   });
 
   get vorherigerRaum() {
@@ -70,16 +74,24 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
 
   get zeitraumText() {
     const zeitraum = this.zeitraumSignal();
-    const datum = zeitraum.datum.split('-').reverse().join('.');
-    return `${datum} · ${zeitraum.beginn}–${zeitraum.ende}`;
+    const von = zeitraum.datum.split('-').reverse().join('.');
+    const bis = zeitraum.endDatum.split('-').reverse().join('.');
+    return von === bis
+      ? `${von} · ${zeitraum.beginn}–${zeitraum.ende}`
+      : `${von}, ${zeitraum.beginn} – ${bis}, ${zeitraum.ende}`;
   }
 
   zeitraumAendern(feld: keyof Zeitraum, event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.zeitraumSignal.set({
+    const neuerZeitraum = {
       ...this.zeitraumSignal(),
       [feld]: input.value
-    });
+    };
+    if (feld === 'datum' && neuerZeitraum.endDatum < neuerZeitraum.datum) {
+      neuerZeitraum.endDatum = neuerZeitraum.datum;
+    }
+    this.zeitraumSignal.set(neuerZeitraum);
+    this.automatischPruefen();
   }
 
   ausstattungAendern(name: string, aktiv: boolean): void {
@@ -92,6 +104,11 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
     if (this.zeitraumGueltig()) {
       this.zeitraumPruefen.emit(this.zeitraumSignal());
     }
+  }
+
+  private automatischPruefen(): void {
+    if (this.zeitraumTimer) clearTimeout(this.zeitraumTimer);
+    this.zeitraumTimer = setTimeout(() => this.pruefen(), 300);
   }
 
   schnellzeit(typ: 'ganztag' | 'vormittag' | 'nachmittag'): void {

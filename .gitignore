@@ -31,7 +31,8 @@ target/
 *.log
 
 # Maven / Gradle
-.mvn/
+# Die Maven-Wrapper-Dateien unter Backend/.mvn werden mit versioniert,
+# damit das Backend nach einem frischen Clone mit mvnw gestartet werden kann.
 .gradle/
 build/
 
@@ -69,6 +70,10 @@ temp/
 
 # Windows hidden files
 ehthumbs.db
+
+# OneDrive-Konflikt- und Office-Sperrdateien
+*sync-conflict*
+~$*
 
 # =========================
 # Optional (wenn ihr Uploads habt)

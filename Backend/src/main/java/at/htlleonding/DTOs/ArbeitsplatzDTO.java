@@ -15,6 +15,8 @@ public record ArbeitsplatzDTO(
         boolean eigeneReservierung,
         String reservierungAnfang,
         String reservierungEnde,
+        String naechsteReservierungAnfang,
+        String naechsteReservierungEnde,
         double rotation,
         double breite,
         double hoehe,

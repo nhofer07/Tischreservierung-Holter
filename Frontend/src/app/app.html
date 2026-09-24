@@ -2,21 +2,23 @@
   *ngIf="!aktiverBenutzer()"
   [laden]="laden()"
   [fehler]="fehler()"
-  (anmelden)="anmelden($event)"
+  [firmenEinstellung]="firmenEinstellung()"
+  (entraAnmelden)="entraAnmelden()"
+  (testAnmelden)="anmelden($event)"
 />
 
 <main class="page" *ngIf="aktiverBenutzer() as benutzerAktiv">
   <header class="topbar">
     <button class="brand" type="button" aria-label="Zur Startseite" (click)="startOeffnen()">
-      <img src="/holter-logo.png" alt="HOLTER" />
-      <span>DeskVision</span>
+      <img *ngIf="firmenEinstellung().logoUrl" [src]="firmenEinstellung().logoUrl" [alt]="firmenEinstellung().firmenname" />
+      <span>{{ firmenEinstellung().produktname }}</span>
     </button>
 
     <nav aria-label="Hauptnavigation">
       <button
         type="button"
         [class.active]="aktiveAnsicht() === 'start' || aktiveAnsicht() === 'raum'"
-        (click)="startOeffnen()"
+        (click)="arbeitsplatzFindenOeffnen()"
       >
         Arbeitsplatz finden
       </button>
@@ -68,7 +70,7 @@
     (raumWechseln)="raumOeffnen($event)"
     (zeitraumPruefen)="zeitraumPruefen($event)"
     (tischAuswaehlen)="tischAuswaehlen($event)"
-    (reservieren)="reservieren($event)"
+    (reservieren)="reservieren()"
   />
 
   <app-reservations
@@ -78,7 +80,7 @@
     [laden]="laden()"
     (stornieren)="stornieren($event)"
     (bearbeiten)="reservierungBearbeiten($event)"
-    (arbeitsplatzSuchen)="startOeffnen()"
+    (arbeitsplatzSuchen)="arbeitsplatzFindenOeffnen()"
   />
 
   <app-admin-builder
@@ -88,5 +90,6 @@
     (nachricht)="meldungAnzeigen($event)"
     (fehler)="fehlerAnzeigen($event)"
     (standorteGeaendert)="standorteLaden()"
+    (designGeaendert)="firmenDesignAnwenden($event)"
   />
 </main>

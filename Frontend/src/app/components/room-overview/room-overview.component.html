@@ -37,11 +37,21 @@
 
       <div class="time-box">
         <label>
-          Datum
+          Von
           <input
             type="date"
             [value]="zeitraumSignal().datum"
             (input)="zeitraumAendern('datum', $event)"
+          />
+        </label>
+
+        <label>
+          Bis
+          <input
+            type="date"
+            [min]="zeitraumSignal().datum"
+            [value]="zeitraumSignal().endDatum"
+            (input)="zeitraumAendern('endDatum', $event)"
           />
         </label>
 
@@ -63,9 +73,8 @@
           />
         </label>
 
-        <button type="button" [disabled]="!zeitraumGueltig()" (click)="pruefen()">Prüfen</button>
       </div>
-      <div class="quick-times"><button type="button" (click)="schnellzeit('ganztag')">Ganztägig</button><button type="button" (click)="schnellzeit('vormittag')">Vormittag</button><button type="button" (click)="schnellzeit('nachmittag')">Nachmittag</button><label>Wöchentlich<select [value]="wiederholungen()" (change)="wiederholungen.set(+$any($event.target).value)"><option value="0">Einmalig</option><option value="3">4 Wochen</option><option value="7">8 Wochen</option><option value="11">12 Wochen</option></select></label></div>
+      <div class="quick-times"><button type="button" (click)="schnellzeit('ganztag')">Ganztägig</button><button type="button" (click)="schnellzeit('vormittag')">Vormittag</button><button type="button" (click)="schnellzeit('nachmittag')">Nachmittag</button><span>Die Tischanzeige aktualisiert sich automatisch für den gesamten Zeitraum.</span></div>
       </div>
     </div>
   </div>
@@ -99,13 +108,13 @@
       </div>
 
       <div class="room">
-        <svg class="saved-layout" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Gespeicherter Raumgrundriss">
+        <svg class="saved-layout" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid meet" aria-label="Gespeicherter Raumgrundriss">
           <defs><pattern id="room-stripes" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#b23542" stroke-width="1" /></pattern></defs>
-          <g *ngFor="let element of raum.elemente" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + (element.x + element.breite / 2) + ' ' + (element.y + element.hoehe / 2) + ')'">
-            <rect *ngIf="element.typ === 'wand'" class="layout-wall" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
-            <g *ngIf="element.typ === 'tuer'" class="layout-door"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe" [attr.x2]="element.x" [attr.y2]="element.y" /><path [attr.d]="'M ' + element.x + ' ' + element.y + ' A ' + element.breite + ' ' + element.hoehe + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe)" /></g>
-            <circle *ngIf="element.typ === 'pflanze'" class="layout-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.r]="element.breite / 2" />
-            <rect *ngIf="element.typ === 'fenster'" class="layout-window" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+          <g *ngFor="let element of raum.elemente" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + ((element.x + element.breite / 2) * 1.6) + ' ' + ((element.y + element.hoehe / 2) * .9) + ') scale(1.6 .9)'">
+            <line *ngIf="element.typ === 'wand'" class="layout-wall" [attr.x1]="element.breite >= element.hoehe ? element.x : element.x + element.breite / 2" [attr.y1]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y" [attr.x2]="element.breite >= element.hoehe ? element.x + element.breite : element.x + element.breite / 2" [attr.y2]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y + element.hoehe" />
+            <g *ngIf="element.typ === 'tuer'" class="layout-door"><rect [attr.x]="element.x" [attr.y]="element.y + element.hoehe / 2 - element.breite * 8 / 9" [attr.width]="element.breite" [attr.height]="element.breite * 16 / 9" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe / 2 + element.breite * 8 / 9" [attr.x2]="element.x" [attr.y2]="element.y + element.hoehe / 2 - element.breite * 8 / 9" /><path [attr.d]="'M ' + element.x + ' ' + (element.y + element.hoehe / 2 - element.breite * 8 / 9) + ' A ' + element.breite + ' ' + (element.breite * 16 / 9) + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe / 2 + element.breite * 8 / 9)" /></g>
+            <ellipse *ngIf="element.typ === 'pflanze'" class="layout-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.rx]="element.breite / 2" [attr.ry]="element.breite * 8 / 9" />
+            <line *ngIf="element.typ === 'fenster'" class="layout-window" [attr.x1]="element.breite >= element.hoehe ? element.x : element.x + element.breite / 2" [attr.y1]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y" [attr.x2]="element.breite >= element.hoehe ? element.x + element.breite : element.x + element.breite / 2" [attr.y2]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y + element.hoehe" />
             <g *ngIf="element.typ === 'klima'" class="layout-ac"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .7">AC</text></g>
             <rect *ngIf="element.typ === 'saeule'" class="layout-column" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
             <g *ngIf="element.typ === 'feuerloescher'" class="layout-fire"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .72">F</text></g>
@@ -142,7 +151,7 @@
       [tisch]="ausgewaehlterTisch"
       [raum]="raum"
       [fehler]="fehler"
-      (reservieren)="reservieren.emit(wiederholungen())"
+      (reservieren)="reservieren.emit()"
     />
   </div>
 </section>

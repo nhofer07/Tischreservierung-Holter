@@ -21,6 +21,8 @@ public class Arbeitsplatz {
     private String reservierungBenutzerId;
     private Date reservierungAnfang;
     private Date reservierungEnde;
+    private Date naechsteReservierungAnfang;
+    private Date naechsteReservierungEnde;
     private double rotation;
     private double breite;
     private double hoehe;
@@ -121,6 +123,10 @@ public class Arbeitsplatz {
     public void setReservierungAnfang(Date wert) { this.reservierungAnfang = wert; }
     public Date getReservierungEnde() { return reservierungEnde; }
     public void setReservierungEnde(Date wert) { this.reservierungEnde = wert; }
+    public Date getNaechsteReservierungAnfang() { return naechsteReservierungAnfang; }
+    public void setNaechsteReservierungAnfang(Date wert) { this.naechsteReservierungAnfang = wert; }
+    public Date getNaechsteReservierungEnde() { return naechsteReservierungEnde; }
+    public void setNaechsteReservierungEnde(Date wert) { this.naechsteReservierungEnde = wert; }
     public double getRotation() { return rotation; }
     public void setRotation(double rotation) { this.rotation = rotation; }
     public double getBreite() { return breite; }
