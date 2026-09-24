@@ -17,6 +17,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   @Input() fehler = '';
 
   @Output() tischAuswaehlen = new EventEmitter<Arbeitsplatz>();
+  @Output() schliessen = new EventEmitter<void>();
   @Output() reservieren = new EventEmitter<void>();
   @Output() raumWechseln = new EventEmitter<string>();
   @Output() zeitraumPruefen = new EventEmitter<Zeitraum>();

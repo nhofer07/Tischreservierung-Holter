@@ -3,7 +3,7 @@
     <p class="eyebrow">Arbeitsplatzübersicht</p>
     <h1>Arbeitsplatz finden</h1>
     <p class="lead">
-      Wähle deinen Standort. Wir zeigen dir zuerst den passenden Raum für deine Abteilung.
+      Wähle zuerst deinen Standort und danach die Abteilung, deren Räume du ansehen möchtest.
     </p>
 
     <span class="selection-label"><i>1</i> Standort auswählen</span>
@@ -21,8 +21,14 @@
       </button>
     </div>
 
+    <label class="selection-label" for="abteilung"><i>2</i> Abteilung auswählen</label>
+    <select id="abteilung" class="department-select" [value]="selectedAbteilung()" [disabled]="!abteilungen().length" (change)="abteilungAuswaehlen($any($event.target).value)">
+      <option value="">Bitte Abteilung auswählen</option>
+      <option *ngFor="let abteilung of abteilungen()" [value]="abteilung">{{ abteilung }}</option>
+    </select>
+
     <button class="open-button" type="button" [disabled]="!benutzerSignal() || !raumSignal()" (click)="openSelectedRoom()">
-      <span>2</span> Raumübersicht öffnen
+      <span>3</span> Raumübersicht öffnen
     </button>
   </div>
 
@@ -64,13 +70,13 @@
         [style.--desk-width]="(tisch.breite || 12) + '%'"
         [style.--desk-height]="(tisch.hoehe || 12) + '%'"
         aria-hidden="true"
-      ><span class="desk-label"><strong>{{ tisch.tischnr }}</strong><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span></i>
+      ><span class="desk-label"><svg class="desk-number" viewBox="0 0 100 24" aria-hidden="true"><text x="50" y="17" text-anchor="middle" [attr.textLength]="tisch.tischnr.length > 8 ? 88 : tisch.tischnr.length * 10" lengthAdjust="spacingAndGlyphs">{{ tisch.tischnr }}</text></svg><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span></i>
     </div>
   </div>
 
   <ng-template #previewLoading>
     <div class="preview preview-empty">
-      <span>{{ vorschauWurdeGeladen() ? 'Für diesen Standort ist kein passender Raum vorhanden.' : 'Raumvorschau wird geladen …' }}</span>
+      <span>{{ selectedAbteilung() ? 'Raumvorschau wird geladen …' : 'Bitte Standort und Abteilung auswählen.' }}</span>
     </div>
   </ng-template>
 </section>

@@ -1,6 +1,7 @@
 <section class="workspace">
   <div class="room-header">
-    <div>
+    <button type="button" class="room-close" aria-label="Raum schließen und zur Startseite zurückkehren" (click)="schliessen.emit()">Schließen <span aria-hidden="true">×</span></button>
+    <div class="room-title">
       <p>Raumübersicht</p>
       <h1>{{ raum.name }}</h1>
       <span>{{ raum.stockwerk }} · Abteilung {{ raum.abteilungName }}</span>
@@ -74,7 +75,7 @@
         </label>
 
       </div>
-      <div class="quick-times"><button type="button" (click)="schnellzeit('ganztag')">Ganztägig</button><button type="button" (click)="schnellzeit('vormittag')">Vormittag</button><button type="button" (click)="schnellzeit('nachmittag')">Nachmittag</button><span>Die Tischanzeige aktualisiert sich automatisch für den gesamten Zeitraum.</span></div>
+      <div class="quick-times"><button type="button" (click)="schnellzeit('ganztag')">Ganztägig</button><button type="button" (click)="schnellzeit('vormittag')">Vormittag</button><button type="button" (click)="schnellzeit('nachmittag')">Nachmittag</button></div>
       </div>
     </div>
   </div>

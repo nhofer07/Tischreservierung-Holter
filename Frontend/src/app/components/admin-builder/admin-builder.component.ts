@@ -1140,9 +1140,10 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   benutzerLoeschen(): void {
-    if (!this.istSuperadmin || !this.ausgewaehlterBenutzerId || this.benutzerForm.rolle !== 'USER') return;
-    if (!confirm(`Mitarbeiter ${this.benutzerForm.vorname} ${this.benutzerForm.nachname} wirklich löschen?`)) return;
-    this.service.benutzerLoeschen(this.admin.id, this.ausgewaehlterBenutzerId).subscribe({
+    const ziel = this.benutzerListe.find((eintrag) => eintrag.id === this.ausgewaehlterBenutzerId);
+    if (!this.istSuperadmin || !ziel || ziel.rolle !== 'USER') return;
+    if (!confirm(`Mitarbeiter ${ziel.vorname} ${ziel.nachname} wirklich entfernen?`)) return;
+    this.service.benutzerLoeschen(this.admin.id, ziel.id).subscribe({
       next: () => { this.nachricht.emit('Mitarbeiter wurde gelöscht.'); this.neuerBenutzer(); this.benutzerLaden(); },
       error: (error) => this.fehler.emit(error?.error?.details || 'Mitarbeiter konnte nicht gelöscht werden.')
     });
@@ -1396,7 +1397,7 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   private leererTisch(): ArbeitsplatzRequest {
-    return { tischnr: '1', name: '', raumId: '', standortId: '', abteilungId: '', abteilungName: '', x: 50, y: 45, rotation: 0, breite: 12, hoehe: 12, equipment: [] };
+    return { tischnr: '1', name: '', raumId: '', standortId: '', abteilungId: '', abteilungName: '', x: 50, y: 45, rotation: 0, breite: 12, hoehe: 11, equipment: [] };
   }
 
   private leererBenutzer(): BenutzerRequest {

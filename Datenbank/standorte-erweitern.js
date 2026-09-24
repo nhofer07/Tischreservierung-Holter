@@ -111,7 +111,7 @@ function standardTisch(raum, nummer, x, y) {
     status: "frei",
     rotation: 0,
     breite: 12,
-    hoehe: 12,
+    hoehe: 11,
     position: { x: x, y: y },
     equipment: ausstattung
   }

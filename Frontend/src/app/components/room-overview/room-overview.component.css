@@ -11,9 +11,9 @@
 }
 
 .room-header {
-  align-items: flex-end;
+  align-items: start;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 280px minmax(0, 700px);
   gap: 24px;
   margin-bottom: 20px;
 }
@@ -45,12 +45,13 @@ h1 {
 }
 
 .header-tools {
+  min-width: 0;
   width: min(100%, 700px);
 }
 
 .booking-panel { background:#fff; border:1px solid #d9dee5; box-shadow:0 10px 24px rgba(28,35,43,.06); display:grid; gap:12px; padding:14px; }
 
-.room-header > div:first-child { min-width:0; }
+.room-header > div:first-of-type { min-width:0; }
 
 .room-switcher {
   align-items: center;
@@ -131,6 +132,8 @@ h1 {
 }
 
 .time-box input {
+  box-sizing: border-box;
+  min-width: 0;
   background: #ffffff;
   border: 1px solid #bfc7d1;
   border-radius: 4px;
@@ -571,9 +574,9 @@ h1 {
   }
 }
 
-.room-header > div:first-child > p,.plan-title { color:var(--primary-color); }
+.room-header > div:first-of-type > p,.plan-title { color:var(--primary-color); }
 .time-box button { background:var(--primary-color); border-color:var(--primary-color); }
-.room-header { border-left-color:var(--primary-color); }
+
 .plan { border-top-color:var(--accent-color); }
 .layout-wall { stroke:var(--accent-color); }
 .quick-times button:hover,.fullscreen-button:hover { border-color:var(--primary-color); color:var(--primary-color); }
@@ -594,7 +597,7 @@ h1 {
 }
 
 /* Professionelle Arbeitsansicht mit klarer Priorität auf Raum und Status. */
-.room-header { border-left:4px solid #9d1722; padding-left:20px; }
+.room-title { border-left:4px solid var(--primary-color); padding-left:20px; }
 .plan { border-top:4px solid #343638; }
 .plan-head { padding-bottom:14px; }
 .time-box,.room-switcher { box-shadow:0 12px 28px rgba(28,35,43,.075); }
@@ -604,7 +607,7 @@ h1 {
 .desk.selected { outline:4px solid rgba(157,23,34,.18); outline-offset:3px; }
 .desk:focus-visible { outline:4px solid rgba(157,23,34,.25); outline-offset:4px; }
 
-@media(max-width:620px){.room-header{padding-left:12px}.plan{border-top-width:3px}}
+@media(max-width:620px){.room-title{padding-left:12px}.plan{border-top-width:3px}}
 
 @media (max-width: 620px) {
   .workspace {
@@ -678,4 +681,17 @@ h1 {
     right: 12px;
     width: 32px;
   }
+}
+
+.room-header { position:relative; padding-right:120px; }
+.room-close { position:absolute; top:0; right:0; align-items:center; background:#fff; border:1px solid #cdcdc8; border-radius:2px; color:#4d5052; cursor:pointer; display:flex; font:inherit; font-size:13px; gap:10px; padding:9px 12px; }
+.room-close:hover { border-color:var(--primary-color); color:var(--primary-color); }
+.room-close:focus-visible { outline:2px solid var(--primary-color); outline-offset:3px; }
+.room-close span { font-size:20px; line-height:1; }
+
+.room-header h1 { max-width:10ch; overflow-wrap:break-word; }
+@media (max-width: 1250px) {
+  .room-header { grid-template-columns:minmax(0, 1fr); padding-right:0; }
+  .room-header > div:first-of-type { padding-right:120px; }
+  .header-tools { width:100%; }
 }

@@ -18,6 +18,12 @@
 
     <button *ngIf="lokalerTestLoginAktiv" type="button" class="test-toggle" (click)="testLoginOffen = !testLoginOffen">{{ testLoginOffen ? 'Testzugang schließen' : 'Lokalen Testzugang verwenden' }}</button>
     <form *ngIf="lokalerTestLoginAktiv && testLoginOffen" class="test-form" (ngSubmit)="login()">
+      <div class="test-credentials">
+        <strong>Lokale Testkonten</strong>
+        <p>Mitarbeiter: <code>anna.leitner&#64;example.test</code><br />Passwort: <code>holter123</code></p>
+        <p>Admin: <code>admin&#64;holter.test</code><br />Passwort: <code>admin123</code></p>
+        <p>Superadmin: <code>chef&#64;holter.test</code><br />Passwort: <code>admin123</code></p>
+      </div>
       <label>
         Test-E-Mail
         <input type="email" name="email" [(ngModel)]="email" autocomplete="username" required />

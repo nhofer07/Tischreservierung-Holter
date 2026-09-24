@@ -208,7 +208,7 @@ function arbeitsplatz(id, tischnr, raumId, standortId, abteilungId, abteilungNam
     status: status,
     rotation: 0,
     breite: 12,
-    hoehe: 12,
+    hoehe: 11,
     position: { x: x, y: y },
     equipment: ["Tastatur", "Maus"].concat(equipment)
   }

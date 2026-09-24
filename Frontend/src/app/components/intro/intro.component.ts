@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
-import { Benutzer, Raum, Standort } from '../../models';
+import { Benutzer, Raum, RaumAuswahl, Standort } from '../../models';
 
 @Component({
   selector: 'app-intro',
@@ -13,13 +13,20 @@ export class IntroComponent {
   raumSignal = signal<Raum | null>(null);
   benutzerSignal = signal<Benutzer | null>(null);
   vorschauWurdeGeladen = signal(false);
-  selectedStandortId = signal('STANDORT-WELS');
+  selectedStandortId = signal('');
+  selectedAbteilung = signal('');
+  raeumeSignal = signal<RaumAuswahl[]>([]);
+  abteilungen = computed(() => [...new Set(this.raeumeSignal().filter((raum) => raum.standortId === this.selectedStandortId()).map((raum) => raum.abteilungName))]);
+
+  @Input() set raeume(value: RaumAuswahl[]) { this.raeumeSignal.set(value); }
+  @Output() abteilungAusgewaehlt = new EventEmitter<string>();
 
   @Output() standortAusgewaehlt = new EventEmitter<string>();
   @Output() standortOeffnen = new EventEmitter<string>();
 
   @Input() set standorte(value: Standort[]) {
     this.standorteSignal.set(value);
+    if (!this.selectedStandortId() && value.length) this.selectedStandortId.set(value[0].id);
   }
 
   @Input() set raum(value: Raum | null) {
@@ -27,6 +34,7 @@ export class IntroComponent {
     this.vorschauWurdeGeladen.set(true);
     if (value) {
       this.selectedStandortId.set(value.standortId);
+      this.selectedAbteilung.set(value.abteilungName);
     }
   }
 
@@ -45,7 +53,14 @@ export class IntroComponent {
 
   standortAuswaehlen(standortId: string): void {
     this.selectedStandortId.set(standortId);
+    this.selectedAbteilung.set('');
+    this.raumSignal.set(null);
     this.standortAusgewaehlt.emit(standortId);
+  }
+
+  abteilungAuswaehlen(name: string): void {
+    this.selectedAbteilung.set(name);
+    this.abteilungAusgewaehlt.emit(name);
   }
 
   openSelectedRoom(): void {

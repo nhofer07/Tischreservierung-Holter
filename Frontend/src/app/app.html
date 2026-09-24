@@ -35,14 +35,27 @@
         [class.active]="aktiveAnsicht() === 'admin'"
         (click)="adminOeffnen()"
       >
-        Room Builder
+        Verwaltung
       </button>
     </nav>
 
     <div class="profile-menu">
+      <details class="profile-details" (keydown.escape)="profil.removeAttribute('open')" (document:click)="profilAusserhalbSchliessen($event, profil)" #profil>
+      <summary aria-label="Mein Profil anzeigen">
       <span class="avatar">{{ benutzerAktiv.vorname.charAt(0) }}{{ benutzerAktiv.nachname.charAt(0) }}</span>
       <span class="profile-name"><strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong><small>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Abteilungsleitung' : benutzerAktiv.abteilungName }}</small></span>
-      <button type="button" class="logout" (click)="abmelden()">Abmelden</button>
+      </summary>
+      <section class="profile-card" aria-label="Mein Profil">
+        <h2>Mein Profil</h2>
+        <strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong>
+        <dl>
+          <dt>E-Mail</dt><dd>{{ benutzerAktiv.email }}</dd>
+          <dt>Rolle</dt><dd>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Admin · Abteilungsleitung' : 'Mitarbeiter' }}</dd>
+          <dt>Abteilung</dt><dd>{{ benutzerAktiv.abteilungName }}</dd>
+        </dl>
+        <button type="button" class="logout" (click)="abmelden()">Abmelden</button>
+      </section>
+      </details>
     </div>
   </header>
 
@@ -54,7 +67,9 @@
     *ngIf="aktiveAnsicht() === 'start'"
     [standorte]="standorte()"
     [raum]="raum()"
+    [raeume]="raeume()"
     [benutzer]="aktiverBenutzer()"
+    (abteilungAusgewaehlt)="abteilungVorschauLaden($event)"
     (standortAusgewaehlt)="standortVorschauLaden($event)"
     (standortOeffnen)="standortOeffnen($event)"
   />
@@ -67,6 +82,7 @@
     [ausgewaehlterTisch]="ausgewaehlterTisch()"
     [fehler]="fehler()"
     [zeitraum]="zeitraum()"
+    (schliessen)="startOeffnen()"
     (raumWechseln)="raumOeffnen($event)"
     (zeitraumPruefen)="zeitraumPruefen($event)"
     (tischAuswaehlen)="tischAuswaehlen($event)"

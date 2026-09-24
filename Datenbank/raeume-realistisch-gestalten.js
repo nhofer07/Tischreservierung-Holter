@@ -123,8 +123,8 @@ raumGestaltungen.forEach(gestaltung => {
       { $set: {
         position: { x: position[0], y: position[1] },
         rotation: position[2],
-        breite: index % 4 === 0 ? 11 : 12,
-        hoehe: index % 4 === 0 ? 10 : 11
+        breite: 12,
+        hoehe: 11
       } }
     )
   })

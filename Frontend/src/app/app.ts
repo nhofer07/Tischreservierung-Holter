@@ -110,7 +110,13 @@ export class App implements OnInit {
     this.aktiverBenutzer.set(benutzer);
     this.aktiveAnsicht.set('start');
     this.laden.set(false);
-    this.standorteLaden(() => this.ersteRaumvorschauLaden(benutzer));
+    this.standorteLaden(() => this.ersteRaumvorschauLaden());
+  }
+
+  profilAusserhalbSchliessen(event: Event, profil: HTMLDetailsElement): void {
+    if (event.target instanceof Node && !profil.contains(event.target)) {
+      profil.open = false;
+    }
   }
 
   abmelden(): void {
@@ -152,7 +158,7 @@ export class App implements OnInit {
     this.aktiveAnsicht.set('start');
     this.fehler.set('');
     this.nachricht.set('');
-    this.ersteRaumvorschauLaden(benutzer);
+    this.ersteRaumvorschauLaden();
   }
 
   standortVorschauLaden(standortId: string): void {
@@ -163,43 +169,29 @@ export class App implements OnInit {
 
     const anfrage = ++this.raumAnfrage;
     this.raum.set(null);
+    this.raeume.set([]);
+    this.fehler.set('');
     this.arbeitsplatzService.getRaeumeByStandort(standortId).subscribe({
       next: (raeume) => {
         if (anfrage !== this.raumAnfrage) return;
-        const sichtbareRaeume = this.raeumeDerAbteilung(raeume, benutzer);
-        this.raeume.set(sichtbareRaeume);
-        const raum = this.passendenRaumFinden(sichtbareRaeume, benutzer);
-        if (raum) {
-          this.vorschauRaumLaden(raum.id);
-        } else this.fehler.set('An diesem Standort gibt es keinen Raum für deine Abteilung.');
+        this.raeume.set(raeume);
+        if (!raeume.length) this.fehler.set('An diesem Standort gibt es noch keine Räume.');
       },
       error: () => this.fehler.set('Räume konnten nicht geladen werden.')
     });
   }
 
-  standortOeffnen(standortId: string): void {
-    const benutzer = this.aktiverBenutzer();
-    if (!benutzer) {
-      return;
-    }
+  abteilungVorschauLaden(abteilungName: string): void {
+    ++this.raumAnfrage;
+    this.raum.set(null);
+    this.fehler.set('');
+    const raum = this.raeume().find((eintrag) => eintrag.abteilungName === abteilungName);
+    if (raum) this.vorschauRaumLaden(raum.id);
+  }
 
-    this.laden.set(true);
-    const anfrage = ++this.raumAnfrage;
-    this.arbeitsplatzService.getRaeumeByStandort(standortId).subscribe({
-      next: (raeume) => {
-        if (anfrage !== this.raumAnfrage) return;
-        const sichtbareRaeume = this.raeumeDerAbteilung(raeume, benutzer);
-        this.raeume.set(sichtbareRaeume);
-        const raum = this.passendenRaumFinden(sichtbareRaeume, benutzer);
-        if (raum) {
-          this.raumOeffnen(raum.id);
-        } else { this.fehler.set('An diesem Standort gibt es keinen Raum für deine Abteilung.'); this.laden.set(false); }
-      },
-      error: () => {
-        this.fehler.set('Räume konnten nicht geladen werden.');
-        this.laden.set(false);
-      }
-    });
+  standortOeffnen(standortId: string): void {
+    const raum = this.raum();
+    if (raum && raum.standortId === standortId) this.raumOeffnen(raum.id);
   }
 
   raumOeffnen(raumId: string): void {
@@ -233,6 +225,7 @@ export class App implements OnInit {
   }
 
   startOeffnen(): void {
+    if (this.aktiveAnsicht() !== 'start') this.ersteRaumvorschauLaden();
     this.aktiveAnsicht.set('start');
     this.nachricht.set('');
   }
@@ -348,25 +341,9 @@ export class App implements OnInit {
     });
   }
 
-  private ersteRaumvorschauLaden(benutzer: Benutzer): void {
-    if (benutzer.bevorzugterRaumId) {
-      this.vorschauRaumLaden(benutzer.bevorzugterRaumId);
-      return;
-    }
+  private ersteRaumvorschauLaden(): void {
     const ersterStandort = this.standorte()[0];
     if (ersterStandort) this.standortVorschauLaden(ersterStandort.id);
-  }
-
-  private passendenRaumFinden(raeume: RaumAuswahl[], benutzer: Benutzer): RaumAuswahl | undefined {
-    return raeume.find((raum) => raum.id === benutzer.bevorzugterRaumId)
-      ?? raeume.find((raum) => raum.abteilungName === benutzer.abteilungName)
-      ?? raeume[0];
-  }
-
-  private raeumeDerAbteilung(raeume: RaumAuswahl[], benutzer: Benutzer): RaumAuswahl[] {
-    return benutzer.rolle === 'SUPERADMIN'
-      ? raeume
-      : raeume.filter((raum) => raum.abteilungName === benutzer.abteilungName);
   }
 
   istAdmin(benutzer: Benutzer | null): boolean {
@@ -388,6 +365,6 @@ export class App implements OnInit {
 
     this.arbeitsplatzService
       .getRaeumeByStandort(raum.standortId)
-      .subscribe((raeume) => this.raeume.set(this.raeumeDerAbteilung(raeume, this.aktiverBenutzer()!)));
+      .subscribe((raeume) => this.raeume.set(raeume.filter((eintrag) => eintrag.abteilungName === raum.abteilungName)));
   }
 }

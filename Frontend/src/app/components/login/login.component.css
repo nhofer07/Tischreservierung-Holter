@@ -21,6 +21,9 @@ button:disabled { cursor: wait; opacity: .55; }
 .login-error { margin-top:16px; max-width:460px; }
 .test-toggle { background:transparent; border:0; border-bottom:1px solid #d8d8d4; color:#666a6c; margin-top:28px; max-width:460px; padding:11px 0; text-align:left; width:100%; }
 .test-form { background:#f7f7f5; border:1px solid #deded9; margin-top:12px; padding:18px; }
+.test-credentials { border-bottom:1px solid #deded9; color:#4d5052; font-size:13px; line-height:1.6; margin-bottom:18px; padding-bottom:12px; }
+.test-credentials p { margin:8px 0; }
+.test-credentials code { overflow-wrap:anywhere; }
 aside { align-items: center; background: #303234; color: #fff; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: 60px; position: relative; }
 aside::before { background: var(--primary-color); content: ''; height: 9px; left: 0; position: absolute; right: 0; top: 0; }
 aside p { font-size: clamp(24px, 3vw, 40px); font-weight: 700; line-height: 1.2; margin: 50px 0 0; max-width: 600px; }

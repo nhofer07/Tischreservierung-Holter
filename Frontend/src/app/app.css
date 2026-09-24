@@ -75,6 +75,15 @@ nav button.active {
 }
 
 .profile-menu { align-items: center; border-left:1px solid #e2e2de; display: flex; gap: 10px; padding-left:18px; }
+.profile-details { position:relative; }
+.profile-details summary { align-items:center; border-radius:2px; cursor:pointer; display:flex; gap:10px; list-style:none; padding:6px; }
+.profile-details summary::-webkit-details-marker { display:none; }
+.profile-details summary:hover { background:#f7f7f5; }
+.profile-details summary:focus-visible { outline:2px solid var(--primary-color); outline-offset:3px; }
+.profile-card { background:#fff; border:1px solid #deded9; box-shadow:0 8px 24px #00000014; box-sizing:border-box; padding:20px; position:absolute; right:0; top:calc(100% + 12px); width: min(320px, calc(100vw - 100px)); overflow-wrap:anywhere; }
+.profile-card h2 { font-size:18px; margin:0 0 16px; }
+.profile-card dt { color:#777a7c; font-size:12px; margin-top:12px; }
+.profile-card dd { font-size:14px; margin:4px 0 0; }
 .avatar { align-items: center; background: var(--accent-color); border-radius: 50%; color: #fff; display: flex; font-size: 11px; font-weight: 800; height: 36px; justify-content: center; width: 36px; }
 .profile-name { display: grid; line-height: 1.2; min-width: 120px; }.profile-name strong { font-size: 12px; }.profile-name small { color: #777a7c; font-size: 11px; margin-top: 3px; }
 .logout { background: #fff; border: 1px solid #cdcdc8; border-radius: 2px; color: #4d5052; cursor: pointer; font-size: 12px; font-weight: 700; padding: 9px 12px; }

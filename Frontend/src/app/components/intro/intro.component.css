@@ -240,15 +240,8 @@ h1 {
   width: calc(100% - 8px);
 }
 
-.table .desk-label strong {
-  background: #343638;
-  color: #ffffff;
-  font-size: clamp(5px, .65vw, 9px);
-  font-weight: 800;
-  max-width: 100%;
-  padding: 4% 7%;
-  white-space: nowrap;
-}
+.table .desk-number { background:var(--accent-color, #343638); display:block; width:100%; height:auto; overflow:hidden; }
+.table .desk-number text { fill:#fff; font-family:Arial, Helvetica, sans-serif; font-size:16px; font-weight:800; }
 
 .table .desk-label small {
   background: rgba(255, 255, 255, .94);
@@ -317,3 +310,5 @@ h1 {
 .preview { border-top-color:var(--accent-color); }
 .layout-wall { stroke:var(--accent-color); }
 .layout-door line,.layout-blocked { stroke:var(--primary-color); }
+
+.department-select { background:#fff; border:1px solid #cfd6df; border-radius:2px; box-sizing:border-box; color:#38404a; font:inherit; margin-bottom:22px; padding:12px; width:100%; }
