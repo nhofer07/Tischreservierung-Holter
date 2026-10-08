@@ -175,7 +175,13 @@ export class App implements OnInit {
       next: (raeume) => {
         if (anfrage !== this.raumAnfrage) return;
         this.raeume.set(raeume);
-        if (!raeume.length) this.fehler.set('An diesem Standort gibt es noch keine Räume.');
+        if (!raeume.length) {
+          this.fehler.set('An diesem Standort gibt es noch keine Räume.');
+          return;
+        }
+
+        const eigeneAbteilung = raeume.find((raum) => raum.abteilungName === benutzer.abteilungName);
+        this.vorschauRaumLaden((eigeneAbteilung ?? raeume[0]).id);
       },
       error: () => this.fehler.set('Räume konnten nicht geladen werden.')
     });

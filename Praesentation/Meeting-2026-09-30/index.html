@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <title>DeskVision – Projektupdate</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23af1e2d'/%3E%3Cpath d='M17 18h15c10 0 16 5 16 14s-6 14-16 14H17V18zm10 8v12h5c4 0 7-2 7-6s-3-6-7-6h-5z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="presentation" aria-live="polite">
+    <section class="slide slide--cover is-active" data-title="Start">
+      <div class="cover-brand"><img src="../../Frontend/public/holter-logo.png" alt="HOLTER"><span></span><strong>DeskVision</strong></div>
+      <div class="cover-content">
+        <p class="eyebrow">Projektupdate · 30. September 2026</p>
+        <h1>Was ist seit dem<br><em>letzten Meeting</em> neu?</h1>
+        <p class="lead">Kurzer Überblick und anschließende Live-Demo.</p>
+      </div>
+      <div class="cover-footer"><span>Deniz Bernecker</span><span>Nico Hofer</span><span>Diplomarbeit 2026/27</span></div>
+    </section>
+
+    <section class="slide" data-title="Überblick">
+      <header class="slide-header"><p class="eyebrow">01 · Überblick</p><h2>Die wichtigsten Neuerungen</h2></header>
+      <div class="milestone-list milestone-list--compact">
+        <article><span>01</span><div><h3>Microsoft-Login</h3><p>Anmeldung mit dem Unternehmenskonto.</p></div></article>
+        <article><span>02</span><div><h3>Mehrere Wochen</h3><p>Durchgehende Reservierungszeiträume.</p></div></article>
+        <article><span>03</span><div><h3>Neue Belegungsinfo</h3><p>Nächste Reservierung sofort sichtbar.</p></div></article>
+        <article><span>04</span><div><h3>Room Builder</h3><p>Grundrisse moderner bearbeiten.</p></div></article>
+        <article><span>05</span><div><h3>Firmendesign</h3><p>Farben und Logo zentral anpassen.</p></div></article>
+        <article><span>06</span><div><h3>Mitarbeiterverwaltung</h3><p>Klare Rollen und Deaktivierung.</p></div></article>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Anmeldung">
+      <header class="slide-header"><p class="eyebrow">02 · Anmeldung</p><h2>Login mit Microsoft</h2></header>
+      <div class="flow flow--simple" aria-label="Ablauf der Anmeldung">
+        <article><span class="flow-number">1</span><h3>Microsoft-Konto</h3><p>Sicher anmelden.</p></article><i aria-hidden="true">→</i>
+        <article><span class="flow-number">2</span><h3>DeskVision</h3><p>Mitarbeiter zuordnen.</p></article><i aria-hidden="true">→</i>
+        <article><span class="flow-number">3</span><h3>Passende Rolle</h3><p>Rechte automatisch laden.</p></article>
+      </div>
+      <div class="role-strip"><span>Mitarbeiter</span><span>Abteilungsadmin</span><span>Superadmin</span></div>
+      <p class="slide-note">Das Microsoft-Passwort wird nicht in DeskVision gespeichert.</p>
+    </section>
+
+    <section class="slide" data-title="Reservierung">
+      <header class="slide-header"><p class="eyebrow">03 · Reservierung</p><h2>Von einem Tag bis zu mehreren Wochen</h2></header>
+      <div class="reservation-layout reservation-layout--simple">
+        <div class="date-range" aria-label="Beispiel für einen Buchungszeitraum">
+          <div><small>Start</small><strong>26. Sep.</strong><span>08:00</span></div>
+          <div class="range-line"><span></span><b>8 Tage</b><span></span></div>
+          <div><small>Ende</small><strong>03. Okt.</strong><span>16:00</span></div>
+        </div>
+        <div class="short-points"><p>Start und Ende auswählen</p><p>Belegung aktualisiert sich automatisch</p><p>Doppelbuchungen werden verhindert</p></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Belegung">
+      <header class="slide-header"><p class="eyebrow">04 · Belegung</p><h2>Wann ist der Tisch wieder frei?</h2></header>
+      <div class="availability-demo">
+        <div class="desk-visual"><span class="desk-accent"></span><strong>HAL-IT-4</strong><small>frei</small></div>
+        <div class="availability-copy"><p class="status status--free">Jetzt verfügbar</p><h3>Nächste Reservierung</h3><p>Freitag, 02. Oktober<br><strong>09:00–12:00 Uhr</strong></p></div>
+      </div>
+      <p class="slide-note">Die nächste bekannte Reservierung wird direkt beim Arbeitsplatz angezeigt.</p>
+    </section>
+
+    <section class="slide" data-title="Room Builder">
+      <header class="slide-header"><p class="eyebrow">05 · Room Builder</p><h2>Grundrisse flexibel gestalten</h2></header>
+      <div class="builder-layout">
+        <div class="builder-canvas" aria-label="Vereinfachte Darstellung eines Raumplans">
+          <div class="window-symbol"></div><div class="wall wall--vertical"></div><div class="door-symbol"></div><div class="zone-symbol"></div><div class="plant-symbol"></div>
+          <div class="desk-mini desk-mini--one"><span>101</span></div><div class="desk-mini desk-mini--two"><span>102</span></div><div class="desk-mini desk-mini--three"><span>103</span></div>
+        </div>
+        <div class="short-points short-points--large"><p>Wände, Türen und Fenster</p><p>Objekte bewegen, drehen und skalieren</p><p>Zoom, Rückgängig und Einrasten</p><p>Tische als Orientierung sichtbar</p></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Firmendesign">
+      <header class="slide-header"><p class="eyebrow">06 · Firmendesign</p><h2>Farben und Logo anpassen</h2></header>
+      <div class="branding-layout">
+        <div class="brand-preview"><div class="preview-top"><span class="preview-logo">LOGO</span><span>DeskVision</span></div><div class="preview-body"><small>RAUMÜBERSICHT</small><strong>Teamraum</strong><button type="button" tabindex="-1">Arbeitsplatz finden</button></div></div>
+        <div class="short-points short-points--large"><p>Firmenlogo hochladen</p><p>Primär- und Akzentfarbe wählen</p><p>Letzte Designs wiederverwenden</p><p>Auf Standard zurücksetzen</p></div>
+      </div>
+    </section>
+
+    <section class="slide slide--feedback" data-title="Feedback">
+      <div class="feedback-content"><p class="eyebrow">Vielen Dank</p><h2>Gibt es noch<br><em>Vorschläge?</em></h2><p>Was sollen wir bis zum nächsten Meeting verbessern oder ergänzen?</p></div>
+      <div class="feedback-brand"><img src="../../Frontend/public/holter-logo.png" alt="HOLTER"><span>DeskVision</span></div>
+    </section>
+  </main>
+
+  <nav class="presentation-controls" aria-label="Präsentationssteuerung">
+    <button class="control-button" id="prevButton" type="button" aria-label="Vorherige Folie">←</button>
+    <div class="progress-wrap"><span id="slideCounter">01 / 08</span><div class="progress-track"><span id="progressBar"></span></div></div>
+    <button class="control-button" id="overviewButton" type="button" aria-label="Folienübersicht">Übersicht</button>
+    <button class="control-button control-button--primary" id="nextButton" type="button" aria-label="Nächste Folie">Weiter →</button>
+  </nav>
+
+  <dialog class="overview" id="overviewDialog">
+    <header><div><p class="eyebrow">Navigation</p><h2>Folienübersicht</h2></div><button id="closeOverview" type="button" aria-label="Übersicht schließen">×</button></header>
+    <div id="overviewGrid"></div>
+  </dialog>
+  <script src="script.js"></script>
+</body>
+</html>

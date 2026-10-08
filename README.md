@@ -94,7 +94,7 @@ cd Backend
 ./mvnw quarkus:dev
 ```
 
-Das Backend laeuft unter `http://localhost:8080`. Die MongoDB-Verbindung steht in `Backend/src/main/resources/application.properties`.
+Das Backend laeuft unter `http://localhost:8082`. Die belegten Ports 8080 und 8081 bleiben dadurch für andere lokale Projekte frei. Die MongoDB-Verbindung steht in `Backend/src/main/resources/application.properties`.
 
 Wichtige REST-Endpunkte:
 

@@ -7,7 +7,7 @@ import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, B
   providedIn: 'root'
 })
 export class ArbeitsplatzService {
-  private apiUrl = 'http://127.0.0.1:8080/api';
+  private apiUrl = 'http://127.0.0.1:8082/api';
 
   constructor(private http: HttpClient) {}
 
