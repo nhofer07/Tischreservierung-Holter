@@ -43,7 +43,7 @@
   </ul>
 
   <p class="error" *ngIf="fehler">{{ fehler }}</p>
-  <button type="button" [disabled]="!tisch.reservierbar" (click)="reservieren.emit()">
+  <button type="button" [disabled]="!tisch.reservierbar || !zeitraumGueltig" (click)="reservieren.emit()">
     Arbeitsplatz für Zeitraum reservieren
   </button>
 </aside>

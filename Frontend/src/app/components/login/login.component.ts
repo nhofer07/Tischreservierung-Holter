@@ -22,7 +22,7 @@ export class LoginComponent {
   testLoginOffen = false;
   readonly lokalerTestLoginAktiv = lokalerTestLoginAktiv;
 
-  login(): void {
+  submitTestLogin(): void {
     if (this.email.trim() && this.passwort) {
       this.testAnmelden.emit({ email: this.email.trim(), passwort: this.passwort });
     }

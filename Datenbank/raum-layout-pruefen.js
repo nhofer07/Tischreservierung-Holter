@@ -2,7 +2,7 @@ db = db.getSiblingDB("tischreservierung")
 
 // Einfache Qualitätskontrolle für die im Room Builder gespeicherten Räume.
 // Türen und Fenster dürfen Wände absichtlich schneiden und werden ausgelassen.
-function gedrehteGroesse(breite, hoehe, rotation) {
+function getRotatedSize(breite, hoehe, rotation) {
   const winkel = (rotation || 0) * Math.PI / 180
   return {
     breite: Math.abs(breite * Math.cos(winkel)) + Math.abs(hoehe * Math.sin(winkel)),
@@ -10,8 +10,8 @@ function gedrehteGroesse(breite, hoehe, rotation) {
   }
 }
 
-function bereichVonTisch(tisch) {
-  const groesse = gedrehteGroesse(tisch.breite || 12, tisch.hoehe || 12, tisch.rotation || 0)
+function getDeskBounds(tisch) {
+  const groesse = getRotatedSize(tisch.breite || 12, tisch.hoehe || 12, tisch.rotation || 0)
   return {
     links: tisch.position.x - groesse.breite / 2,
     rechts: tisch.position.x + groesse.breite / 2,
@@ -20,8 +20,8 @@ function bereichVonTisch(tisch) {
   }
 }
 
-function bereichVonElement(element) {
-  const groesse = gedrehteGroesse(element.breite, element.hoehe, element.rotation || 0)
+function getElementBounds(element) {
+  const groesse = getRotatedSize(element.breite, element.hoehe, element.rotation || 0)
   const mitteX = element.x + element.breite / 2
   const mitteY = element.y + element.hoehe / 2
   return {
@@ -32,7 +32,7 @@ function bereichVonElement(element) {
   }
 }
 
-function ueberlappt(a, b, toleranz = 0.5) {
+function overlaps(a, b, toleranz = 0.5) {
   return a.rechts - toleranz > b.links && a.links + toleranz < b.rechts &&
     a.unten - toleranz > b.oben && a.oben + toleranz < b.unten
 }
@@ -44,12 +44,12 @@ db.raeume.find().forEach(raum => {
   const tische = db.arbeitsplaetze.find({ raumId: raum._id }).toArray()
   for (let i = 0; i < tische.length; i++) {
     for (let j = i + 1; j < tische.length; j++) {
-      if (ueberlappt(bereichVonTisch(tische[i]), bereichVonTisch(tische[j]), 1)) {
+      if (overlaps(getDeskBounds(tische[i]), getDeskBounds(tische[j]), 1)) {
         fehler.push(`${raum.name}: Tisch ${tische[i].tischnr} überlappt Tisch ${tische[j].tischnr}`)
       }
     }
     ;(raum.elemente || []).filter(element => physischeElemente.includes(element.typ)).forEach(element => {
-      if (ueberlappt(bereichVonTisch(tische[i]), bereichVonElement(element), 0.8)) {
+      if (overlaps(getDeskBounds(tische[i]), getElementBounds(element), 0.8)) {
         fehler.push(`${raum.name}: Tisch ${tische[i].tischnr} überlappt ${element.typ} ${element.id}`)
       }
     })

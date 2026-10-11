@@ -10,6 +10,13 @@ import { DeskDetailsComponent } from '../desk-details/desk-details.component';
   styleUrl: './room-overview.component.css'
 })
 export class RoomOverviewComponent implements OnInit, OnDestroy {
+  private buchbarBisSignal = signal('');
+  @Input() set buchbarBis(value: string) { this.buchbarBisSignal.set(value); }
+  get buchbarBis(): string { return this.buchbarBisSignal(); }
+  get today(): string {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
+  }
+
   @Input({ required: true }) raum!: Raum;
   @Input({ required: true }) benutzer!: Benutzer;
   @Input() raeume: RaumAuswahl[] = [];
@@ -28,7 +35,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   private aktualisierung?: ReturnType<typeof setInterval>;
   private zeitraumTimer?: ReturnType<typeof setTimeout>;
 
-  ngOnInit(): void { this.aktualisierung = setInterval(() => this.pruefen(), 30000); }
+  ngOnInit(): void { this.aktualisierung = setInterval(() => this.checkAvailability(), 30000); }
   ngOnDestroy(): void {
     if (this.aktualisierung) clearInterval(this.aktualisierung);
     if (this.zeitraumTimer) clearTimeout(this.zeitraumTimer);
@@ -41,28 +48,29 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   zeitraumGueltig = computed(() => {
     const zeitraum = this.zeitraumSignal();
     if (!zeitraum.datum || !zeitraum.endDatum || !zeitraum.beginn || !zeitraum.ende) return false;
+    if (!this.buchbarBisSignal() || zeitraum.datum < this.today || zeitraum.endDatum > this.buchbarBisSignal()) return false;
     return `${zeitraum.datum}T${zeitraum.beginn}` < `${zeitraum.endDatum}T${zeitraum.ende}`;
   });
 
-  get vorherigerRaum() {
-    return this.raumNeben(-1);
+  get previousRoom() {
+    return this.getAdjacentRoom(-1);
   }
 
-  get naechsterRaum() {
-    return this.raumNeben(1);
+  get nextRoom() {
+    return this.getAdjacentRoom(1);
   }
 
-  get kannRaumWechseln(): boolean {
+  get canSwitchRooms(): boolean {
     return this.raeume.filter((eintrag) => eintrag.standortId === this.raum.standortId &&
       (this.benutzer.rolle === 'SUPERADMIN' || eintrag.abteilungName === this.raum.abteilungName)).length > 1;
   }
 
-  get ausstattungen(): string[] {
+  get availableEquipment(): string[] {
     const namen = this.raum.arbeitsplaetze.flatMap((tisch) => tisch.equipment.map((item) => item.name));
     return [...new Set(namen)].sort();
   }
 
-  get sichtbareTische(): Arbeitsplatz[] {
+  get visibleDesks(): Arbeitsplatz[] {
     const filter = this.ausstattungFilter();
     if (filter.length === 0) {
       return this.raum.arbeitsplaetze;
@@ -73,7 +81,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
     );
   }
 
-  get zeitraumText() {
+  get timeRangeLabel() {
     const zeitraum = this.zeitraumSignal();
     const von = zeitraum.datum.split('-').reverse().join('.');
     const bis = zeitraum.endDatum.split('-').reverse().join('.');
@@ -82,7 +90,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
       : `${von}, ${zeitraum.beginn} – ${bis}, ${zeitraum.ende}`;
   }
 
-  zeitraumAendern(feld: keyof Zeitraum, event: Event): void {
+  updateTimeRange(feld: keyof Zeitraum, event: Event): void {
     const input = event.target as HTMLInputElement;
     const neuerZeitraum = {
       ...this.zeitraumSignal(),
@@ -92,42 +100,42 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
       neuerZeitraum.endDatum = neuerZeitraum.datum;
     }
     this.zeitraumSignal.set(neuerZeitraum);
-    this.automatischPruefen();
+    this.scheduleAvailabilityCheck();
   }
 
-  ausstattungAendern(name: string, aktiv: boolean): void {
+  updateEquipmentFilter(name: string, aktiv: boolean): void {
     this.ausstattungFilter.update((filter) =>
       aktiv ? [...filter, name] : filter.filter((eintrag) => eintrag !== name)
     );
   }
 
-  pruefen(): void {
+  checkAvailability(): void {
     if (this.zeitraumGueltig()) {
       this.zeitraumPruefen.emit(this.zeitraumSignal());
     }
   }
 
-  private automatischPruefen(): void {
+  private scheduleAvailabilityCheck(): void {
     if (this.zeitraumTimer) clearTimeout(this.zeitraumTimer);
-    this.zeitraumTimer = setTimeout(() => this.pruefen(), 300);
+    this.zeitraumTimer = setTimeout(() => this.checkAvailability(), 300);
   }
 
-  schnellzeit(typ: 'ganztag' | 'vormittag' | 'nachmittag'): void {
+  applyTimePreset(typ: 'ganztag' | 'vormittag' | 'nachmittag'): void {
     const zeiten = typ === 'ganztag' ? ['08:00','16:00'] : typ === 'vormittag' ? ['08:00','12:00'] : ['12:00','16:00'];
     this.zeitraumSignal.set({ ...this.zeitraumSignal(), beginn:zeiten[0], ende:zeiten[1] });
-    this.pruefen();
+    this.checkAvailability();
   }
 
-  tooltip(tisch: Arbeitsplatz): string {
+  getDeskTooltip(tisch: Arbeitsplatz): string {
     if (!tisch.reserviertVon) return tisch.name;
     const von = new Date(tisch.reservierungAnfang).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'});
     const bis = new Date(tisch.reservierungEnde).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'});
     return `Reserviert von ${tisch.reserviertVon}, ${von}–${bis}`;
   }
 
-  vollbildUmschalten(): void { this.vollbild.update((aktiv) => !aktiv); }
+  toggleFullscreen(): void { this.vollbild.update((aktiv) => !aktiv); }
 
-  private raumNeben(richtung: -1 | 1) {
+  private getAdjacentRoom(richtung: -1 | 1) {
     const standortRaeume = this.raeume.filter((raum) =>
       raum.standortId === this.raum.standortId &&
       (this.benutzer.rolle === 'SUPERADMIN' || raum.abteilungName === this.raum.abteilungName)

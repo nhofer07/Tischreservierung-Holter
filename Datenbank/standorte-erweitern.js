@@ -49,7 +49,7 @@ db.benutzer.updateOne(
   { $set: { bevorzugterRaumId: "RAUM-WELS-EG-MARKETING" } }
 )
 
-function standardElemente(tuerX, pflanzeX, pflanzeY) {
+function createDefaultRoomElements(tuerX, pflanzeX, pflanzeY) {
   return [
     { id: "WAND-OBEN", typ: "wand", x: 0, y: 0, breite: 100, hoehe: 2 },
     { id: "WAND-LINKS", typ: "wand", x: 0, y: 0, breite: 2, hoehe: 100 },
@@ -85,13 +85,13 @@ standardRaeume.forEach((raum, index) => db.raeume.updateOne(
     stockwerk: raum.stockwerk,
     abteilungId: raum.abteilungId,
     abteilungName: raum.abteilungName,
-    elemente: standardElemente(raum.tuerX, index % 2 === 0 ? 88 : 7, index % 3 === 0 ? 8 : 82),
+    elemente: createDefaultRoomElements(raum.tuerX, index % 2 === 0 ? 88 : 7, index % 3 === 0 ? 8 : 82),
     beschreibung: "Standardraum für die Arbeitsplatzreservierung"
   } },
   { upsert: true }
 ))
 
-function standardTisch(raum, nummer, x, y) {
+function createDefaultDesk(raum, nummer, x, y) {
   const id = raum.id.replace("RAUM-", "TISCH-") + "-" + nummer
   const standortCode = raum.standortId.replace("STANDORT-", "").slice(0, 3)
   const abteilungCode = raum.abteilungName.slice(0, 3).toUpperCase()
@@ -119,7 +119,7 @@ function standardTisch(raum, nummer, x, y) {
 
 const positionen = [[20, 30], [40, 30], [60, 30], [80, 30], [25, 63], [50, 63], [75, 63]]
 standardRaeume.forEach(raum => positionen.forEach((position, index) => {
-  const tisch = standardTisch(raum, index + 1, position[0], position[1])
+  const tisch = createDefaultDesk(raum, index + 1, position[0], position[1])
   db.arbeitsplaetze.updateOne({ _id: tisch._id }, { $setOnInsert: tisch }, { upsert: true })
 }))
 

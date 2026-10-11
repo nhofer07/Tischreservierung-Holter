@@ -9,13 +9,13 @@
 
     <div class="header-tools">
       <div class="booking-panel">
-      <div class="room-switcher" *ngIf="kannRaumWechseln" aria-label="Raum wechseln">
+      <div class="room-switcher" *ngIf="canSwitchRooms" aria-label="Raum wechseln">
         <button
-          *ngIf="kannRaumWechseln"
+          *ngIf="canSwitchRooms"
           type="button"
           class="room-arrow"
-          [attr.aria-label]="'Zu ' + vorherigerRaum.name + ' wechseln'"
-          (click)="raumWechseln.emit(vorherigerRaum.id)"
+          [attr.aria-label]="'Zu ' + previousRoom.name + ' wechseln'"
+          (click)="raumWechseln.emit(previousRoom.id)"
         >
           <span aria-hidden="true">&#8249;</span>
         </button>
@@ -26,23 +26,26 @@
         </div>
 
         <button
-          *ngIf="kannRaumWechseln"
+          *ngIf="canSwitchRooms"
           type="button"
           class="room-arrow"
-          [attr.aria-label]="'Zu ' + naechsterRaum.name + ' wechseln'"
-          (click)="raumWechseln.emit(naechsterRaum.id)"
+          [attr.aria-label]="'Zu ' + nextRoom.name + ' wechseln'"
+          (click)="raumWechseln.emit(nextRoom.id)"
         >
           <span aria-hidden="true">&#8250;</span>
         </button>
       </div>
 
+      <p *ngIf="buchbarBis">Reservierbar bis {{ buchbarBis | date:'dd.MM.yyyy' }}</p>
       <div class="time-box">
         <label>
           Von
           <input
             type="date"
+            [max]="buchbarBis"
+            [min]="today"
             [value]="zeitraumSignal().datum"
-            (input)="zeitraumAendern('datum', $event)"
+            (input)="updateTimeRange('datum', $event)"
           />
         </label>
 
@@ -50,9 +53,10 @@
           Bis
           <input
             type="date"
+            [max]="buchbarBis"
             [min]="zeitraumSignal().datum"
             [value]="zeitraumSignal().endDatum"
-            (input)="zeitraumAendern('endDatum', $event)"
+            (input)="updateTimeRange('endDatum', $event)"
           />
         </label>
 
@@ -61,7 +65,7 @@
           <input
             type="time"
             [value]="zeitraumSignal().beginn"
-            (input)="zeitraumAendern('beginn', $event)"
+            (input)="updateTimeRange('beginn', $event)"
           />
         </label>
 
@@ -70,12 +74,12 @@
           <input
             type="time"
             [value]="zeitraumSignal().ende"
-            (input)="zeitraumAendern('ende', $event)"
+            (input)="updateTimeRange('ende', $event)"
           />
         </label>
 
       </div>
-      <div class="quick-times"><button type="button" (click)="schnellzeit('ganztag')">Ganztägig</button><button type="button" (click)="schnellzeit('vormittag')">Vormittag</button><button type="button" (click)="schnellzeit('nachmittag')">Nachmittag</button></div>
+      <div class="quick-times"><button type="button" (click)="applyTimePreset('ganztag')">Ganztägig</button><button type="button" (click)="applyTimePreset('vormittag')">Vormittag</button><button type="button" (click)="applyTimePreset('nachmittag')">Nachmittag</button></div>
       </div>
     </div>
   </div>
@@ -85,7 +89,7 @@
       <div class="plan-head">
         <div>
           <span class="plan-title">Verfügbarkeit</span>
-          <strong>{{ zeitraumText }}</strong>
+          <strong>{{ timeRangeLabel }}</strong>
         </div>
 
         <div class="legend">
@@ -94,18 +98,18 @@
           <span><i class="locked"></i>andere Abteilung</span>
           <span><i class="own"></i>deine Reservierung</span>
         </div>
-        <button type="button" class="fullscreen-button" (click)="vollbildUmschalten()" [attr.aria-label]="vollbild() ? 'Vollbild schließen' : 'Raum im Vollbild öffnen'">{{ vollbild() ? '× Schließen' : '⛶ Vollbild' }}</button>
+        <button type="button" class="fullscreen-button" (click)="toggleFullscreen()" [attr.aria-label]="vollbild() ? 'Vollbild schließen' : 'Raum im Vollbild öffnen'">{{ vollbild() ? '× Schließen' : '⛶ Vollbild' }}</button>
       </div>
 
       <div class="filter-row">
         <strong>Ausstattung</strong>
         <div class="filter-options">
-          <label class="equipment-check" *ngFor="let ausstattung of ausstattungen">
-            <input type="checkbox" [checked]="ausstattungFilter().includes(ausstattung)" (change)="ausstattungAendern(ausstattung, $any($event.target).checked)" />
+          <label class="equipment-check" *ngFor="let ausstattung of availableEquipment">
+            <input type="checkbox" [checked]="ausstattungFilter().includes(ausstattung)" (change)="updateEquipmentFilter(ausstattung, $any($event.target).checked)" />
             <span>{{ ausstattung }}</span>
           </label>
         </div>
-        <span class="filter-result">{{ sichtbareTische.length }} von {{ raum.arbeitsplaetze.length }} Tischen</span>
+        <span class="filter-result">{{ visibleDesks.length }} von {{ raum.arbeitsplaetze.length }} Tischen</span>
       </div>
 
       <div class="room">
@@ -125,7 +129,7 @@
         </svg>
 
         <button
-          *ngFor="let tisch of sichtbareTische"
+          *ngFor="let tisch of visibleDesks"
           type="button"
           class="desk"
           [class.selected]="ausgewaehlterTisch?.id === tisch.id"
@@ -139,7 +143,7 @@
           [style.--counter-rotation]="(0 - (tisch.rotation || 0)) + 'deg'"
           [style.--desk-width]="(tisch.breite || 12) + '%'"
           [style.--desk-height]="(tisch.hoehe || 12) + '%'"
-          [attr.title]="tooltip(tisch)"
+          [attr.title]="getDeskTooltip(tisch)"
           (click)="tischAuswaehlen.emit(tisch)"
         >
           <span class="desk-label"><strong [class.long-number]="tisch.tischnr.length > 5">{{ tisch.tischnr }}</strong><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span>
@@ -152,7 +156,8 @@
       [tisch]="ausgewaehlterTisch"
       [raum]="raum"
       [fehler]="fehler"
-      (reservieren)="reservieren.emit()"
+      [zeitraumGueltig]="zeitraumGueltig()"
+      (reservieren)="zeitraumGueltig() && reservieren.emit()"
     />
   </div>
 </section>

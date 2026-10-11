@@ -28,10 +28,17 @@ export class App implements OnInit {
   nachricht = signal('');
   laden = signal(false);
   firmenEinstellung = signal<FirmenEinstellung>({ firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' });
+  buchbarBis = signal('');
+  loadBookingSettings(): void {
+    this.arbeitsplatzService.getBookingSettings().subscribe({
+      next: (wert) => this.buchbarBis.set(wert.buchbarBis),
+      error: () => this.fehler.set('Buchungsgrenze konnte nicht geladen werden.')
+    });
+  }
   private raumAnfrage = 0;
   zeitraum = signal<Zeitraum>({
-    datum: this.heutigesDatum(),
-    endDatum: this.heutigesDatum(),
+    datum: this.getCurrentDate(),
+    endDatum: this.getCurrentDate(),
     beginn: '08:00',
     ende: '16:00'
   });
@@ -40,9 +47,10 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     this.laden.set(true);
-    this.firmenEinstellungenLaden();
-    this.entraAuth.initialisieren()
-      .then((angemeldet) => angemeldet ? this.entraBenutzerLaden() : this.laden.set(false))
+    this.loadCompanySettings();
+    this.loadBookingSettings();
+    this.entraAuth.initialize()
+      .then((angemeldet) => angemeldet ? this.loadCurrentEntraUser() : this.laden.set(false))
       .catch((fehler) => {
         console.error('Microsoft-Anmeldung konnte nicht initialisiert werden:', fehler);
         const grund = fehler?.errorMessage || fehler?.message || '';
@@ -53,31 +61,31 @@ export class App implements OnInit {
       });
   }
 
-  firmenEinstellungenLaden(): void {
-    this.arbeitsplatzService.getFirmenEinstellungen().subscribe({
-      next: (einstellung) => this.firmenDesignAnwenden(einstellung),
-      error: () => this.firmenDesignAnwenden(this.firmenEinstellung())
+  loadCompanySettings(): void {
+    this.arbeitsplatzService.getCompanySettings().subscribe({
+      next: (einstellung) => this.applyCompanyBranding(einstellung),
+      error: () => this.applyCompanyBranding(this.firmenEinstellung())
     });
   }
 
-  firmenDesignAnwenden(einstellung: FirmenEinstellung): void {
+  applyCompanyBranding(einstellung: FirmenEinstellung): void {
     this.firmenEinstellung.set(einstellung);
     document.documentElement.style.setProperty('--primary-color', einstellung.primaerfarbe);
     document.documentElement.style.setProperty('--accent-color', einstellung.akzentfarbe);
   }
 
-  standorteLaden(nachLaden?: () => void): void {
-    this.arbeitsplatzService.getStandorte().subscribe({
+  loadLocations(nachLaden?: () => void): void {
+    this.arbeitsplatzService.getLocations().subscribe({
       next: (standorte) => { this.standorte.set(standorte); nachLaden?.(); },
       error: () => this.fehler.set('Standorte konnten nicht geladen werden. Läuft MongoDB?')
     });
   }
 
-  anmelden(zugang: { email: string; passwort: string }): void {
+  loginWithTestAccount(zugang: { email: string; passwort: string }): void {
     this.laden.set(true);
     this.fehler.set('');
-    this.arbeitsplatzService.login(zugang.email, zugang.passwort).subscribe({
-      next: (benutzer) => this.anmeldungAbschliessen(benutzer),
+    this.arbeitsplatzService.loginWithTestAccount(zugang.email, zugang.passwort).subscribe({
+      next: (benutzer) => this.completeLogin(benutzer),
       error: () => {
         this.fehler.set('E-Mail oder Passwort ist falsch.');
         this.laden.set(false);
@@ -85,18 +93,18 @@ export class App implements OnInit {
     });
   }
 
-  entraAnmelden(): void {
+  loginWithMicrosoft(): void {
     this.laden.set(true);
     this.fehler.set('');
-    this.entraAuth.anmelden().catch(() => {
+    this.entraAuth.login().catch(() => {
       this.fehler.set('Die Weiterleitung zu Microsoft Entra ID ist fehlgeschlagen.');
       this.laden.set(false);
     });
   }
 
-  private entraBenutzerLaden(): void {
-    this.arbeitsplatzService.entraBenutzer().subscribe({
-      next: (benutzer) => this.anmeldungAbschliessen(benutzer),
+  private loadCurrentEntraUser(): void {
+    this.arbeitsplatzService.getCurrentEntraUser().subscribe({
+      next: (benutzer) => this.completeLogin(benutzer),
       error: (error) => {
         this.fehler.set(error?.status === 404
           ? 'Dein Microsoft-Konto ist gültig, aber noch keinem Mitarbeiterprofil zugeordnet. Bitte die Entra-E-Mail in der Mitarbeiterverwaltung eintragen.'
@@ -106,21 +114,21 @@ export class App implements OnInit {
     });
   }
 
-  private anmeldungAbschliessen(benutzer: Benutzer): void {
+  private completeLogin(benutzer: Benutzer): void {
     this.aktiverBenutzer.set(benutzer);
     this.aktiveAnsicht.set('start');
     this.laden.set(false);
-    this.standorteLaden(() => this.ersteRaumvorschauLaden());
+    this.loadLocations(() => this.loadInitialRoomPreview());
   }
 
-  profilAusserhalbSchliessen(event: Event, profil: HTMLDetailsElement): void {
+  closeProfileOnOutsideClick(event: Event, profil: HTMLDetailsElement): void {
     if (event.target instanceof Node && !profil.contains(event.target)) {
       profil.open = false;
     }
   }
 
-  abmelden(): void {
-    const warEntraAnmeldung = this.entraAuth.istAngemeldet();
+  logout(): void {
+    const warEntraAnmeldung = this.entraAuth.isLoggedIn();
     this.aktiverBenutzer.set(null);
     this.raum.set(null);
     this.raeume.set([]);
@@ -129,26 +137,26 @@ export class App implements OnInit {
     this.aktiveAnsicht.set('start');
     this.fehler.set('');
     this.nachricht.set('');
-    if (warEntraAnmeldung) this.entraAuth.abmelden();
+    if (warEntraAnmeldung) this.entraAuth.logout();
   }
 
-  adminOeffnen(): void {
-    if (this.istAdmin(this.aktiverBenutzer())) {
+  openAdmin(): void {
+    if (this.isAdmin(this.aktiverBenutzer())) {
       this.aktiveAnsicht.set('admin');
     }
   }
 
-  meldungAnzeigen(text: string): void {
+  showSuccessMessage(text: string): void {
     this.fehler.set('');
     this.nachricht.set(text);
   }
 
-  fehlerAnzeigen(text: string): void {
+  showErrorMessage(text: string): void {
     this.nachricht.set('');
     this.fehler.set(text);
   }
 
-  benutzerWechseln(benutzerId: string): void {
+  switchUser(benutzerId: string): void {
     const benutzer = this.benutzer().find((eintrag) => eintrag.id === benutzerId);
     if (!benutzer) {
       return;
@@ -158,10 +166,10 @@ export class App implements OnInit {
     this.aktiveAnsicht.set('start');
     this.fehler.set('');
     this.nachricht.set('');
-    this.ersteRaumvorschauLaden();
+    this.loadInitialRoomPreview();
   }
 
-  standortVorschauLaden(standortId: string): void {
+  loadLocationPreview(standortId: string): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
       return;
@@ -171,7 +179,7 @@ export class App implements OnInit {
     this.raum.set(null);
     this.raeume.set([]);
     this.fehler.set('');
-    this.arbeitsplatzService.getRaeumeByStandort(standortId).subscribe({
+    this.arbeitsplatzService.getRoomsByLocation(standortId).subscribe({
       next: (raeume) => {
         if (anfrage !== this.raumAnfrage) return;
         this.raeume.set(raeume);
@@ -181,35 +189,35 @@ export class App implements OnInit {
         }
 
         const eigeneAbteilung = raeume.find((raum) => raum.abteilungName === benutzer.abteilungName);
-        this.vorschauRaumLaden((eigeneAbteilung ?? raeume[0]).id);
+        this.loadRoomPreview((eigeneAbteilung ?? raeume[0]).id);
       },
       error: () => this.fehler.set('Räume konnten nicht geladen werden.')
     });
   }
 
-  abteilungVorschauLaden(abteilungName: string): void {
+  loadDepartmentPreview(abteilungName: string): void {
     ++this.raumAnfrage;
     this.raum.set(null);
     this.fehler.set('');
     const raum = this.raeume().find((eintrag) => eintrag.abteilungName === abteilungName);
-    if (raum) this.vorschauRaumLaden(raum.id);
+    if (raum) this.loadRoomPreview(raum.id);
   }
 
-  standortOeffnen(standortId: string): void {
+  openLocation(standortId: string): void {
     const raum = this.raum();
-    if (raum && raum.standortId === standortId) this.raumOeffnen(raum.id);
+    if (raum && raum.standortId === standortId) this.openRoom(raum.id);
   }
 
-  raumOeffnen(raumId: string): void {
+  openRoom(raumId: string): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
       return;
     }
 
     this.laden.set(true);
-    this.arbeitsplatzService.getRaum(raumId, this.zeitraum(), benutzer.id).subscribe({
+    this.arbeitsplatzService.getRoom(raumId, this.zeitraum(), benutzer.id).subscribe({
       next: (raum) => {
-        this.raumSetzen(raum);
+        this.setRoom(raum);
         this.aktiveAnsicht.set('raum');
         this.laden.set(false);
       },
@@ -220,45 +228,45 @@ export class App implements OnInit {
     });
   }
 
-  zeitraumPruefen(zeitraum: Zeitraum): void {
+  checkAvailability(zeitraum: Zeitraum): void {
     const raum = this.raum();
     if (!raum) {
       return;
     }
 
     this.zeitraum.set(zeitraum);
-    this.raumOeffnen(raum.id);
+    this.openRoom(raum.id);
   }
 
-  startOeffnen(): void {
-    if (this.aktiveAnsicht() !== 'start') this.ersteRaumvorschauLaden();
+  openHome(): void {
+    if (this.aktiveAnsicht() !== 'start') this.loadInitialRoomPreview();
     this.aktiveAnsicht.set('start');
     this.nachricht.set('');
   }
 
-  arbeitsplatzFindenOeffnen(): void {
+  openWorkstationSearch(): void {
     this.aktiveAnsicht.set(this.raum() ? 'raum' : 'start');
     this.fehler.set('');
     this.nachricht.set('');
   }
 
-  reservierungenOeffnen(): void {
+  openReservations(): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
       return;
     }
 
     this.aktiveAnsicht.set('reservierungen');
-    this.reservierungenLaden();
+    this.loadReservations();
   }
 
-  tischAuswaehlen(arbeitsplatz: Arbeitsplatz): void {
+  selectDesk(arbeitsplatz: Arbeitsplatz): void {
     this.ausgewaehlterTisch.set(arbeitsplatz);
     this.fehler.set('');
     this.nachricht.set('');
   }
 
-  reservieren(): void {
+  createReservation(): void {
     const benutzer = this.aktiverBenutzer();
     const tisch = this.ausgewaehlterTisch();
 
@@ -267,12 +275,12 @@ export class App implements OnInit {
     }
 
     this.laden.set(true);
-    this.arbeitsplatzService.reservieren(benutzer.id, tisch.id, this.zeitraum()).subscribe({
+    this.arbeitsplatzService.createReservation(benutzer.id, tisch.id, this.zeitraum()).subscribe({
       next: () => {
         this.nachricht.set(`Arbeitsplatz ${tisch.tischnr} wurde für den gewählten Zeitraum reserviert.`);
         const aktuellerRaum = this.raum();
         if (aktuellerRaum) {
-          this.raumOeffnen(aktuellerRaum.id);
+          this.openRoom(aktuellerRaum.id);
         }
       },
       error: (error) => {
@@ -282,17 +290,17 @@ export class App implements OnInit {
     });
   }
 
-  stornieren(reservierungId: string): void {
+  cancelReservation(reservierungId: string): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
       return;
     }
 
     this.laden.set(true);
-    this.arbeitsplatzService.stornieren(reservierungId, benutzer.id).subscribe({
+    this.arbeitsplatzService.cancelReservation(reservierungId, benutzer.id).subscribe({
       next: () => {
         this.nachricht.set('Reservierung wurde storniert.');
-        this.reservierungenLaden();
+        this.loadReservations();
       },
       error: () => {
         this.fehler.set('Reservierung konnte nicht storniert werden.');
@@ -301,23 +309,23 @@ export class App implements OnInit {
     });
   }
 
-  reservierungBearbeiten(aenderung: { reservierung: Reservierung; anfang: string; ende: string }): void {
+  updateReservation(aenderung: { reservierung: Reservierung; anfang: string; ende: string }): void {
     const benutzer = this.aktiverBenutzer(); if (!benutzer) return;
     this.laden.set(true);
-    this.arbeitsplatzService.reservierungAendern(aenderung.reservierung, benutzer.id, aenderung.anfang, aenderung.ende).subscribe({
-      next: () => { this.nachricht.set('Reservierungszeitraum wurde geändert.'); this.reservierungenLaden(); },
-      error: () => { this.fehler.set('Zeitraum konnte nicht geändert werden. Bitte Überschneidungen prüfen.'); this.laden.set(false); }
+    this.arbeitsplatzService.updateReservation(aenderung.reservierung, benutzer.id, aenderung.anfang, aenderung.ende).subscribe({
+      next: () => { this.nachricht.set('Reservierungszeitraum wurde geändert.'); this.loadReservations(); },
+      error: (error) => { this.fehler.set(error?.error?.details || error?.error?.message || 'Zeitraum konnte nicht geändert werden. Bitte Buchungsgrenze und Überschneidungen prüfen.'); this.laden.set(false); }
     });
   }
 
-  private reservierungenLaden(): void {
+  private loadReservations(): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
       return;
     }
 
     this.laden.set(true);
-    this.arbeitsplatzService.getReservierungen(benutzer.id).subscribe({
+    this.arbeitsplatzService.getReservations(benutzer.id).subscribe({
       next: (reservierungen) => {
         this.reservierungen.set(reservierungen);
         this.laden.set(false);
@@ -329,7 +337,7 @@ export class App implements OnInit {
     });
   }
 
-  private vorschauRaumLaden(raumId: string): void {
+  private loadRoomPreview(raumId: string): void {
     const benutzer = this.aktiverBenutzer();
     if (!benutzer) {
       return;
@@ -337,7 +345,7 @@ export class App implements OnInit {
 
     if (!raumId) { this.raum.set(null); return; }
     const anfrage = ++this.raumAnfrage;
-    this.arbeitsplatzService.getRaum(raumId, this.zeitraum(), benutzer.id).subscribe({
+    this.arbeitsplatzService.getRoom(raumId, this.zeitraum(), benutzer.id).subscribe({
       next: (raum) => {
         if (anfrage !== this.raumAnfrage) return;
         this.raum.set(raum);
@@ -347,30 +355,30 @@ export class App implements OnInit {
     });
   }
 
-  private ersteRaumvorschauLaden(): void {
+  private loadInitialRoomPreview(): void {
     const ersterStandort = this.standorte()[0];
-    if (ersterStandort) this.standortVorschauLaden(ersterStandort.id);
+    if (ersterStandort) this.loadLocationPreview(ersterStandort.id);
   }
 
-  istAdmin(benutzer: Benutzer | null): boolean {
+  isAdmin(benutzer: Benutzer | null): boolean {
     return benutzer?.rolle === 'ADMIN' || benutzer?.rolle === 'SUPERADMIN';
   }
 
-  private heutigesDatum(): string {
+  private getCurrentDate(): string {
     const heute = new Date();
     const monat = String(heute.getMonth() + 1).padStart(2, '0');
     const tag = String(heute.getDate()).padStart(2, '0');
     return `${heute.getFullYear()}-${monat}-${tag}`;
   }
 
-  private raumSetzen(raum: Raum): void {
+  private setRoom(raum: Raum): void {
     const bisherigeId = this.ausgewaehlterTisch()?.id;
     this.raum.set(raum);
     this.ausgewaehlterTisch.set(raum.arbeitsplaetze.find((tisch) => tisch.id === bisherigeId)
       ?? raum.arbeitsplaetze.find((tisch) => tisch.reservierbar) ?? raum.arbeitsplaetze[0]);
 
     this.arbeitsplatzService
-      .getRaeumeByStandort(raum.standortId)
+      .getRoomsByLocation(raum.standortId)
       .subscribe((raeume) => this.raeume.set(raeume.filter((eintrag) => eintrag.abteilungName === raum.abteilungName)));
   }
 }

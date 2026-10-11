@@ -3,13 +3,13 @@
   [laden]="laden()"
   [fehler]="fehler()"
   [firmenEinstellung]="firmenEinstellung()"
-  (entraAnmelden)="entraAnmelden()"
-  (testAnmelden)="anmelden($event)"
+  (entraAnmelden)="loginWithMicrosoft()"
+  (testAnmelden)="loginWithTestAccount($event)"
 />
 
 <main class="page" *ngIf="aktiverBenutzer() as benutzerAktiv">
   <header class="topbar">
-    <button class="brand" type="button" aria-label="Zur Startseite" (click)="startOeffnen()">
+    <button class="brand" type="button" aria-label="Zur Startseite" (click)="openHome()">
       <img *ngIf="firmenEinstellung().logoUrl" [src]="firmenEinstellung().logoUrl" [alt]="firmenEinstellung().firmenname" />
       <span>{{ firmenEinstellung().produktname }}</span>
     </button>
@@ -18,29 +18,29 @@
       <button
         type="button"
         [class.active]="aktiveAnsicht() === 'start' || aktiveAnsicht() === 'raum'"
-        (click)="arbeitsplatzFindenOeffnen()"
+        (click)="openWorkstationSearch()"
       >
         Arbeitsplatz finden
       </button>
       <button
         type="button"
         [class.active]="aktiveAnsicht() === 'reservierungen'"
-        (click)="reservierungenOeffnen()"
+        (click)="openReservations()"
       >
         Meine Reservierungen
       </button>
       <button
-        *ngIf="istAdmin(benutzerAktiv)"
+        *ngIf="isAdmin(benutzerAktiv)"
         type="button"
         [class.active]="aktiveAnsicht() === 'admin'"
-        (click)="adminOeffnen()"
+        (click)="openAdmin()"
       >
         Verwaltung
       </button>
     </nav>
 
     <div class="profile-menu">
-      <details class="profile-details" (keydown.escape)="profil.removeAttribute('open')" (document:click)="profilAusserhalbSchliessen($event, profil)" #profil>
+      <details class="profile-details" (keydown.escape)="profil.removeAttribute('open')" (document:click)="closeProfileOnOutsideClick($event, profil)" #profil>
       <summary aria-label="Mein Profil anzeigen">
       <span class="avatar">{{ benutzerAktiv.vorname.charAt(0) }}{{ benutzerAktiv.nachname.charAt(0) }}</span>
       <span class="profile-name"><strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong><small>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Abteilungsleitung' : benutzerAktiv.abteilungName }}</small></span>
@@ -53,7 +53,7 @@
           <dt>Rolle</dt><dd>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Admin · Abteilungsleitung' : 'Mitarbeiter' }}</dd>
           <dt>Abteilung</dt><dd>{{ benutzerAktiv.abteilungName }}</dd>
         </dl>
-        <button type="button" class="logout" (click)="abmelden()">Abmelden</button>
+        <button type="button" class="logout" (click)="logout()">Abmelden</button>
       </section>
       </details>
     </div>
@@ -69,9 +69,9 @@
     [raum]="raum()"
     [raeume]="raeume()"
     [benutzer]="aktiverBenutzer()"
-    (abteilungAusgewaehlt)="abteilungVorschauLaden($event)"
-    (standortAusgewaehlt)="standortVorschauLaden($event)"
-    (standortOeffnen)="standortOeffnen($event)"
+    (abteilungAusgewaehlt)="loadDepartmentPreview($event)"
+    (standortAusgewaehlt)="loadLocationPreview($event)"
+    (standortOeffnen)="openLocation($event)"
   />
 
   <app-room-overview
@@ -82,30 +82,33 @@
     [ausgewaehlterTisch]="ausgewaehlterTisch()"
     [fehler]="fehler()"
     [zeitraum]="zeitraum()"
-    (schliessen)="startOeffnen()"
-    (raumWechseln)="raumOeffnen($event)"
-    (zeitraumPruefen)="zeitraumPruefen($event)"
-    (tischAuswaehlen)="tischAuswaehlen($event)"
-    (reservieren)="reservieren()"
+    [buchbarBis]="buchbarBis()"
+    (schliessen)="openHome()"
+    (raumWechseln)="openRoom($event)"
+    (zeitraumPruefen)="checkAvailability($event)"
+    (tischAuswaehlen)="selectDesk($event)"
+    (reservieren)="createReservation()"
   />
 
   <app-reservations
     *ngIf="aktiveAnsicht() === 'reservierungen' && aktiverBenutzer()"
     [benutzer]="aktiverBenutzer()!"
     [reservierungen]="reservierungen()"
+    [buchbarBis]="buchbarBis()"
     [laden]="laden()"
-    (stornieren)="stornieren($event)"
-    (bearbeiten)="reservierungBearbeiten($event)"
-    (arbeitsplatzSuchen)="arbeitsplatzFindenOeffnen()"
+    (stornieren)="cancelReservation($event)"
+    (bearbeiten)="updateReservation($event)"
+    (arbeitsplatzSuchen)="openWorkstationSearch()"
   />
 
   <app-admin-builder
-    *ngIf="aktiveAnsicht() === 'admin' && istAdmin(benutzerAktiv)"
+    *ngIf="aktiveAnsicht() === 'admin' && isAdmin(benutzerAktiv)"
     [admin]="benutzerAktiv"
     [standorte]="standorte()"
-    (nachricht)="meldungAnzeigen($event)"
-    (fehler)="fehlerAnzeigen($event)"
-    (standorteGeaendert)="standorteLaden()"
-    (designGeaendert)="firmenDesignAnwenden($event)"
+    (nachricht)="showSuccessMessage($event)"
+    (fehler)="showErrorMessage($event)"
+    (standorteGeaendert)="loadLocations()"
+    (reservierungsgrenzeGeaendert)="loadBookingSettings()"
+    (designGeaendert)="applyCompanyBranding($event)"
   />
 </main>

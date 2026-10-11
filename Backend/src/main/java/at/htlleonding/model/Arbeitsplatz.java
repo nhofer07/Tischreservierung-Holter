@@ -2,6 +2,8 @@ package at.htlleonding.model;
 
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 import java.util.Date;
@@ -10,44 +12,70 @@ import java.util.Date;
 public class Arbeitsplatz {
     @BsonId
     private String id;
-    private String tischnr;
-    private String raumId;
-    private String standortId;
-    private String abteilungId;
-    private String abteilungName;
+    @BsonProperty("tischnr")
+    @JsonProperty("tischnr")
+    private String deskNumber;
+    @BsonProperty("raumId")
+    @JsonProperty("raumId")
+    private String roomId;
+    @BsonProperty("standortId")
+    @JsonProperty("standortId")
+    private String locationId;
+    @BsonProperty("abteilungId")
+    @JsonProperty("abteilungId")
+    private String departmentId;
+    @BsonProperty("abteilungName")
+    @JsonProperty("abteilungName")
+    private String departmentName;
     private String name;
     private String status;
-    private String reserviertVon;
-    private String reservierungBenutzerId;
-    private Date reservierungAnfang;
-    private Date reservierungEnde;
-    private Date naechsteReservierungAnfang;
-    private Date naechsteReservierungEnde;
+    @BsonProperty("reserviertVon")
+    @JsonProperty("reserviertVon")
+    private String reservedByName;
+    @BsonProperty("reservierungBenutzerId")
+    @JsonProperty("reservierungBenutzerId")
+    private String reservationUserId;
+    @BsonProperty("reservierungAnfang")
+    @JsonProperty("reservierungAnfang")
+    private Date reservationStart;
+    @BsonProperty("reservierungEnde")
+    @JsonProperty("reservierungEnde")
+    private Date reservationEnd;
+    @BsonProperty("naechsteReservierungAnfang")
+    @JsonProperty("naechsteReservierungAnfang")
+    private Date nextReservationStart;
+    @BsonProperty("naechsteReservierungEnde")
+    @JsonProperty("naechsteReservierungEnde")
+    private Date nextReservationEnd;
     private double rotation;
-    private double breite;
-    private double hoehe;
+    @BsonProperty("breite")
+    @JsonProperty("breite")
+    private double width;
+    @BsonProperty("hoehe")
+    @JsonProperty("hoehe")
+    private double height;
     private Position position;
     private List<Equipment> equipment;
 
     public Arbeitsplatz() {
     }
 
-    public Arbeitsplatz(String id, String tischnr, String raumId, String standortId, String abteilungId,
-                        String abteilungName, String name, String status, Position position,
-                        List<Equipment> equipment, double rotation, double breite, double hoehe) {
+    public Arbeitsplatz(String id, String deskNumber, String roomId, String locationId, String departmentId,
+                        String departmentName, String name, String status, Position position,
+                        List<Equipment> equipment, double rotation, double width, double height) {
         this.id = id;
-        this.tischnr = tischnr;
-        this.raumId = raumId;
-        this.standortId = standortId;
-        this.abteilungId = abteilungId;
-        this.abteilungName = abteilungName;
+        this.deskNumber = deskNumber;
+        this.roomId = roomId;
+        this.locationId = locationId;
+        this.departmentId = departmentId;
+        this.departmentName = departmentName;
         this.name = name;
         this.status = status;
         this.position = position;
         this.equipment = equipment;
         this.rotation = rotation;
-        this.breite = breite;
-        this.hoehe = hoehe;
+        this.width = width;
+        this.height = height;
     }
 
     public String getId() {
@@ -58,44 +86,44 @@ public class Arbeitsplatz {
         this.id = id;
     }
 
-    public String getTischnr() {
-        return tischnr;
+    public String getDeskNumber() {
+        return deskNumber;
     }
 
-    public void setTischnr(String tischnr) {
-        this.tischnr = tischnr;
+    public void setDeskNumber(String deskNumber) {
+        this.deskNumber = deskNumber;
     }
 
-    public String getRaumId() {
-        return raumId;
+    public String getRoomId() {
+        return roomId;
     }
 
-    public void setRaumId(String raumId) {
-        this.raumId = raumId;
+    public void setRoomId(String roomId) {
+        this.roomId = roomId;
     }
 
-    public String getStandortId() {
-        return standortId;
+    public String getLocationId() {
+        return locationId;
     }
 
-    public void setStandortId(String standortId) {
-        this.standortId = standortId;
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
     }
 
-    public String getAbteilungId() {
-        return abteilungId;
+    public String getDepartmentId() {
+        return departmentId;
     }
 
-    public void setAbteilungId(String abteilungId) {
-        this.abteilungId = abteilungId;
+    public void setDepartmentId(String departmentId) {
+        this.departmentId = departmentId;
     }
 
-    public String getAbteilungName() {
-        return abteilungName;
+    public String getDepartmentName() {
+        return departmentName;
     }
 
-    public void setAbteilungName(String abteilungName) {
-        this.abteilungName = abteilungName;
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
     }
 
     public String getName() {
@@ -114,23 +142,23 @@ public class Arbeitsplatz {
         this.status = status;
     }
 
-    public String getReserviertVon() { return reserviertVon; }
+    public String getReservedByName() { return reservedByName; }
 
-    public void setReserviertVon(String reserviertVon) { this.reserviertVon = reserviertVon; }
-    public String getReservierungBenutzerId() { return reservierungBenutzerId; }
-    public void setReservierungBenutzerId(String id) { this.reservierungBenutzerId = id; }
-    public Date getReservierungAnfang() { return reservierungAnfang; }
-    public void setReservierungAnfang(Date wert) { this.reservierungAnfang = wert; }
-    public Date getReservierungEnde() { return reservierungEnde; }
-    public void setReservierungEnde(Date wert) { this.reservierungEnde = wert; }
-    public Date getNaechsteReservierungAnfang() { return naechsteReservierungAnfang; }
-    public void setNaechsteReservierungAnfang(Date wert) { this.naechsteReservierungAnfang = wert; }
-    public Date getNaechsteReservierungEnde() { return naechsteReservierungEnde; }
-    public void setNaechsteReservierungEnde(Date wert) { this.naechsteReservierungEnde = wert; }
+    public void setReservedByName(String reservedByName) { this.reservedByName = reservedByName; }
+    public String getReservationUserId() { return reservationUserId; }
+    public void setReservationUserId(String id) { this.reservationUserId = id; }
+    public Date getReservationStart() { return reservationStart; }
+    public void setReservationStart(Date wert) { this.reservationStart = wert; }
+    public Date getReservationEnd() { return reservationEnd; }
+    public void setReservationEnd(Date wert) { this.reservationEnd = wert; }
+    public Date getNextReservationStart() { return nextReservationStart; }
+    public void setNextReservationStart(Date wert) { this.nextReservationStart = wert; }
+    public Date getNextReservationEnd() { return nextReservationEnd; }
+    public void setNextReservationEnd(Date wert) { this.nextReservationEnd = wert; }
     public double getRotation() { return rotation; }
     public void setRotation(double rotation) { this.rotation = rotation; }
-    public double getBreite() { return breite; }
-    public double getHoehe() { return hoehe; }
+    public double getWidth() { return width; }
+    public double getHeight() { return height; }
 
     public Position getPosition() {
         return position;

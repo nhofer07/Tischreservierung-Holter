@@ -8,10 +8,10 @@ export class EntraAuthService {
   private initialisiert = false;
   private initialisierung: Promise<void> | null = null;
 
-  async initialisieren(): Promise<boolean> {
+  async initialize(): Promise<boolean> {
     if (!this.initialisiert) {
       if (!this.initialisierung) {
-        this.initialisierung = this.msalInitialisieren();
+        this.initialisierung = this.initializeMsal();
       }
 
       try {
@@ -23,12 +23,12 @@ export class EntraAuthService {
       }
     }
 
-    const konto = this.aktivesKonto();
+    const konto = this.getActiveAccount();
     if (konto) this.msal.setActiveAccount(konto);
     return !!konto;
   }
 
-  private async msalInitialisieren(): Promise<void> {
+  private async initializeMsal(): Promise<void> {
     await this.msal.initialize();
 
     try {
@@ -45,21 +45,21 @@ export class EntraAuthService {
     this.initialisiert = true;
   }
 
-  async anmelden(): Promise<void> {
-    await this.initialisieren();
+  async login(): Promise<void> {
+    await this.initialize();
     await this.msal.loginRedirect(entraLoginRequest);
   }
 
-  async abmelden(): Promise<void> {
-    await this.initialisieren();
-    const konto = this.aktivesKonto();
+  async logout(): Promise<void> {
+    await this.initialize();
+    const konto = this.getActiveAccount();
     if (!konto) return;
     await this.msal.logoutRedirect({ account: konto, postLogoutRedirectUri: window.location.origin });
   }
 
-  async zugriffstoken(interaktiv = false): Promise<string | null> {
-    await this.initialisieren();
-    const konto = this.aktivesKonto();
+  async getIdentityToken(interaktiv = false): Promise<string | null> {
+    await this.initialize();
+    const konto = this.getActiveAccount();
     if (!konto) return null;
 
     try {
@@ -76,11 +76,11 @@ export class EntraAuthService {
     }
   }
 
-  istAngemeldet(): boolean {
-    return !!this.aktivesKonto();
+  isLoggedIn(): boolean {
+    return !!this.getActiveAccount();
   }
 
-  private aktivesKonto(): AccountInfo | null {
+  private getActiveAccount(): AccountInfo | null {
     return this.msal.getActiveAccount() ?? this.msal.getAllAccounts()[0] ?? null;
   }
 }

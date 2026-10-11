@@ -14,12 +14,12 @@ import org.bson.Document;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -38,8 +38,8 @@ public class ArbeitsplatzRepo {
     @Inject
     SecurityIdentity securityIdentity;
 
-    public FirmenEinstellungDTO getFirmenEinstellungen() {
-        Document dokument = database().getCollection("einstellungen")
+    public FirmenEinstellungDTO getCompanySettings() {
+        Document dokument = getDatabase().getCollection("einstellungen")
                 .find(new Document("_id", "FIRMA")).first();
         if (dokument == null) {
             return new FirmenEinstellungDTO("HOLTER", "DeskVision", "#a51e2d", "#343638", "/holter-logo.png");
@@ -50,40 +50,40 @@ public class ArbeitsplatzRepo {
                 dokument.getString("logoUrl"));
     }
 
-    public void pruefeSuperadminZugriff(String adminId) {
-        pruefeSuperadmin(adminId);
+    public void requireSuperadminAccess(String adminId) {
+        requireSuperadmin(adminId);
     }
 
-    public FirmenEinstellungDTO firmenEinstellungenSpeichern(String adminId, FirmenEinstellungDTO request) {
-        pruefeSuperadmin(adminId);
-        if (request == null || leer(request.firmenname())) {
+    public FirmenEinstellungDTO saveCompanySettings(String adminId, FirmenEinstellungDTO request) {
+        requireSuperadmin(adminId);
+        if (request == null || isBlank(request.firmenname())) {
             throw new BadRequestException("Der Firmenname ist erforderlich.");
         }
-        if (!gueltigeFarbe(request.primaerfarbe()) || !gueltigeFarbe(request.akzentfarbe())) {
+        if (!isValidHexColor(request.primaerfarbe()) || !isValidHexColor(request.akzentfarbe())) {
             throw new BadRequestException("Farben müssen als Hex-Wert wie #a51e2d angegeben werden.");
         }
-        String logoUrl = leer(request.logoUrl()) ? "" : request.logoUrl().trim();
+        String logoUrl = isBlank(request.logoUrl()) ? "" : request.logoUrl().trim();
         Document werte = new Document("firmenname", request.firmenname().trim())
                 .append("produktname", "DeskVision")
                 .append("primaerfarbe", request.primaerfarbe().toLowerCase())
                 .append("akzentfarbe", request.akzentfarbe().toLowerCase())
                 .append("logoUrl", logoUrl);
-        einstellungenAktualisieren(werte);
-        Document letzterEintrag = database().getCollection("designHistorie").find()
+        updateCompanySettings(werte);
+        Document letzterEintrag = getDatabase().getCollection("designHistorie").find()
                 .sort(new Document("zeitpunkt", -1)).first();
-        if (!gleichesDesign(letzterEintrag, werte)) {
+        if (!hasSameBranding(letzterEintrag, werte)) {
             Document historie = new Document("_id", "DESIGN-" + System.nanoTime())
                     .append("zeitpunkt", new Date());
             historie.putAll(werte);
-            database().getCollection("designHistorie").insertOne(historie);
+            getDatabase().getCollection("designHistorie").insertOne(historie);
         }
-        protokollieren(adminId, "FIRMENDESIGN_GEAENDERT", request.firmenname().trim());
-        return getFirmenEinstellungen();
+        recordAuditEntry(adminId, "FIRMENDESIGN_GEAENDERT", request.firmenname().trim());
+        return getCompanySettings();
     }
 
-    public FirmenEinstellungDTO firmenDesignAusHistorieVerwenden(String adminId, String historieId) {
-        pruefeSuperadmin(adminId);
-        Document historie = database().getCollection("designHistorie")
+    public FirmenEinstellungDTO applyBrandingHistoryEntry(String adminId, String historieId) {
+        requireSuperadmin(adminId);
+        Document historie = getDatabase().getCollection("designHistorie")
                 .find(new Document("_id", historieId)).first();
         if (historie == null) throw new NotFoundException("Designvariante wurde nicht gefunden.");
         Document werte = new Document("firmenname", historie.getString("firmenname"))
@@ -91,33 +91,33 @@ public class ArbeitsplatzRepo {
                 .append("primaerfarbe", historie.getString("primaerfarbe"))
                 .append("akzentfarbe", historie.getString("akzentfarbe"))
                 .append("logoUrl", historie.getString("logoUrl"));
-        einstellungenAktualisieren(werte);
-        protokollieren(adminId, "FIRMENDESIGN_VERWENDET", historieId);
-        return getFirmenEinstellungen();
+        updateCompanySettings(werte);
+        recordAuditEntry(adminId, "FIRMENDESIGN_VERWENDET", historieId);
+        return getCompanySettings();
     }
 
-    public void firmenDesignHistorieLoeschen(String adminId, String historieId) {
-        pruefeSuperadmin(adminId);
-        Document historie = database().getCollection("designHistorie")
+    public void deleteBrandingHistoryEntry(String adminId, String historieId) {
+        requireSuperadmin(adminId);
+        Document historie = getDatabase().getCollection("designHistorie")
                 .find(new Document("_id", historieId)).first();
         if (historie == null) throw new NotFoundException("Designvariante wurde nicht gefunden.");
         Document gleichesDesign = new Document("firmenname", historie.getString("firmenname"))
                 .append("primaerfarbe", historie.getString("primaerfarbe"))
                 .append("akzentfarbe", historie.getString("akzentfarbe"))
                 .append("logoUrl", historie.getString("logoUrl"));
-        long geloescht = database().getCollection("designHistorie")
+        long geloescht = getDatabase().getCollection("designHistorie")
                 .deleteMany(gleichesDesign).getDeletedCount();
         if (geloescht == 0) throw new NotFoundException("Designvariante wurde nicht gefunden.");
-        protokollieren(adminId, "FIRMENDESIGN_HISTORIE_GELOESCHT", historieId);
+        recordAuditEntry(adminId, "FIRMENDESIGN_HISTORIE_GELOESCHT", historieId);
     }
 
-    private void einstellungenAktualisieren(Document werte) {
-        database().getCollection("einstellungen").updateOne(
+    private void updateCompanySettings(Document werte) {
+        getDatabase().getCollection("einstellungen").updateOne(
                 new Document("_id", "FIRMA"), new Document("$set", werte),
                 new com.mongodb.client.model.UpdateOptions().upsert(true));
     }
 
-    private boolean gleichesDesign(Document links, Document rechts) {
+    private boolean hasSameBranding(Document links, Document rechts) {
         if (links == null) return false;
         return Objects.equals(links.getString("firmenname"), rechts.getString("firmenname"))
                 && Objects.equals(links.getString("primaerfarbe"), rechts.getString("primaerfarbe"))
@@ -125,11 +125,11 @@ public class ArbeitsplatzRepo {
                 && Objects.equals(links.getString("logoUrl"), rechts.getString("logoUrl"));
     }
 
-    public List<FirmenDesignHistorieDTO> getFirmenDesignHistorie(String adminId) {
-        pruefeSuperadmin(adminId);
+    public List<FirmenDesignHistorieDTO> getBrandingHistory(String adminId) {
+        requireSuperadmin(adminId);
         List<FirmenDesignHistorieDTO> ergebnis = new ArrayList<>();
         Set<String> bekannteDesigns = new HashSet<>();
-        for (Document dokument : database().getCollection("designHistorie").find().sort(new Document("zeitpunkt", -1))) {
+        for (Document dokument : getDatabase().getCollection("designHistorie").find().sort(new Document("zeitpunkt", -1))) {
             String schluessel = dokument.getString("firmenname") + "|" + dokument.getString("primaerfarbe") + "|"
                     + dokument.getString("akzentfarbe") + "|" + dokument.getString("logoUrl");
             if (!bekannteDesigns.add(schluessel)) continue;
@@ -142,17 +142,17 @@ public class ArbeitsplatzRepo {
         return ergebnis;
     }
 
-    private boolean gueltigeFarbe(String farbe) {
+    private boolean isValidHexColor(String farbe) {
         return farbe != null && farbe.matches("#[0-9a-fA-F]{6}");
     }
 
-    public List<BenutzerDTO> getBenutzer() {
-        List<BenutzerDTO> benutzer = database()
+    public List<BenutzerDTO> getUsers() {
+        List<BenutzerDTO> benutzer = getDatabase()
                 .getCollection("benutzer")
                 .find(new Document("geloescht", new Document("$ne", true)))
                 .sort(new Document("nachname", 1))
-                .map(this::toBenutzer)
-                .map(this::toDTO)
+                .map(this::toUser)
+                .map(this::toUserDto)
                 .into(new ArrayList<>());
 
         if (benutzer.isEmpty()) {
@@ -162,30 +162,30 @@ public class ArbeitsplatzRepo {
         return benutzer;
     }
 
-    public BenutzerDTO login(LoginRequestDTO request) {
+    public BenutzerDTO loginWithTestAccount(LoginRequestDTO request) {
         if (request == null || request.email() == null || request.passwort() == null) {
             throw new BadRequestException("E-Mail und Passwort sind erforderlich.");
         }
 
-        Document dokument = database().getCollection("benutzer")
+        Document dokument = getDatabase().getCollection("benutzer")
                 .find(new Document("email", request.email().trim().toLowerCase()))
                 .first();
 
-        if (dokument == null || !hash(request.passwort()).equals(dokument.getString("passwortHash"))) {
+        if (dokument == null || !hashPassword(request.passwort()).equals(dokument.getString("passwortHash"))) {
             throw new BadRequestException("E-Mail oder Passwort ist falsch.");
         }
 
         if (!dokument.getBoolean("aktiv", true)) throw new BadRequestException("Dieses Benutzerkonto ist deaktiviert.");
 
-        return toDTO(toBenutzer(dokument));
+        return toUserDto(toUser(dokument));
     }
 
-    public BenutzerDTO loginEntra(String email) {
+    public BenutzerDTO loginWithEntra(String email) {
         if (email == null || email.isBlank()) {
             throw new BadRequestException("Das Entra-Token enthält keine E-Mail-Adresse.");
         }
 
-        Document dokument = benutzerNachEntraEmail(email);
+        Document dokument = findUserByEntraEmail(email);
 
         if (dokument == null) {
             throw new NotFoundException("Für dieses Microsoft-Konto wurde noch kein Mitarbeiterprofil angelegt.");
@@ -193,271 +193,263 @@ public class ArbeitsplatzRepo {
         if (!dokument.getBoolean("aktiv", true)) {
             throw new BadRequestException("Dieses Benutzerkonto ist deaktiviert.");
         }
-        return toDTO(toBenutzer(dokument));
+        return toUserDto(toUser(dokument));
     }
 
-    public RaumAuswahlDTO raumAnlegen(String adminId, RaumRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        pruefeRaum(request);
-        pruefeAbteilung(admin, request.abteilungId());
+    public RaumAuswahlDTO createRoom(String adminId, RaumRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        validateRoomRequest(request);
+        validateDepartmentAccess(admin, request.abteilungId());
         String id = "RAUM-" + System.currentTimeMillis();
-        Document dokument = raumDocument(id, request);
-        database().getCollection("raeume").insertOne(dokument);
-        protokollieren(adminId, "RAUM_ANGELEGT", request.name());
-        database().getCollection("benutzer").updateMany(
+        Document dokument = buildRoomDocument(id, request);
+        getDatabase().getCollection("raeume").insertOne(dokument);
+        recordAuditEntry(adminId, "RAUM_ANGELEGT", request.name());
+        getDatabase().getCollection("benutzer").updateMany(
                 new Document("abteilungId", request.abteilungId()).append("bevorzugterRaumId", ""),
                 new Document("$set", new Document("bevorzugterRaumId", id)));
-        return toRaumAuswahlDTO(dokument);
+        return toRoomOptionDto(dokument);
     }
 
-    public List<AbteilungDTO> getAbteilungen(String adminId) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        Document filter = istSuperadmin(admin) ? new Document() : new Document("_id", admin.abteilungId());
-        return database().getCollection("abteilungen").find(filter).sort(new Document("name", 1))
+    public List<AbteilungDTO> getDepartments(String adminId) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        Document filter = isSuperadmin(admin) ? new Document() : new Document("_id", admin.abteilungId());
+        return getDatabase().getCollection("abteilungen").find(filter).sort(new Document("name", 1))
                 .map(dokument -> new AbteilungDTO(dokument.getString("_id"), dokument.getString("name")))
                 .into(new ArrayList<>());
     }
 
-    public AbteilungDTO abteilungAnlegen(String adminId, NameRequestDTO request) {
-        pruefeSuperadmin(adminId);
-        if (request == null || leer(request.name())) throw new BadRequestException("Name ist erforderlich.");
+    public AbteilungDTO createDepartment(String adminId, NameRequestDTO request) {
+        requireSuperadmin(adminId);
+        if (request == null || isBlank(request.name())) throw new BadRequestException("Name ist erforderlich.");
         String name = request.name().trim();
         String id = "ABT-" + name.toUpperCase().replaceAll("[^A-Z0-9]+", "-");
         Document dokument = new Document("_id", id).append("name", name);
         try {
-            database().getCollection("abteilungen").insertOne(dokument);
+            getDatabase().getCollection("abteilungen").insertOne(dokument);
         } catch (RuntimeException exception) {
             throw new BadRequestException("Diese Abteilung existiert bereits.");
         }
         String emailTeil = name.toLowerCase().replaceAll("[^a-z0-9]+", ".");
-        database().getCollection("benutzer").insertOne(new Document("_id", "USER-" + id)
+        getDatabase().getCollection("benutzer").insertOne(new Document("_id", "USER-" + id)
                 .append("vorname", "Test")
                 .append("nachname", name)
                 .append("email", emailTeil + "@example.test")
-                .append("passwortHash", hash("holter123"))
+                .append("passwortHash", hashPassword("holter123"))
                 .append("rolle", "USER")
                 .append("aktiv", true)
                 .append("abteilungId", id)
                 .append("abteilungName", name)
                 .append("bevorzugterRaumId", ""));
-        protokollieren(adminId, "ABTEILUNG_ANGELEGT", name);
+        recordAuditEntry(adminId, "ABTEILUNG_ANGELEGT", name);
         return new AbteilungDTO(id, name);
     }
 
-    public void abteilungLoeschen(String adminId, String id) {
-        pruefeSuperadmin(adminId);
-        if (database().getCollection("raeume").find(new Document("abteilungId", id)).first() != null) {
+    public void deleteDepartment(String adminId, String id) {
+        requireSuperadmin(adminId);
+        if (getDatabase().getCollection("raeume").find(new Document("abteilungId", id)).first() != null) {
             throw new BadRequestException("Abteilung wird noch von Raeumen verwendet.");
         }
-        if (database().getCollection("reservierungen").find(new Document("abteilungId", id)).first() != null) {
+        if (getDatabase().getCollection("reservierungen").find(new Document("abteilungId", id)).first() != null) {
             throw new BadRequestException("Abteilung besitzt noch Reservierungen.");
         }
-        database().getCollection("benutzer").deleteMany(new Document("abteilungId", id).append("rolle", "USER"));
-        if (database().getCollection("abteilungen").deleteOne(new Document("_id", id)).getDeletedCount() == 0) {
+        getDatabase().getCollection("benutzer").deleteMany(new Document("abteilungId", id).append("rolle", "USER"));
+        if (getDatabase().getCollection("abteilungen").deleteOne(new Document("_id", id)).getDeletedCount() == 0) {
             throw new NotFoundException("Abteilung wurde nicht gefunden.");
         }
-        protokollieren(adminId, "ABTEILUNG_GELOESCHT", id);
+        recordAuditEntry(adminId, "ABTEILUNG_GELOESCHT", id);
     }
 
-    public List<String> getEquipment(String adminId) {
-        pruefeAdmin(adminId);
-        return database().getCollection("equipment").find().sort(new Document("name", 1))
+    public List<String> getEquipmentCatalog(String adminId) {
+        requireAdmin(adminId);
+        return getDatabase().getCollection("equipment").find().sort(new Document("name", 1))
                 .map(dokument -> dokument.getString("name")).into(new ArrayList<>());
     }
 
-    public List<BenutzerDTO> getBenutzerAlsAdmin(String adminId) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        if (istSuperadmin(admin)) return getBenutzer();
-        return database().getCollection("benutzer").find(new Document("abteilungId", admin.abteilungId())
+    public List<BenutzerDTO> getManagedUsers(String adminId) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        if (isSuperadmin(admin)) return getUsers();
+        return getDatabase().getCollection("benutzer").find(new Document("abteilungId", admin.abteilungId())
                         .append("geloescht", new Document("$ne", true)))
-                .sort(new Document("nachname", 1)).map(this::toBenutzer).map(this::toDTO).into(new ArrayList<>());
+                .sort(new Document("nachname", 1)).map(this::toUser).map(this::toUserDto).into(new ArrayList<>());
     }
 
-    public BenutzerDTO benutzerAnlegen(String adminId, BenutzerRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        pruefeBenutzerRequest(request);
-        pruefeBenutzerRechte(admin, request);
-        if (database().getCollection("benutzer").find(new Document("email", request.email().trim().toLowerCase())).first() != null)
+    public BenutzerDTO createUser(String adminId, BenutzerRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        validateUserRequest(request);
+        validateUserPermissions(admin, request);
+        if (getDatabase().getCollection("benutzer").find(new Document("email", request.email().trim().toLowerCase())).first() != null)
             throw new BadRequestException("Diese E-Mail-Adresse wird bereits verwendet.");
         String id = "USER-" + System.currentTimeMillis();
-        Document dokument = benutzerDocument(id, request).append("passwortHash", hash("holter123"));
-        database().getCollection("benutzer").insertOne(dokument);
-        protokollieren(adminId, "BENUTZER_ANGELEGT", request.email());
-        return toDTO(toBenutzer(dokument));
+        Document dokument = buildUserDocument(id, request).append("passwortHash", hashPassword("holter123"));
+        getDatabase().getCollection("benutzer").insertOne(dokument);
+        recordAuditEntry(adminId, "BENUTZER_ANGELEGT", request.email());
+        return toUserDto(toUser(dokument));
     }
 
-    public BenutzerDTO benutzerAendern(String adminId, String id, BenutzerRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        pruefeBenutzerRequest(request);
-        Document alt = database().getCollection("benutzer").find(new Document("_id", id)).first();
+    public BenutzerDTO updateUser(String adminId, String id, BenutzerRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        validateUserRequest(request);
+        Document alt = getDatabase().getCollection("benutzer").find(new Document("_id", id)).first();
         if (alt == null) throw new NotFoundException("Benutzer wurde nicht gefunden.");
-        pruefeAbteilung(admin, request.abteilungId());
-        if (!istSuperadmin(admin) && !alt.getString("rolle").equals(request.rolle()))
+        validateDepartmentAccess(admin, alt.getString("abteilungId"));
+        validateDepartmentAccess(admin, request.abteilungId());
+        if (alt.getBoolean("geloescht", false)) throw new BadRequestException("Gelöschte Benutzer können nicht bearbeitet werden.");
+        if (adminId.equals(id) && !request.aktiv()) throw new BadRequestException("Das eigene Konto kann nicht deaktiviert werden.");
+        if (!isSuperadmin(admin) && !alt.getString("rolle").equals(request.rolle()))
             throw new BadRequestException("Nur Superadmins duerfen Adminrollen aendern.");
-        Document dokument = benutzerDocument(id, request).append("passwortHash", alt.getString("passwortHash"));
-        database().getCollection("benutzer").replaceOne(new Document("_id", id), dokument);
-        protokollieren(adminId, "BENUTZER_GEAENDERT", request.email());
-        return toDTO(toBenutzer(dokument));
+        Document dokument = buildUserDocument(id, request).append("passwortHash", alt.getString("passwortHash"));
+        if (alt.containsKey("entraEmail")) dokument.put("entraEmail", alt.getString("entraEmail"));
+        getDatabase().getCollection("benutzer").replaceOne(new Document("_id", id), dokument);
+        if (!request.aktiv()) deleteUserReservations(adminId, id);
+        recordAuditEntry(adminId, "BENUTZER_GEAENDERT", request.email());
+        return toUserDto(toUser(dokument));
     }
 
-    public void passwortZuruecksetzen(String adminId, String id, PasswortRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        Document ziel = database().getCollection("benutzer").find(new Document("_id", id)).first();
-        if (ziel == null) throw new NotFoundException("Benutzer wurde nicht gefunden.");
-        if (!istSuperadmin(admin) && !admin.abteilungId().equals(ziel.getString("abteilungId")))
-            throw new BadRequestException("Abteilungsleitungen verwalten nur ihre eigene Abteilung.");
-        if (request == null || leer(request.passwort()) || request.passwort().length() < 6)
-            throw new BadRequestException("Das Passwort muss mindestens sechs Zeichen haben.");
-        if (database().getCollection("benutzer").updateOne(new Document("_id", id),
-                new Document("$set", new Document("passwortHash", hash(request.passwort())))).getMatchedCount() == 0)
-            throw new NotFoundException("Benutzer wurde nicht gefunden.");
-        protokollieren(adminId, "PASSWORT_ZURUECKGESETZT", id);
-    }
-
-    public void benutzerLoeschen(String adminId, String id) {
-        pruefeSuperadmin(adminId);
-        Document benutzer = database().getCollection("benutzer").find(new Document("_id", id)).first();
+    public void deleteUser(String adminId, String id) {
+        requireSuperadmin(adminId);
+        Document benutzer = getDatabase().getCollection("benutzer").find(new Document("_id", id)).first();
         if (benutzer == null) throw new NotFoundException("Benutzer wurde nicht gefunden.");
         if (!"USER".equals(benutzer.getString("rolle"))) {
             throw new BadRequestException("Admin-Konten werden über die Rollenverwaltung geändert und nicht als Mitarbeiter gelöscht.");
         }
-        database().getCollection("benutzer").updateOne(new Document("_id", id),
+        getDatabase().getCollection("benutzer").updateOne(new Document("_id", id),
                 new Document("$set", new Document("aktiv", false).append("geloescht", true)));
-        protokollieren(adminId, "BENUTZER_GELOESCHT", benutzer.getString("email"));
+        deleteUserReservations(adminId, id);
+        recordAuditEntry(adminId, "BENUTZER_GELOESCHT", benutzer.getString("email"));
     }
 
-    public StandortDTO standortAnlegen(String adminId, StandortRequestDTO request) {
-        pruefeSuperadmin(adminId); pruefeStandortRequest(request);
+    public StandortDTO createLocation(String adminId, StandortRequestDTO request) {
+        requireSuperadmin(adminId); validateLocationRequest(request);
         String id = "STANDORT-" + System.currentTimeMillis();
-        Document dokument = standortDocument(id, request);
-        database().getCollection("standorte").insertOne(dokument);
-        protokollieren(adminId, "STANDORT_ANGELEGT", request.name());
-        return toDTO(toStandort(dokument));
+        Document dokument = buildLocationDocument(id, request);
+        getDatabase().getCollection("standorte").insertOne(dokument);
+        recordAuditEntry(adminId, "STANDORT_ANGELEGT", request.name());
+        return toLocationDto(toLocation(dokument));
     }
 
-    public StandortDTO standortAendern(String adminId, String id, StandortRequestDTO request) {
-        pruefeSuperadmin(adminId); pruefeStandortRequest(request);
-        Document dokument = standortDocument(id, request);
-        if (database().getCollection("standorte").replaceOne(new Document("_id", id), dokument).getMatchedCount() == 0)
+    public StandortDTO updateLocation(String adminId, String id, StandortRequestDTO request) {
+        requireSuperadmin(adminId); validateLocationRequest(request);
+        Document dokument = buildLocationDocument(id, request);
+        if (getDatabase().getCollection("standorte").replaceOne(new Document("_id", id), dokument).getMatchedCount() == 0)
             throw new NotFoundException("Standort wurde nicht gefunden.");
-        protokollieren(adminId, "STANDORT_GEAENDERT", request.name());
-        return toDTO(toStandort(dokument));
+        recordAuditEntry(adminId, "STANDORT_GEAENDERT", request.name());
+        return toLocationDto(toLocation(dokument));
     }
 
-    public void standortLoeschen(String adminId, String id) {
-        pruefeSuperadmin(adminId);
-        if (database().getCollection("raeume").find(new Document("standortId", id)).first() != null)
+    public void deleteLocation(String adminId, String id) {
+        requireSuperadmin(adminId);
+        if (getDatabase().getCollection("raeume").find(new Document("standortId", id)).first() != null)
             throw new BadRequestException("Standort besitzt noch Räume.");
-        if (database().getCollection("standorte").deleteOne(new Document("_id", id)).getDeletedCount() == 0)
+        if (getDatabase().getCollection("standorte").deleteOne(new Document("_id", id)).getDeletedCount() == 0)
             throw new NotFoundException("Standort wurde nicht gefunden.");
-        protokollieren(adminId, "STANDORT_GELOESCHT", id);
+        recordAuditEntry(adminId, "STANDORT_GELOESCHT", id);
     }
 
-    public String equipmentAnlegen(String adminId, NameRequestDTO request) {
-        pruefeSuperadmin(adminId);
-        if (request == null || leer(request.name())) throw new BadRequestException("Name ist erforderlich.");
+    public String createEquipment(String adminId, NameRequestDTO request) {
+        requireSuperadmin(adminId);
+        if (request == null || isBlank(request.name())) throw new BadRequestException("Name ist erforderlich.");
         String name = request.name().trim();
-        if (database().getCollection("equipment").find(new Document("name", name)).first() != null) {
+        if (getDatabase().getCollection("equipment").find(new Document("name", name)).first() != null) {
             throw new BadRequestException("Dieses Equipment existiert bereits.");
         }
-        database().getCollection("equipment").insertOne(new Document("_id", "EQ-" + System.currentTimeMillis()).append("name", name));
-        protokollieren(adminId, "EQUIPMENT_ANGELEGT", name);
+        getDatabase().getCollection("equipment").insertOne(new Document("_id", "EQ-" + System.currentTimeMillis()).append("name", name));
+        recordAuditEntry(adminId, "EQUIPMENT_ANGELEGT", name);
         return name;
     }
 
-    public void equipmentLoeschen(String adminId, String name) {
-        pruefeSuperadmin(adminId);
-        if (database().getCollection("arbeitsplaetze").find(new Document("equipment", name)).first() != null) {
+    public void deleteEquipment(String adminId, String name) {
+        requireSuperadmin(adminId);
+        if (getDatabase().getCollection("arbeitsplaetze").find(new Document("equipment", name)).first() != null) {
             throw new BadRequestException("Equipment wird noch von Arbeitsplaetzen verwendet.");
         }
-        database().getCollection("equipment").deleteOne(new Document("name", name));
-        protokollieren(adminId, "EQUIPMENT_GELOESCHT", name);
+        getDatabase().getCollection("equipment").deleteOne(new Document("name", name));
+        recordAuditEntry(adminId, "EQUIPMENT_GELOESCHT", name);
     }
 
-    public List<ReservierungDTO> getAlleReservierungen(String adminId) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        MongoDatabase db = database();
-        Document filter = istSuperadmin(admin) ? new Document() : new Document("abteilungId", admin.abteilungId());
+    public List<ReservierungDTO> getAllReservations(String adminId) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        MongoDatabase db = getDatabase();
+        Document filter = isSuperadmin(admin) ? new Document() : new Document("abteilungId", admin.abteilungId());
         return db.getCollection("reservierungen").find(filter).sort(new Document("reservierungAnfang", -1))
-                .map(dokument -> toReservierungDTO(db, dokument)).into(new ArrayList<>());
+                .map(dokument -> toReservationDto(db, dokument)).into(new ArrayList<>());
     }
 
-    public RaumAuswahlDTO raumAendern(String adminId, String id, RaumRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        pruefeRaum(request);
-        pruefeAbteilung(admin, request.abteilungId());
-        Document dokument = raumDocument(id, request);
-        if (database().getCollection("raeume").replaceOne(new Document("_id", id), dokument).getMatchedCount() == 0) {
+    public RaumAuswahlDTO updateRoom(String adminId, String id, RaumRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        validateRoomRequest(request);
+        validateDepartmentAccess(admin, request.abteilungId());
+        Document dokument = buildRoomDocument(id, request);
+        if (getDatabase().getCollection("raeume").replaceOne(new Document("_id", id), dokument).getMatchedCount() == 0) {
             throw new NotFoundException("Raum wurde nicht gefunden.");
         }
-        database().getCollection("arbeitsplaetze").updateMany(new Document("raumId", id),
+        getDatabase().getCollection("arbeitsplaetze").updateMany(new Document("raumId", id),
                 new Document("$set", new Document("standortId", request.standortId())
                         .append("abteilungId", request.abteilungId())
                         .append("abteilungName", request.abteilungName())));
-        protokollieren(adminId, "RAUM_GEAENDERT", request.name());
-        return toRaumAuswahlDTO(dokument);
+        recordAuditEntry(adminId, "RAUM_GEAENDERT", request.name());
+        return toRoomOptionDto(dokument);
     }
 
-    public void raumLoeschen(String adminId, String id) {
-        pruefeSuperadmin(adminId);
-        if (database().getCollection("reservierungen")
+    public void deleteRoom(String adminId, String id) {
+        requireSuperadmin(adminId);
+        if (getDatabase().getCollection("reservierungen")
                 .find(new Document("raumId", id).append("status", "reserviert")
                         .append("reservierungEnde", new Document("$gt", new Date()))).first() != null) {
             throw new BadRequestException("Raum mit aktiven Reservierungen kann nicht geloescht werden.");
         }
-        database().getCollection("reservierungen").deleteMany(new Document("raumId", id));
-        database().getCollection("arbeitsplaetze").deleteMany(new Document("raumId", id));
-        if (database().getCollection("raeume").deleteOne(new Document("_id", id)).getDeletedCount() == 0) {
+        getDatabase().getCollection("reservierungen").deleteMany(new Document("raumId", id));
+        getDatabase().getCollection("arbeitsplaetze").deleteMany(new Document("raumId", id));
+        if (getDatabase().getCollection("raeume").deleteOne(new Document("_id", id)).getDeletedCount() == 0) {
             throw new NotFoundException("Raum wurde nicht gefunden.");
         }
-        Document ersatz = database().getCollection("raeume").find().first();
-        database().getCollection("benutzer").updateMany(new Document("bevorzugterRaumId", id),
+        Document ersatz = getDatabase().getCollection("raeume").find().first();
+        getDatabase().getCollection("benutzer").updateMany(new Document("bevorzugterRaumId", id),
                 new Document("$set", new Document("bevorzugterRaumId", ersatz == null ? "" : ersatz.getString("_id"))));
-        protokollieren(adminId, "RAUM_GELOESCHT", id);
+        recordAuditEntry(adminId, "RAUM_GELOESCHT", id);
     }
 
-    public ArbeitsplatzDTO arbeitsplatzAnlegen(String adminId, ArbeitsplatzRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        pruefeArbeitsplatz(request);
-        pruefeAbteilung(admin, request.abteilungId());
+    public ArbeitsplatzDTO createWorkstation(String adminId, ArbeitsplatzRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        validateWorkstationRequest(request);
+        validateDepartmentAccess(admin, request.abteilungId());
         String id = "TISCH-" + System.currentTimeMillis();
-        Document dokument = arbeitsplatzDocument(id, request);
-        database().getCollection("arbeitsplaetze").insertOne(dokument);
-        protokollieren(adminId, "ARBEITSPLATZ_ANGELEGT", request.name());
-        return toDTO(toArbeitsplatz(dokument), admin);
+        Document dokument = buildWorkstationDocument(id, request);
+        getDatabase().getCollection("arbeitsplaetze").insertOne(dokument);
+        recordAuditEntry(adminId, "ARBEITSPLATZ_ANGELEGT", request.name());
+        return toWorkstationDto(toWorkstation(dokument), admin);
     }
 
-    public ArbeitsplatzDTO arbeitsplatzAendern(String adminId, String id, ArbeitsplatzRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        pruefeArbeitsplatz(request);
-        pruefeAbteilung(admin, request.abteilungId());
-        Document dokument = arbeitsplatzDocument(id, request);
-        if (database().getCollection("arbeitsplaetze").replaceOne(new Document("_id", id), dokument).getMatchedCount() == 0) {
+    public ArbeitsplatzDTO updateWorkstation(String adminId, String id, ArbeitsplatzRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        validateWorkstationRequest(request);
+        validateDepartmentAccess(admin, request.abteilungId());
+        Document dokument = buildWorkstationDocument(id, request);
+        if (getDatabase().getCollection("arbeitsplaetze").replaceOne(new Document("_id", id), dokument).getMatchedCount() == 0) {
             throw new NotFoundException("Arbeitsplatz wurde nicht gefunden.");
         }
-        protokollieren(adminId, "ARBEITSPLATZ_GEAENDERT", request.name());
-        return toDTO(toArbeitsplatz(dokument), admin);
+        recordAuditEntry(adminId, "ARBEITSPLATZ_GEAENDERT", request.name());
+        return toWorkstationDto(toWorkstation(dokument), admin);
     }
 
-    public void arbeitsplatzLoeschen(String adminId, String id) {
-        pruefeAdmin(adminId);
-        if (database().getCollection("reservierungen")
+    public void deleteWorkstation(String adminId, String id) {
+        requireAdmin(adminId);
+        if (getDatabase().getCollection("reservierungen")
                 .find(new Document("arbeitsplatzId", id).append("status", "reserviert")).first() != null) {
             throw new BadRequestException("Arbeitsplatz mit aktiver Reservierung kann nicht geloescht werden.");
         }
-        if (database().getCollection("arbeitsplaetze").deleteOne(new Document("_id", id)).getDeletedCount() == 0) {
+        if (getDatabase().getCollection("arbeitsplaetze").deleteOne(new Document("_id", id)).getDeletedCount() == 0) {
             throw new NotFoundException("Arbeitsplatz wurde nicht gefunden.");
         }
-        protokollieren(adminId, "ARBEITSPLATZ_GELOESCHT", id);
+        recordAuditEntry(adminId, "ARBEITSPLATZ_GELOESCHT", id);
     }
 
-    public List<StandortDTO> getStandorte() {
-        List<StandortDTO> standorte = database()
+    public List<StandortDTO> getLocations() {
+        List<StandortDTO> standorte = getDatabase()
                 .getCollection("standorte")
                 .find()
                 .sort(new Document("ort", 1))
-                .map(this::toStandort)
-                .map(this::toDTO)
+                .map(this::toLocation)
+                .map(this::toLocationDto)
                 .into(new ArrayList<>());
 
         if (standorte.isEmpty()) {
@@ -467,9 +459,9 @@ public class ArbeitsplatzRepo {
         return standorte;
     }
 
-    public RaumDTO getRaum(String raumId, String von, String bis, String benutzerId) {
-        BenutzerDTO benutzer = getBenutzer(benutzerId);
-        MongoDatabase db = database();
+    public RaumDTO getRoom(String raumId, String von, String bis, String benutzerId) {
+        BenutzerDTO benutzer = getUser(benutzerId);
+        MongoDatabase db = getDatabase();
         Document raumDocument = db.getCollection("raeume").find(new Document("_id", raumId)).first();
 
         if (raumDocument == null) {
@@ -479,19 +471,19 @@ public class ArbeitsplatzRepo {
         List<Arbeitsplatz> arbeitsplaetze = db.getCollection("arbeitsplaetze")
                 .find(new Document("raumId", raumId))
                 .sort(new Document("tischnr", 1))
-                .map(this::toArbeitsplatz)
+                .map(this::toWorkstation)
                 .into(new ArrayList<>());
 
-        setzeReservierungsstatus(db, arbeitsplaetze, von, bis);
-        return toDTO(toRaum(raumDocument, arbeitsplaetze), benutzer);
+        applyReservationStatus(db, arbeitsplaetze, von, bis);
+        return toRoomDto(toRoom(raumDocument, arbeitsplaetze), benutzer);
     }
 
-    public List<RaumAuswahlDTO> getRaeumeByStandort(String standortId) {
-        List<RaumAuswahlDTO> raeume = database()
+    public List<RaumAuswahlDTO> getRoomsByLocation(String standortId) {
+        List<RaumAuswahlDTO> raeume = getDatabase()
                 .getCollection("raeume")
                 .find(new Document("standortId", standortId))
                 .sort(new Document("stockwerk", 1).append("name", 1))
-                .map(this::toRaumAuswahlDTO)
+                .map(this::toRoomOptionDto)
                 .into(new ArrayList<>());
 
         if (raeume.isEmpty()) {
@@ -501,13 +493,14 @@ public class ArbeitsplatzRepo {
         return raeume;
     }
 
-    public ReservierungDTO reservieren(ReservierungRequestDTO request) {
-        BenutzerDTO benutzer = getBenutzer(request.benutzerId());
-        Date anfang = parseDatum(request.reservierungAnfang());
-        Date ende = parseDatum(request.reservierungEnde());
-        pruefeZeitraum(anfang, ende);
+    public ReservierungDTO createReservation(ReservierungRequestDTO request) {
+        BenutzerDTO benutzer = getUser(request.benutzerId());
+        Date anfang = parseDateTime(request.reservierungAnfang());
+        Date ende = parseDateTime(request.reservierungEnde());
+        validateTimeRange(anfang, ende);
+        validateBookingLimit(anfang, ende);
 
-        MongoDatabase db = database();
+        MongoDatabase db = getDatabase();
         Document arbeitsplatzDocument = db.getCollection("arbeitsplaetze")
                 .find(new Document("_id", request.arbeitsplatzId()))
                 .first();
@@ -516,58 +509,62 @@ public class ArbeitsplatzRepo {
             throw new NotFoundException("Arbeitsplatz wurde nicht in der Datenbank gefunden.");
         }
 
-        Arbeitsplatz arbeitsplatz = toArbeitsplatz(arbeitsplatzDocument);
-        pruefeAbteilung(arbeitsplatz, benutzer);
-        int anzahl = Math.max(1, Math.min(12, request.wiederholungen() + 1));
+        Arbeitsplatz arbeitsplatz = toWorkstation(arbeitsplatzDocument);
+        validateDepartmentAccess(arbeitsplatz, benutzer);
+        if (request.wiederholungen() < 0 || request.wiederholungen() > 51)
+            throw new BadRequestException("Die Anzahl der Wiederholungen muss zwischen 0 und 51 liegen.");
+        int anzahl = request.wiederholungen() + 1;
         List<Document> neueReservierungen = new ArrayList<>();
         for (int index = 0; index < anzahl; index++) {
-            Date serienAnfang = Date.from(anfang.toInstant().plusSeconds(604800L * index));
-            Date serienEnde = Date.from(ende.toInstant().plusSeconds(604800L * index));
-            pruefeReservierungskonflikt(db, arbeitsplatz.getId(), serienAnfang, serienEnde);
-            pruefeBenutzerReservierungskonflikt(db, benutzer.id(), serienAnfang, serienEnde, null);
+            Date serienAnfang = Date.from(anfang.toInstant().atZone(ZoneId.of("Europe/Vienna")).plusWeeks(index).toInstant());
+            Date serienEnde = Date.from(ende.toInstant().atZone(ZoneId.of("Europe/Vienna")).plusWeeks(index).toInstant());
+            validateBookingLimit(serienAnfang, serienEnde);
+            validateWorkstationAvailability(db, arbeitsplatz.getId(), serienAnfang, serienEnde);
+            validateUserAvailability(db, benutzer.id(), serienAnfang, serienEnde, null);
             neueReservierungen.add(new Document("_id", "RES-" + System.currentTimeMillis() + "-" + index)
                     .append("benutzerId", benutzer.id()).append("arbeitsplatzId", arbeitsplatz.getId())
-                    .append("raumId", arbeitsplatz.getRaumId()).append("standortId", arbeitsplatz.getStandortId())
-                    .append("abteilungId", arbeitsplatz.getAbteilungId()).append("reservierungAnfang", serienAnfang)
+                    .append("raumId", arbeitsplatz.getRoomId()).append("standortId", arbeitsplatz.getLocationId())
+                    .append("abteilungId", arbeitsplatz.getDepartmentId()).append("reservierungAnfang", serienAnfang)
                     .append("reservierungEnde", serienEnde).append("status", "reserviert"));
         }
         db.getCollection("reservierungen").insertMany(neueReservierungen);
-        return toReservierungDTO(db, neueReservierungen.get(0));
+        return toReservationDto(db, neueReservierungen.get(0));
     }
 
-    public List<ReservierungDTO> getReservierungen(String benutzerId) {
-        getBenutzer(benutzerId);
-        MongoDatabase db = database();
+    public List<ReservierungDTO> getReservations(String benutzerId) {
+        getUser(benutzerId);
+        MongoDatabase db = getDatabase();
         List<Document> dokumente = db.getCollection("reservierungen")
                 .find(new Document("benutzerId", benutzerId))
                 .sort(new Document("reservierungAnfang", 1))
                 .into(new ArrayList<>());
 
         return dokumente.stream()
-                .map(dokument -> toReservierungDTO(db, dokument))
+                .map(dokument -> toReservationDto(db, dokument))
                 .toList();
     }
 
-    public void stornieren(String id, String benutzerId) {
-        getBenutzer(benutzerId);
+    public void cancelReservation(String id, String benutzerId) {
+        getUser(benutzerId);
         Document filter = new Document("_id", id)
                 .append("benutzerId", benutzerId)
                 .append("status", "reserviert");
 
-        Document reservierung = database().getCollection("reservierungen").find(filter).first();
+        Document reservierung = getDatabase().getCollection("reservierungen").find(filter).first();
         if (reservierung == null) {
             throw new NotFoundException("Reservierung wurde nicht gefunden.");
         }
 
-        database().getCollection("reservierungen")
+        getDatabase().getCollection("reservierungen")
                 .updateOne(filter, new Document("$set", new Document("status", "storniert")));
     }
 
-    public ReservierungDTO reservierungAendern(String id, ReservierungRequestDTO request) {
-        getBenutzer(request.benutzerId());
-        Date anfang = parseDatum(request.reservierungAnfang()); Date ende = parseDatum(request.reservierungEnde());
-        pruefeZeitraum(anfang, ende);
-        MongoDatabase db = database();
+    public ReservierungDTO updateReservation(String id, ReservierungRequestDTO request) {
+        getUser(request.benutzerId());
+        Date anfang = parseDateTime(request.reservierungAnfang()); Date ende = parseDateTime(request.reservierungEnde());
+        validateTimeRange(anfang, ende);
+        validateBookingLimit(anfang, ende);
+        MongoDatabase db = getDatabase();
         Document filter = new Document("_id", id).append("benutzerId", request.benutzerId()).append("status", "reserviert");
         Document reservierung = db.getCollection("reservierungen").find(filter).first();
         if (reservierung == null) throw new NotFoundException("Aktive Reservierung wurde nicht gefunden.");
@@ -575,52 +572,54 @@ public class ArbeitsplatzRepo {
                 .append("arbeitsplatzId", reservierung.getString("arbeitsplatzId")).append("status", "reserviert")
                 .append("reservierungAnfang", new Document("$lt", ende)).append("reservierungEnde", new Document("$gt", anfang))).first();
         if (konflikt != null) throw new BadRequestException("Der geänderte Zeitraum überschneidet eine Reservierung.");
-        pruefeBenutzerReservierungskonflikt(db, request.benutzerId(), anfang, ende, id);
+        validateUserAvailability(db, request.benutzerId(), anfang, ende, id);
         db.getCollection("reservierungen").updateOne(filter, new Document("$set", new Document("reservierungAnfang", anfang).append("reservierungEnde", ende)));
         reservierung.put("reservierungAnfang", anfang); reservierung.put("reservierungEnde", ende);
-        return toReservierungDTO(db, reservierung);
+        return toReservationDto(db, reservierung);
     }
 
-    public void reservierungAlsAdminStornieren(String adminId, String id, NameRequestDTO request) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        Document reservierung = database().getCollection("reservierungen").find(new Document("_id", id)).first();
+    public void cancelReservationAsAdmin(String adminId, String id, NameRequestDTO request) {
+        BenutzerDTO admin = requireAdmin(adminId);
+        Document reservierung = getDatabase().getCollection("reservierungen").find(new Document("_id", id)).first();
         if (reservierung == null) throw new NotFoundException("Aktive Reservierung wurde nicht gefunden.");
-        if (!istSuperadmin(admin) && !admin.abteilungId().equals(reservierung.getString("abteilungId")))
+        if (!isSuperadmin(admin) && !admin.abteilungId().equals(reservierung.getString("abteilungId")))
             throw new BadRequestException("Abteilungsleitungen verwalten nur ihre eigene Abteilung.");
         Document filter = new Document("_id", id).append("status", "reserviert");
-        if (database().getCollection("reservierungen")
+        if (getDatabase().getCollection("reservierungen")
                 .updateOne(filter, new Document("$set", new Document("status", "storniert")))
                 .getMatchedCount() == 0) {
             throw new NotFoundException("Aktive Reservierung wurde nicht gefunden.");
         }
-        String grund = request == null || leer(request.name()) ? "Kein Grund angegeben" : request.name().trim();
-        database().getCollection("reservierungen").updateOne(new Document("_id", id),
+        String grund = request == null || isBlank(request.name()) ? "Kein Grund angegeben" : request.name().trim();
+        getDatabase().getCollection("reservierungen").updateOne(new Document("_id", id),
                 new Document("$set", new Document("stornierungsgrund", grund)));
-        protokollieren(adminId, "RESERVIERUNG_STORNIERT", id + " · " + grund);
+        recordAuditEntry(adminId, "RESERVIERUNG_STORNIERT", id + " · " + grund);
     }
 
     public List<Document> getAuditLog(String adminId) {
-        BenutzerDTO admin = pruefeAdmin(adminId);
-        Document filter = istSuperadmin(admin) ? new Document() : new Document("adminId", admin.id());
-        return database().getCollection("auditLog").find(filter).sort(new Document("zeitpunkt", -1)).limit(100).into(new ArrayList<>());
+        BenutzerDTO admin = requireAdmin(adminId);
+        Document filter = isSuperadmin(admin) ? new Document() : new Document("adminId", admin.id());
+        return getDatabase().getCollection("auditLog").find(filter).sort(new Document("zeitpunkt", -1)).limit(100).into(new ArrayList<>());
     }
 
-    private BenutzerDTO getBenutzer(String id) {
+    private BenutzerDTO getUser(String id) {
         if (id == null || id.isBlank()) {
             throw new BadRequestException("Bitte einen Benutzer auswaehlen.");
         }
 
-        pruefeAngemeldeteIdentitaet(id);
+        validateAuthenticatedIdentity(id);
 
-        Document dokument = database().getCollection("benutzer").find(new Document("_id", id)).first();
+        Document dokument = getDatabase().getCollection("benutzer").find(new Document("_id", id)).first();
         if (dokument == null) {
             throw new NotFoundException("Benutzer wurde nicht gefunden.");
         }
 
-        return toDTO(toBenutzer(dokument));
+        if (!dokument.getBoolean("aktiv", true) || dokument.getBoolean("geloescht", false))
+            throw new ForbiddenException("Dieses Benutzerkonto ist deaktiviert oder gelöscht.");
+        return toUserDto(toUser(dokument));
     }
 
-    private void pruefeAngemeldeteIdentitaet(String benutzerId) {
+    private void validateAuthenticatedIdentity(String benutzerId) {
         if (securityIdentity == null || securityIdentity.isAnonymous()) return;
         if (!(securityIdentity.getPrincipal() instanceof JsonWebToken token)) {
             throw new ForbiddenException("Die angemeldete Identität ist ungültig.");
@@ -629,84 +628,84 @@ public class ArbeitsplatzRepo {
         String email = token.getClaim("email");
         if (email == null || email.isBlank()) email = token.getClaim("preferred_username");
         if (email == null || email.isBlank()) email = token.getClaim("upn");
-        Document konto = email == null ? null : benutzerNachEntraEmail(email);
+        Document konto = email == null ? null : findUserByEntraEmail(email);
         if (konto == null || !benutzerId.equals(konto.getString("_id"))) {
             throw new ForbiddenException("Die Benutzer-ID gehört nicht zum angemeldeten Microsoft-Konto.");
         }
     }
 
-    private BenutzerDTO pruefeAdmin(String id) {
-        BenutzerDTO benutzer = getBenutzer(id);
+    private BenutzerDTO requireAdmin(String id) {
+        BenutzerDTO benutzer = getUser(id);
         if (!"ADMIN".equals(benutzer.rolle()) && !"SUPERADMIN".equals(benutzer.rolle())) {
             throw new BadRequestException("Diese Funktion ist nur fuer Administratoren verfuegbar.");
         }
         return benutzer;
     }
 
-    private Document benutzerNachEntraEmail(String email) {
+    private Document findUserByEntraEmail(String email) {
         String normalisiert = email.trim().toLowerCase();
         Document filter = new Document("$or", List.of(
                 new Document("email", normalisiert),
                 new Document("entraEmail", normalisiert)
         ));
-        return database().getCollection("benutzer").find(filter).first();
+        return getDatabase().getCollection("benutzer").find(filter).first();
     }
 
-    private BenutzerDTO pruefeSuperadmin(String id) {
-        BenutzerDTO benutzer = pruefeAdmin(id);
-        if (!istSuperadmin(benutzer)) throw new BadRequestException("Diese Funktion ist nur fuer Superadmins verfuegbar.");
+    private BenutzerDTO requireSuperadmin(String id) {
+        BenutzerDTO benutzer = requireAdmin(id);
+        if (!isSuperadmin(benutzer)) throw new BadRequestException("Diese Funktion ist nur fuer Superadmins verfuegbar.");
         return benutzer;
     }
 
-    private boolean istSuperadmin(BenutzerDTO benutzer) {
+    private boolean isSuperadmin(BenutzerDTO benutzer) {
         return "SUPERADMIN".equals(benutzer.rolle());
     }
 
-    private void pruefeAbteilung(BenutzerDTO admin, String abteilungId) {
-        if (!istSuperadmin(admin) && !admin.abteilungId().equals(abteilungId))
+    private void validateDepartmentAccess(BenutzerDTO admin, String abteilungId) {
+        if (!isSuperadmin(admin) && !admin.abteilungId().equals(abteilungId))
             throw new BadRequestException("Abteilungsleitungen verwalten nur ihre eigene Abteilung.");
     }
 
-    private void pruefeBenutzerRechte(BenutzerDTO admin, BenutzerRequestDTO request) {
-        pruefeAbteilung(admin, request.abteilungId());
-        if (!istSuperadmin(admin) && !"USER".equals(request.rolle()))
+    private void validateUserPermissions(BenutzerDTO admin, BenutzerRequestDTO request) {
+        validateDepartmentAccess(admin, request.abteilungId());
+        if (!isSuperadmin(admin) && !"USER".equals(request.rolle()))
             throw new BadRequestException("Nur Superadmins duerfen Adminrollen vergeben.");
         if (!"USER".equals(request.rolle()) && !"ADMIN".equals(request.rolle()) && !"SUPERADMIN".equals(request.rolle()))
             throw new BadRequestException("Unbekannte Benutzerrolle.");
     }
 
-    private void pruefeRaum(RaumRequestDTO request) {
-        if (request == null || leer(request.name()) || leer(request.stockwerk()) || leer(request.standortId())
-                || leer(request.abteilungId()) || leer(request.abteilungName())) {
+    private void validateRoomRequest(RaumRequestDTO request) {
+        if (request == null || isBlank(request.name()) || isBlank(request.stockwerk()) || isBlank(request.standortId())
+                || isBlank(request.abteilungId()) || isBlank(request.abteilungName())) {
             throw new BadRequestException("Bitte alle Raumdaten ausfuellen.");
         }
     }
 
-    private void pruefeArbeitsplatz(ArbeitsplatzRequestDTO request) {
-        if (request == null || leer(request.tischnr()) || request.tischnr().trim().length() > 12 || leer(request.name()) || leer(request.raumId())
-                || leer(request.standortId()) || leer(request.abteilungId()) || leer(request.abteilungName())
+    private void validateWorkstationRequest(ArbeitsplatzRequestDTO request) {
+        if (request == null || isBlank(request.tischnr()) || request.tischnr().trim().length() > 12 || isBlank(request.name()) || isBlank(request.raumId())
+                || isBlank(request.standortId()) || isBlank(request.abteilungId()) || isBlank(request.abteilungName())
                 || request.x() < 8 || request.x() > 92 || request.y() < 12 || request.y() > 86
                 || request.breite() < 6 || request.breite() > 24 || request.hoehe() < 6 || request.hoehe() > 24) {
             throw new BadRequestException("Arbeitsplatzdaten oder Position sind ungueltig.");
         }
     }
 
-    private void pruefeBenutzerRequest(BenutzerRequestDTO request) {
-        if (request == null || leer(request.vorname()) || leer(request.nachname()) || leer(request.email())
-                || leer(request.rolle()) || leer(request.abteilungId()) || leer(request.abteilungName()))
+    private void validateUserRequest(BenutzerRequestDTO request) {
+        if (request == null || isBlank(request.vorname()) || isBlank(request.nachname()) || isBlank(request.email())
+                || isBlank(request.rolle()) || isBlank(request.abteilungId()) || isBlank(request.abteilungName()))
             throw new BadRequestException("Bitte alle Benutzerdaten ausfüllen.");
     }
 
-    private void pruefeStandortRequest(StandortRequestDTO request) {
-        if (request == null || leer(request.name()) || leer(request.adresse()) || leer(request.ort()))
+    private void validateLocationRequest(StandortRequestDTO request) {
+        if (request == null || isBlank(request.name()) || isBlank(request.adresse()) || isBlank(request.ort()))
             throw new BadRequestException("Bitte alle Standortdaten ausfüllen.");
     }
 
-    private boolean leer(String wert) {
+    private boolean isBlank(String wert) {
         return wert == null || wert.isBlank();
     }
 
-    private Document raumDocument(String id, RaumRequestDTO request) {
+    private Document buildRoomDocument(String id, RaumRequestDTO request) {
         return new Document("_id", id)
                 .append("name", request.name().trim())
                 .append("stockwerk", request.stockwerk().trim())
@@ -726,7 +725,7 @@ public class ArbeitsplatzRepo {
                 .append("beschreibung", "Im Room Builder verwalteter Raum");
     }
 
-    private Document arbeitsplatzDocument(String id, ArbeitsplatzRequestDTO request) {
+    private Document buildWorkstationDocument(String id, ArbeitsplatzRequestDTO request) {
         return new Document("_id", id)
                 .append("tischnr", request.tischnr().trim())
                 .append("raumId", request.raumId())
@@ -742,7 +741,7 @@ public class ArbeitsplatzRepo {
                 .append("equipment", request.equipment() == null ? List.of() : request.equipment());
     }
 
-    private Document benutzerDocument(String id, BenutzerRequestDTO request) {
+    private Document buildUserDocument(String id, BenutzerRequestDTO request) {
         return new Document("_id", id).append("vorname", request.vorname().trim())
                 .append("nachname", request.nachname().trim()).append("email", request.email().trim().toLowerCase())
                 .append("rolle", request.rolle()).append("abteilungId", request.abteilungId())
@@ -750,12 +749,12 @@ public class ArbeitsplatzRepo {
                 .append("aktiv", request.aktiv());
     }
 
-    private Document standortDocument(String id, StandortRequestDTO request) {
+    private Document buildLocationDocument(String id, StandortRequestDTO request) {
         return new Document("_id", id).append("name", request.name().trim())
                 .append("adresse", request.adresse().trim()).append("ort", request.ort().trim());
     }
 
-    private String hash(String passwort) {
+    private String hashPassword(String passwort) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] bytes = digest.digest(passwort.getBytes(StandardCharsets.UTF_8));
@@ -765,10 +764,10 @@ public class ArbeitsplatzRepo {
         }
     }
 
-    private void setzeReservierungsstatus(MongoDatabase db, List<Arbeitsplatz> arbeitsplaetze, String von, String bis) {
-        Date anfang = parseDatum(von);
-        Date ende = parseDatum(bis);
-        pruefeZeitraum(anfang, ende);
+    private void applyReservationStatus(MongoDatabase db, List<Arbeitsplatz> arbeitsplaetze, String von, String bis) {
+        Date anfang = parseDateTime(von);
+        Date ende = parseDateTime(bis);
+        validateTimeRange(anfang, ende);
 
         List<Document> reservierungen = db.getCollection("reservierungen")
                 .find(new Document("status", "reserviert")
@@ -790,12 +789,12 @@ public class ArbeitsplatzRepo {
         for (Arbeitsplatz arbeitsplatz : arbeitsplaetze) {
             String name = reserviertVon.get(arbeitsplatz.getId());
             arbeitsplatz.setStatus(name == null ? "frei" : "reserviert");
-            arbeitsplatz.setReserviertVon(name == null ? "" : name);
+            arbeitsplatz.setReservedByName(name == null ? "" : name);
             Document daten = reservierungsdaten.get(arbeitsplatz.getId());
             if (daten != null) {
-                arbeitsplatz.setReservierungBenutzerId(daten.getString("benutzerId"));
-                arbeitsplatz.setReservierungAnfang(daten.getDate("reservierungAnfang"));
-                arbeitsplatz.setReservierungEnde(daten.getDate("reservierungEnde"));
+                arbeitsplatz.setReservationUserId(daten.getString("benutzerId"));
+                arbeitsplatz.setReservationStart(daten.getDate("reservierungAnfang"));
+                arbeitsplatz.setReservationEnd(daten.getDate("reservierungEnde"));
             }
 
             Document naechsteReservierung = db.getCollection("reservierungen")
@@ -805,19 +804,19 @@ public class ArbeitsplatzRepo {
                     .sort(new Document("reservierungAnfang", 1))
                     .first();
             if (naechsteReservierung != null) {
-                arbeitsplatz.setNaechsteReservierungAnfang(naechsteReservierung.getDate("reservierungAnfang"));
-                arbeitsplatz.setNaechsteReservierungEnde(naechsteReservierung.getDate("reservierungEnde"));
+                arbeitsplatz.setNextReservationStart(naechsteReservierung.getDate("reservierungAnfang"));
+                arbeitsplatz.setNextReservationEnd(naechsteReservierung.getDate("reservierungEnde"));
             }
         }
     }
 
-    private void pruefeAbteilung(Arbeitsplatz arbeitsplatz, BenutzerDTO benutzer) {
-        if (!arbeitsplatz.getAbteilungId().equals(benutzer.abteilungId())) {
+    private void validateDepartmentAccess(Arbeitsplatz arbeitsplatz, BenutzerDTO benutzer) {
+        if (!arbeitsplatz.getDepartmentId().equals(benutzer.abteilungId())) {
             throw new BadRequestException("Es koennen nur Arbeitsplaetze der eigenen Abteilung reserviert werden.");
         }
     }
 
-    private void pruefeReservierungskonflikt(MongoDatabase db, String arbeitsplatzId, Date anfang, Date ende) {
+    private void validateWorkstationAvailability(MongoDatabase db, String arbeitsplatzId, Date anfang, Date ende) {
         Document konflikt = db.getCollection("reservierungen")
                 .find(new Document("arbeitsplatzId", arbeitsplatzId)
                         .append("status", "reserviert")
@@ -832,7 +831,7 @@ public class ArbeitsplatzRepo {
         }
     }
 
-    private void pruefeBenutzerReservierungskonflikt(MongoDatabase db, String benutzerId, Date anfang, Date ende, String ausnahmeId) {
+    private void validateUserAvailability(MongoDatabase db, String benutzerId, Date anfang, Date ende, String ausnahmeId) {
         Document filter = new Document("benutzerId", benutzerId)
                 .append("status", "reserviert")
                 .append("reservierungAnfang", new Document("$lt", ende))
@@ -845,12 +844,12 @@ public class ArbeitsplatzRepo {
         }
     }
 
-    private String tischnummer(Document dokument) {
+    private String getDeskNumber(Document dokument) {
         Object wert = dokument.get("tischnr");
         return wert == null ? "" : String.valueOf(wert);
     }
 
-    private Date parseDatum(String wert) {
+    private Date parseDateTime(String wert) {
         if (wert == null || wert.isBlank()) {
             throw new BadRequestException("Bitte einen gueltigen Zeitraum auswaehlen.");
         }
@@ -862,23 +861,57 @@ public class ArbeitsplatzRepo {
         }
     }
 
-    private void pruefeZeitraum(Date anfang, Date ende) {
+    private void validateTimeRange(Date anfang, Date ende) {
         if (!anfang.before(ende)) {
             throw new BadRequestException("Das Ende muss nach dem Beginn liegen.");
         }
     }
 
-    private MongoDatabase database() {
+    public ReservierungsEinstellungDTO getBookingSettings() {
+        Document dokument = getDatabase().getCollection("einstellungen").find(new Document("_id", "RESERVIERUNG")).first();
+        int wochen = dokument == null ? 12 : dokument.getInteger("maxWochen", 12);
+        String bis = java.time.LocalDate.now(ZoneId.of("Europe/Vienna")).plusWeeks(wochen).toString();
+        return new ReservierungsEinstellungDTO(wochen, bis);
+    }
+
+    public ReservierungsEinstellungDTO saveBookingSettings(String adminId, ReservierungsEinstellungDTO request) {
+        requireAdmin(adminId);
+        if (request == null || request.maxWochen() < 1 || request.maxWochen() > 52)
+            throw new BadRequestException("Die Buchungsgrenze muss zwischen 1 und 52 Wochen liegen.");
+        getDatabase().getCollection("einstellungen").updateOne(new Document("_id", "RESERVIERUNG"),
+                new Document("$set", new Document("maxWochen", request.maxWochen())),
+                new com.mongodb.client.model.UpdateOptions().upsert(true));
+        recordAuditEntry(adminId, "RESERVIERUNGSGRENZE_GEAENDERT", request.maxWochen() + " Wochen");
+        return getBookingSettings();
+    }
+
+    private void validateBookingLimit(Date anfang, Date ende) {
+        ReservierungsEinstellungDTO einstellung = getBookingSettings();
+        ZoneId zone = ZoneId.of("Europe/Vienna");
+        java.time.LocalDate heute = java.time.LocalDate.now(zone);
+        Instant grenze = heute.plusWeeks(einstellung.maxWochen()).plusDays(1).atStartOfDay(zone).toInstant();
+        if (anfang.toInstant().atZone(zone).toLocalDate().isBefore(heute))
+            throw new BadRequestException("Reservierungen können nicht an vergangenen Tagen beginnen.");
+        if (!anfang.toInstant().isBefore(grenze) || ende.toInstant().isAfter(grenze))
+            throw new BadRequestException("Reservierungen sind maximal " + einstellung.maxWochen() + " Wochen im Voraus möglich (bis " + einstellung.buchbarBis() + ").");
+    }
+
+    private void deleteUserReservations(String adminId, String benutzerId) {
+        long anzahl = getDatabase().getCollection("reservierungen").deleteMany(new Document("benutzerId", benutzerId)).getDeletedCount();
+        recordAuditEntry(adminId, "BENUTZER_RESERVIERUNGEN_GELOESCHT", benutzerId + ": " + anzahl);
+    }
+
+    private MongoDatabase getDatabase() {
         return mongoClient.getDatabase("tischreservierung");
     }
 
-    private void protokollieren(String adminId, String aktion, String details) {
-        database().getCollection("auditLog").insertOne(new Document("_id", "AUDIT-" + System.nanoTime())
+    private void recordAuditEntry(String adminId, String aktion, String details) {
+        getDatabase().getCollection("auditLog").insertOne(new Document("_id", "AUDIT-" + System.nanoTime())
                 .append("adminId", adminId).append("aktion", aktion).append("details", details)
                 .append("zeitpunkt", new Date()));
     }
 
-    private Benutzer toBenutzer(Document dokument) {
+    private Benutzer toUser(Document dokument) {
         return new Benutzer(
                 dokument.getString("_id"),
                 dokument.getString("vorname"),
@@ -892,7 +925,7 @@ public class ArbeitsplatzRepo {
         );
     }
 
-    private Standort toStandort(Document dokument) {
+    private Standort toLocation(Document dokument) {
         return new Standort(
                 dokument.getString("_id"),
                 dokument.getString("name"),
@@ -901,18 +934,18 @@ public class ArbeitsplatzRepo {
         );
     }
 
-    private Raum toRaum(Document dokument, List<Arbeitsplatz> arbeitsplaetze) {
+    private Raum toRoom(Document dokument, List<Arbeitsplatz> arbeitsplaetze) {
         List<Document> elementDokumente = dokument.getList("elemente", Document.class, List.of());
         List<RaumElement> elemente = elementDokumente.stream()
                 .map(element -> new RaumElement(
                         element.getString("id"),
                         element.getString("typ"),
-                        zahl(element, "x"),
-                        zahl(element, "y"),
-                        zahl(element, "breite"),
-                        zahl(element, "hoehe"),
+                        getNumericValue(element, "x"),
+                        getNumericValue(element, "y"),
+                        getNumericValue(element, "breite"),
+                        getNumericValue(element, "hoehe"),
                         element.getString("text"),
-                        zahl(element, "rotation")))
+                        getNumericValue(element, "rotation")))
                 .toList();
         return new Raum(
                 dokument.getString("_id"),
@@ -926,18 +959,18 @@ public class ArbeitsplatzRepo {
         );
     }
 
-    private double zahl(Document dokument, String feld) {
+    private double getNumericValue(Document dokument, String feld) {
         Number wert = dokument.get(feld, Number.class);
         return wert == null ? 0 : wert.doubleValue();
     }
 
-    private Arbeitsplatz toArbeitsplatz(Document dokument) {
+    private Arbeitsplatz toWorkstation(Document dokument) {
         Document position = dokument.get("position", Document.class);
         List<String> equipment = dokument.getList("equipment", String.class, List.of());
 
         return new Arbeitsplatz(
                 dokument.getString("_id"),
-                tischnummer(dokument),
+                getDeskNumber(dokument),
                 dokument.getString("raumId"),
                 dokument.getString("standortId"),
                 dokument.getString("abteilungId"),
@@ -949,31 +982,31 @@ public class ArbeitsplatzRepo {
                         position != null ? position.getInteger("y", 0) : 0
                 ),
                 equipment.stream().map(Equipment::new).toList(),
-                zahl(dokument, "rotation"),
-                dokument.containsKey("breite") ? zahl(dokument, "breite") : 12,
-                dokument.containsKey("hoehe") ? zahl(dokument, "hoehe") : 12
+                getNumericValue(dokument, "rotation"),
+                dokument.containsKey("breite") ? getNumericValue(dokument, "breite") : 12,
+                dokument.containsKey("hoehe") ? getNumericValue(dokument, "hoehe") : 12
         );
     }
 
-    private BenutzerDTO toDTO(Benutzer benutzer) {
+    private BenutzerDTO toUserDto(Benutzer benutzer) {
         return new BenutzerDTO(
                 benutzer.getId(),
-                benutzer.getVorname(),
-                benutzer.getNachname(),
+                benutzer.getFirstName(),
+                benutzer.getLastName(),
                 benutzer.getEmail(),
-                benutzer.getRolle(),
-                benutzer.getAbteilungId(),
-                benutzer.getAbteilungName(),
-                benutzer.getBevorzugterRaumId(),
-                benutzer.isAktiv()
+                benutzer.getRole(),
+                benutzer.getDepartmentId(),
+                benutzer.getDepartmentName(),
+                benutzer.getPreferredRoomId(),
+                benutzer.isActive()
         );
     }
 
-    private StandortDTO toDTO(Standort standort) {
-        return new StandortDTO(standort.getId(), standort.getName(), standort.getAdresse(), standort.getOrt());
+    private StandortDTO toLocationDto(Standort standort) {
+        return new StandortDTO(standort.getId(), standort.getName(), standort.getAddress(), standort.getCity());
     }
 
-    private RaumAuswahlDTO toRaumAuswahlDTO(Document dokument) {
+    private RaumAuswahlDTO toRoomOptionDto(Document dokument) {
         return new RaumAuswahlDTO(
                 dokument.getString("_id"),
                 dokument.getString("name"),
@@ -982,55 +1015,55 @@ public class ArbeitsplatzRepo {
         );
     }
 
-    private RaumDTO toDTO(Raum raum, BenutzerDTO benutzer) {
+    private RaumDTO toRoomDto(Raum raum, BenutzerDTO benutzer) {
         return new RaumDTO(
                 raum.getId(),
                 raum.getName(),
-                raum.getStockwerk(),
-                raum.getStandortId(),
-                raum.getAbteilungId(),
-                raum.getAbteilungName(),
-                raum.getElemente().stream().map(element -> new RaumElementDTO(
-                        element.getId(), element.getTyp(), element.getX(), element.getY(),
-                        element.getBreite(), element.getHoehe(), element.getText(), element.getRotation())).toList(),
-                raum.getArbeitsplaetze().stream()
-                        .map(arbeitsplatz -> toDTO(arbeitsplatz, benutzer))
+                raum.getFloor(),
+                raum.getLocationId(),
+                raum.getDepartmentId(),
+                raum.getDepartmentName(),
+                raum.getElements().stream().map(element -> new RaumElementDTO(
+                        element.getId(), element.getType(), element.getX(), element.getY(),
+                        element.getWidth(), element.getHeight(), element.getText(), element.getRotation())).toList(),
+                raum.getWorkstations().stream()
+                        .map(arbeitsplatz -> toWorkstationDto(arbeitsplatz, benutzer))
                         .toList()
         );
     }
 
-    private ArbeitsplatzDTO toDTO(Arbeitsplatz arbeitsplatz, BenutzerDTO benutzer) {
-        boolean eigeneAbteilung = arbeitsplatz.getAbteilungId().equals(benutzer.abteilungId());
+    private ArbeitsplatzDTO toWorkstationDto(Arbeitsplatz arbeitsplatz, BenutzerDTO benutzer) {
+        boolean eigeneAbteilung = arbeitsplatz.getDepartmentId().equals(benutzer.abteilungId());
         boolean reservierbar = eigeneAbteilung && "frei".equals(arbeitsplatz.getStatus());
         String hinweis = !eigeneAbteilung
-                ? "Nur fuer Abteilung " + arbeitsplatz.getAbteilungName()
+                ? "Nur fuer Abteilung " + arbeitsplatz.getDepartmentName()
                 : "reserviert".equals(arbeitsplatz.getStatus()) ? "Im Zeitraum reserviert" : "";
 
         return new ArbeitsplatzDTO(
                 arbeitsplatz.getId(),
-                arbeitsplatz.getTischnr(),
+                arbeitsplatz.getDeskNumber(),
                 arbeitsplatz.getName(),
                 arbeitsplatz.getStatus(),
-                arbeitsplatz.getAbteilungId(),
-                arbeitsplatz.getAbteilungName(),
+                arbeitsplatz.getDepartmentId(),
+                arbeitsplatz.getDepartmentName(),
                 reservierbar,
                 hinweis,
-                arbeitsplatz.getReserviertVon(),
-                benutzer.id().equals(arbeitsplatz.getReservierungBenutzerId()),
-                arbeitsplatz.getReservierungAnfang() == null ? "" : arbeitsplatz.getReservierungAnfang().toInstant().toString(),
-                arbeitsplatz.getReservierungEnde() == null ? "" : arbeitsplatz.getReservierungEnde().toInstant().toString(),
-                arbeitsplatz.getNaechsteReservierungAnfang() == null ? "" : arbeitsplatz.getNaechsteReservierungAnfang().toInstant().toString(),
-                arbeitsplatz.getNaechsteReservierungEnde() == null ? "" : arbeitsplatz.getNaechsteReservierungEnde().toInstant().toString(),
+                arbeitsplatz.getReservedByName(),
+                benutzer.id().equals(arbeitsplatz.getReservationUserId()),
+                arbeitsplatz.getReservationStart() == null ? "" : arbeitsplatz.getReservationStart().toInstant().toString(),
+                arbeitsplatz.getReservationEnd() == null ? "" : arbeitsplatz.getReservationEnd().toInstant().toString(),
+                arbeitsplatz.getNextReservationStart() == null ? "" : arbeitsplatz.getNextReservationStart().toInstant().toString(),
+                arbeitsplatz.getNextReservationEnd() == null ? "" : arbeitsplatz.getNextReservationEnd().toInstant().toString(),
                 arbeitsplatz.getRotation(),
-                arbeitsplatz.getBreite(),
-                arbeitsplatz.getHoehe(),
+                arbeitsplatz.getWidth(),
+                arbeitsplatz.getHeight(),
                 arbeitsplatz.getPosition().getX(),
                 arbeitsplatz.getPosition().getY(),
                 arbeitsplatz.getEquipment().stream().map(equipment -> new EquipmentDTO(equipment.getName())).toList()
         );
     }
 
-    private ReservierungDTO toReservierungDTO(MongoDatabase db, Document reservierung) {
+    private ReservierungDTO toReservationDto(MongoDatabase db, Document reservierung) {
         Document arbeitsplatz = db.getCollection("arbeitsplaetze")
                 .find(new Document("_id", reservierung.getString("arbeitsplatzId"))).first();
         Document raum = db.getCollection("raeume")
@@ -1049,7 +1082,7 @@ public class ArbeitsplatzRepo {
                 reservierung.getString("benutzerId"),
                 benutzer.getString("vorname") + " " + benutzer.getString("nachname"),
                 reservierung.getString("arbeitsplatzId"),
-                tischnummer(arbeitsplatz),
+                getDeskNumber(arbeitsplatz),
                 arbeitsplatz.getString("name"),
                 reservierung.getString("raumId"),
                 raum.getString("name"),

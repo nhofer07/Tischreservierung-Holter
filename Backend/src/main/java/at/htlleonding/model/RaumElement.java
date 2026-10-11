@@ -1,35 +1,44 @@
 package at.htlleonding.model;
 
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class RaumElement {
     private String id;
-    private String typ;
+    @BsonProperty("typ")
+    @JsonProperty("typ")
+    private String type;
     private double x;
     private double y;
-    private double breite;
-    private double hoehe;
+    @BsonProperty("breite")
+    @JsonProperty("breite")
+    private double width;
+    @BsonProperty("hoehe")
+    @JsonProperty("hoehe")
+    private double height;
     private String text;
     private double rotation;
 
     public RaumElement() {
     }
 
-    public RaumElement(String id, String typ, double x, double y, double breite, double hoehe, String text, double rotation) {
+    public RaumElement(String id, String type, double x, double y, double width, double height, String text, double rotation) {
         this.id = id;
-        this.typ = typ;
+        this.type = type;
         this.x = x;
         this.y = y;
-        this.breite = breite;
-        this.hoehe = hoehe;
+        this.width = width;
+        this.height = height;
         this.text = text;
         this.rotation = rotation;
     }
 
     public String getId() { return id; }
-    public String getTyp() { return typ; }
+    public String getType() { return type; }
     public double getX() { return x; }
     public double getY() { return y; }
-    public double getBreite() { return breite; }
-    public double getHoehe() { return hoehe; }
+    public double getWidth() { return width; }
+    public double getHeight() { return height; }
     public String getText() { return text; }
     public double getRotation() { return rotation; }
 }

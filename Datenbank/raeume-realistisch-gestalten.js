@@ -2,81 +2,81 @@ db = db.getSiblingDB("tischreservierung")
 
 // Bewusst getrennt vom Grund-Seed: Dieses Skript gestaltet nur die bekannten
 // Standardräume neu. Hall in Tirol und selbst angelegte Räume bleiben unberührt.
-function element(id, typ, x, y, breite, hoehe, rotation = 0, text = undefined) {
+function createFloorPlanElement(id, typ, x, y, breite, hoehe, rotation = 0, text = undefined) {
   const eintrag = { id, typ, x, y, breite, hoehe, rotation }
   if (text) eintrag.text = text
   return eintrag
 }
 
-function aussenwaende(tuerX, fensterX = 35, fensterBreite = 28) {
+function createExteriorWalls(tuerX, fensterX = 35, fensterBreite = 28) {
   return [
-    element("WAND-OBEN-L", "wand", 0, 0, fensterX, 2),
-    element("WAND-OBEN-R", "wand", fensterX + fensterBreite, 0, 100 - fensterX - fensterBreite, 2),
-    element("FENSTER-1", "fenster", fensterX, 0, fensterBreite, 2),
-    element("WAND-LINKS", "wand", 0, 0, 2, 100),
-    element("WAND-RECHTS", "wand", 98, 0, 2, 100),
-    element("WAND-UNTEN-L", "wand", 0, 98, tuerX, 2),
-    element("WAND-UNTEN-R", "wand", tuerX + 10, 98, 90 - tuerX, 2),
-    element("TUER-1", "tuer", tuerX, 88, 10, 10),
-    element("FEUER-1", "feuerloescher", 3, 90, 4, 6),
-    element("KLIMA-1", "klima", 86, 91, 9, 5)
+    createFloorPlanElement("WAND-OBEN-L", "wand", 0, 0, fensterX, 2),
+    createFloorPlanElement("WAND-OBEN-R", "wand", fensterX + fensterBreite, 0, 100 - fensterX - fensterBreite, 2),
+    createFloorPlanElement("FENSTER-1", "fenster", fensterX, 0, fensterBreite, 2),
+    createFloorPlanElement("WAND-LINKS", "wand", 0, 0, 2, 100),
+    createFloorPlanElement("WAND-RECHTS", "wand", 98, 0, 2, 100),
+    createFloorPlanElement("WAND-UNTEN-L", "wand", 0, 98, tuerX, 2),
+    createFloorPlanElement("WAND-UNTEN-R", "wand", tuerX + 10, 98, 90 - tuerX, 2),
+    createFloorPlanElement("TUER-1", "tuer", tuerX, 88, 10, 10),
+    createFloorPlanElement("FEUER-1", "feuerloescher", 3, 90, 4, 6),
+    createFloorPlanElement("KLIMA-1", "klima", 86, 91, 9, 5)
   ]
 }
 
-function itLayout(variante) {
+function createItLayout(variante) {
   const tuerX = variante % 2 === 0 ? 14 : 72
-  const basis = aussenwaende(tuerX, variante % 2 === 0 ? 28 : 48, 26)
+  const basis = createExteriorWalls(tuerX, variante % 2 === 0 ? 28 : 48, 26)
   return basis.concat([
-    element("WAND-TECHNIK", "wand", variante % 2 === 0 ? 70 : 28, 2, 2, 28),
-    element("TUER-TECHNIK", "tuer", variante % 2 === 0 ? 62 : 20, 20, 8, 8, 270),
-    element("SPERRE-TECHNIK", "gesperrt", variante % 2 === 0 ? 76 : 5, 7, 17, 15),
-    element("PFLANZE-1", "pflanze", variante % 2 === 0 ? 88 : 7, 78, 7, 7),
-    element("LABEL-1", "beschriftung", 5, 6, 22, 5, 0, "IT-Arbeitsbereich"),
-    element("LABEL-2", "beschriftung", variante % 2 === 0 ? 74 : 4, 27, 20, 5, 0, "Technikzone")
+    createFloorPlanElement("WAND-TECHNIK", "wand", variante % 2 === 0 ? 70 : 28, 2, 2, 28),
+    createFloorPlanElement("TUER-TECHNIK", "tuer", variante % 2 === 0 ? 62 : 20, 20, 8, 8, 270),
+    createFloorPlanElement("SPERRE-TECHNIK", "gesperrt", variante % 2 === 0 ? 76 : 5, 7, 17, 15),
+    createFloorPlanElement("PFLANZE-1", "pflanze", variante % 2 === 0 ? 88 : 7, 78, 7, 7),
+    createFloorPlanElement("LABEL-1", "beschriftung", 5, 6, 22, 5, 0, "IT-Arbeitsbereich"),
+    createFloorPlanElement("LABEL-2", "beschriftung", variante % 2 === 0 ? 74 : 4, 27, 20, 5, 0, "Technikzone")
   ])
 }
 
-function marketingLayout(variante) {
+function createMarketingLayout(variante) {
   const tuerX = variante % 2 === 0 ? 68 : 18
-  const basis = aussenwaende(tuerX, variante % 2 === 0 ? 12 : 58, 25)
+  const basis = createExteriorWalls(tuerX, variante % 2 === 0 ? 12 : 58, 25)
   return basis.concat([
-    element("WAND-MEETING", "wand", variante % 2 === 0 ? 63 : 35, 2, 2, 31),
-    element("FENSTER-MEETING", "fenster", variante % 2 === 0 ? 72 : 12, 0, 18, 2),
-    element("PFLANZE-1", "pflanze", variante % 2 === 0 ? 88 : 6, 10, 8, 8),
-    element("PFLANZE-2", "pflanze", variante % 2 === 0 ? 7 : 87, 80, 6, 6),
-    element("SPERRE-MATERIAL", "gesperrt", variante % 2 === 0 ? 75 : 6, 37, 17, 10),
-    element("LABEL-1", "beschriftung", 5, 6, 23, 5, 0, "Marketing Team"),
-    element("LABEL-2", "beschriftung", variante % 2 === 0 ? 69 : 5, 32, 22, 5, 0, "Material & Druck")
+    createFloorPlanElement("WAND-MEETING", "wand", variante % 2 === 0 ? 63 : 35, 2, 2, 31),
+    createFloorPlanElement("FENSTER-MEETING", "fenster", variante % 2 === 0 ? 72 : 12, 0, 18, 2),
+    createFloorPlanElement("PFLANZE-1", "pflanze", variante % 2 === 0 ? 88 : 6, 10, 8, 8),
+    createFloorPlanElement("PFLANZE-2", "pflanze", variante % 2 === 0 ? 7 : 87, 80, 6, 6),
+    createFloorPlanElement("SPERRE-MATERIAL", "gesperrt", variante % 2 === 0 ? 75 : 6, 37, 17, 10),
+    createFloorPlanElement("LABEL-1", "beschriftung", 5, 6, 23, 5, 0, "Marketing Team"),
+    createFloorPlanElement("LABEL-2", "beschriftung", variante % 2 === 0 ? 69 : 5, 32, 22, 5, 0, "Material & Druck")
   ])
 }
 
-function verwaltungLayout(variante) {
+function createAdministrationLayout(variante) {
   const tuerX = variante % 2 === 0 ? 42 : 72
-  const basis = aussenwaende(tuerX, variante % 2 === 0 ? 22 : 52, 24)
+  const basis = createExteriorWalls(tuerX, variante % 2 === 0 ? 22 : 52, 24)
   return basis.concat([
-    element("WAND-RUHE", "wand", variante % 2 === 0 ? 67 : 31, 2, 2, 35),
-    element("TUER-RUHE", "tuer", variante % 2 === 0 ? 59 : 23, 27, 8, 8, 270),
-    element("PFLANZE-1", "pflanze", variante % 2 === 0 ? 88 : 6, 78, 7, 7),
-    element("SAEULE-1", "saeule", variante % 2 === 0 ? 48 : 52, 56, 5, 5),
-    element("SPERRE-ABLAGE", "gesperrt", variante % 2 === 0 ? 76 : 7, 8, 16, 9),
-    element("LABEL-1", "beschriftung", 5, 6, 24, 5, 0, "Verwaltung"),
-    element("LABEL-2", "beschriftung", variante % 2 === 0 ? 72 : 5, 21, 22, 5, 0, "Ruhiger Bereich")
+    createFloorPlanElement("WAND-RUHE", "wand", variante % 2 === 0 ? 67 : 31, 2, 2, 35),
+    createFloorPlanElement("TUER-RUHE", "tuer", variante % 2 === 0 ? 59 : 23, 27, 8, 8, 270),
+    createFloorPlanElement("PFLANZE-1", "pflanze", variante % 2 === 0 ? 88 : 6, 78, 7, 7),
+    createFloorPlanElement("SAEULE-1", "saeule", variante % 2 === 0 ? 48 : 52, 56, 5, 5),
+    createFloorPlanElement("SPERRE-ABLAGE", "gesperrt", variante % 2 === 0 ? 76 : 7, 8, 16, 9),
+    createFloorPlanElement("LABEL-1", "beschriftung", 5, 6, 24, 5, 0, "Verwaltung"),
+    createFloorPlanElement("LABEL-2", "beschriftung", variante % 2 === 0 ? 72 : 5, 21, 22, 5, 0, "Ruhiger Bereich")
   ])
 }
 
 const raumGestaltungen = [
-  { id: "RAUM-WELS-OG1-TEAM", elemente: itLayout(1), anordnung: "inseln" },
-  { id: "RAUM-WELS-EG-MARKETING", elemente: marketingLayout(1), anordnung: "team" },
-  { id: "RAUM-WELS-EG-VERWALTUNG", elemente: verwaltungLayout(1), anordnung: "reihen" },
-  { id: "RAUM-LINZ-EG-PROJEKT", elemente: itLayout(2), anordnung: "projekt" },
-  { id: "RAUM-LINZ-OG2-MARKETING", elemente: marketingLayout(2), anordnung: "team" },
-  { id: "RAUM-LINZ-OG1-VERWALTUNG", elemente: verwaltungLayout(2), anordnung: "reihen" },
-  { id: "RAUM-SALZBURG-EG-IT", elemente: itLayout(3), anordnung: "inseln" },
-  { id: "RAUM-SALZBURG-OG1-MARKETING", elemente: marketingLayout(3), anordnung: "team" },
-  { id: "RAUM-SALZBURG-EG-VERWALTUNG", elemente: verwaltungLayout(3), anordnung: "reihen" },
-  { id: "RAUM-PREMSTAETTEN-EG-IT", elemente: itLayout(4), anordnung: "projekt" },
-  { id: "RAUM-PREMSTAETTEN-OG1-MARKETING", elemente: marketingLayout(4), anordnung: "team" },
-  { id: "RAUM-PREMSTAETTEN-EG-VERWALTUNG", elemente: verwaltungLayout(4), anordnung: "reihen" }
+  { id: "RAUM-WELS-OG1-TEAM", elemente: createItLayout(1), anordnung: "inseln" },
+  { id: "RAUM-WELS-EG-MARKETING", elemente: createMarketingLayout(1), anordnung: "team" },
+  { id: "RAUM-WELS-EG-VERWALTUNG", elemente: createAdministrationLayout(1), anordnung: "reihen" },
+  { id: "RAUM-LINZ-EG-PROJEKT", elemente: createItLayout(2), anordnung: "projekt" },
+  { id: "RAUM-LINZ-OG2-MARKETING", elemente: createMarketingLayout(2), anordnung: "team" },
+  { id: "RAUM-LINZ-OG1-VERWALTUNG", elemente: createAdministrationLayout(2), anordnung: "reihen" },
+  { id: "RAUM-SALZBURG-EG-IT", elemente: createItLayout(3), anordnung: "inseln" },
+  { id: "RAUM-SALZBURG-OG1-MARKETING", elemente: createMarketingLayout(3), anordnung: "team" },
+  { id: "RAUM-SALZBURG-EG-VERWALTUNG", elemente: createAdministrationLayout(3), anordnung: "reihen" },
+  { id: "RAUM-PREMSTAETTEN-EG-IT", elemente: createItLayout(4), anordnung: "projekt" },
+  { id: "RAUM-PREMSTAETTEN-OG1-MARKETING", elemente: createMarketingLayout(4), anordnung: "team" },
+  { id: "RAUM-PREMSTAETTEN-EG-VERWALTUNG", elemente: createAdministrationLayout(4), anordnung: "reihen" }
 ]
 
 const anordnungen = {

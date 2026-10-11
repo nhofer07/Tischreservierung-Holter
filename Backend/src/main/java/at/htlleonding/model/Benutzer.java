@@ -2,43 +2,59 @@ package at.htlleonding.model;
 
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @MongoEntity(collection = "benutzer")
 public class Benutzer {
     @BsonId
     private String id;
-    private String vorname;
-    private String nachname;
+    @BsonProperty("vorname")
+    @JsonProperty("vorname")
+    private String firstName;
+    @BsonProperty("nachname")
+    @JsonProperty("nachname")
+    private String lastName;
     private String email;
-    private String rolle;
-    private String abteilungId;
-    private String abteilungName;
-    private String bevorzugterRaumId;
-    private boolean aktiv;
+    @BsonProperty("rolle")
+    @JsonProperty("rolle")
+    private String role;
+    @BsonProperty("abteilungId")
+    @JsonProperty("abteilungId")
+    private String departmentId;
+    @BsonProperty("abteilungName")
+    @JsonProperty("abteilungName")
+    private String departmentName;
+    @BsonProperty("bevorzugterRaumId")
+    @JsonProperty("bevorzugterRaumId")
+    private String preferredRoomId;
+    @BsonProperty("aktiv")
+    @JsonProperty("aktiv")
+    private boolean active;
 
     public Benutzer() {
     }
 
-    public Benutzer(String id, String vorname, String nachname, String email, String rolle,
-                    String abteilungId, String abteilungName, String bevorzugterRaumId, boolean aktiv) {
+    public Benutzer(String id, String firstName, String lastName, String email, String role,
+                    String departmentId, String departmentName, String preferredRoomId, boolean active) {
         this.id = id;
-        this.vorname = vorname;
-        this.nachname = nachname;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
-        this.rolle = rolle;
-        this.abteilungId = abteilungId;
-        this.abteilungName = abteilungName;
-        this.bevorzugterRaumId = bevorzugterRaumId;
-        this.aktiv = aktiv;
+        this.role = role;
+        this.departmentId = departmentId;
+        this.departmentName = departmentName;
+        this.preferredRoomId = preferredRoomId;
+        this.active = active;
     }
 
     public String getId() { return id; }
-    public String getVorname() { return vorname; }
-    public String getNachname() { return nachname; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
     public String getEmail() { return email; }
-    public String getRolle() { return rolle; }
-    public String getAbteilungId() { return abteilungId; }
-    public String getAbteilungName() { return abteilungName; }
-    public String getBevorzugterRaumId() { return bevorzugterRaumId; }
-    public boolean isAktiv() { return aktiv; }
+    public String getRole() { return role; }
+    public String getDepartmentId() { return departmentId; }
+    public String getDepartmentName() { return departmentName; }
+    public String getPreferredRoomId() { return preferredRoomId; }
+    public boolean isActive() { return active; }
 }

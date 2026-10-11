@@ -2,23 +2,29 @@ package at.htlleonding.model;
 
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @MongoEntity(collection = "standorte")
 public class Standort {
     @BsonId
     private String id;
     private String name;
-    private String adresse;
-    private String ort;
+    @BsonProperty("adresse")
+    @JsonProperty("adresse")
+    private String address;
+    @BsonProperty("ort")
+    @JsonProperty("ort")
+    private String city;
 
     public Standort() {
     }
 
-    public Standort(String id, String name, String adresse, String ort) {
+    public Standort(String id, String name, String address, String city) {
         this.id = id;
         this.name = name;
-        this.adresse = adresse;
-        this.ort = ort;
+        this.address = address;
+        this.city = city;
     }
 
     public String getId() {
@@ -37,19 +43,19 @@ public class Standort {
         this.name = name;
     }
 
-    public String getAdresse() {
-        return adresse;
+    public String getAddress() {
+        return address;
     }
 
-    public void setAdresse(String adresse) {
-        this.adresse = adresse;
+    public void setAddress(String address) {
+        this.address = address;
     }
 
-    public String getOrt() {
-        return ort;
+    public String getCity() {
+        return city;
     }
 
-    public void setOrt(String ort) {
-        this.ort = ort;
+    public void setCity(String city) {
+        this.city = city;
     }
 }

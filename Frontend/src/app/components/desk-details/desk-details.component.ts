@@ -12,6 +12,7 @@ export class DeskDetailsComponent {
   @Input({ required: true }) tisch!: Arbeitsplatz;
   @Input({ required: true }) raum!: Raum;
   @Input() fehler = '';
+  @Input() zeitraumGueltig = true;
   @Output() reservieren = new EventEmitter<void>();
 
 }

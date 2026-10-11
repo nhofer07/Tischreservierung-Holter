@@ -4,14 +4,46 @@ services:
     container_name: tischreservierung-mongodb
     restart: unless-stopped
     ports:
-      - "27018:27017"
+      - "127.0.0.1:27018:27017"
+    environment:
+      TZ: Europe/Vienna
     volumes:
       - mongodb-data:/data/db
+      - ./Datenbank:/seed:ro
+      - ./Datenbank/docker-init.sh:/docker-entrypoint-initdb.d/10-holter.sh:ro
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build: ./Backend
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Vienna
+      QUARKUS_MONGODB_CONNECTION_STRING: mongodb://mongodb:27017
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_CORS_ENABLED: "false"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8082/api/einstellungen"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  frontend:
+    build: ./Frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   mongodb-data:

@@ -18,7 +18,13 @@ public class einstellungBoundary {
     ArbeitsplatzRepo arbeitsplatzRepo;
 
     @GET
-    public FirmenEinstellungDTO getEinstellungen() {
-        return arbeitsplatzRepo.getFirmenEinstellungen();
+    @Path("/reservierung")
+    public at.htlleonding.DTOs.ReservierungsEinstellungDTO getBookingSettings() {
+        return arbeitsplatzRepo.getBookingSettings();
+    }
+
+    @GET
+    public FirmenEinstellungDTO getCompanySettings() {
+        return arbeitsplatzRepo.getCompanySettings();
     }
 }

@@ -51,14 +51,14 @@ export class IntroComponent {
     this.raumSignal()?.arbeitsplaetze.filter((arbeitsplatz) => arbeitsplatz.reservierbar).length ?? 0
   );
 
-  standortAuswaehlen(standortId: string): void {
+  selectLocation(standortId: string): void {
     this.selectedStandortId.set(standortId);
     this.selectedAbteilung.set('');
     this.raumSignal.set(null);
     this.standortAusgewaehlt.emit(standortId);
   }
 
-  abteilungAuswaehlen(name: string): void {
+  selectDepartment(name: string): void {
     this.selectedAbteilung.set(name);
     this.abteilungAusgewaehlt.emit(name);
   }
@@ -67,7 +67,7 @@ export class IntroComponent {
     this.standortOeffnen.emit(this.selectedStandortId());
   }
 
-  hatBevorzugtenRaum(): boolean {
+  hasPreferredRoom(): boolean {
     return Boolean(this.benutzerSignal()?.bevorzugterRaumId);
   }
 }

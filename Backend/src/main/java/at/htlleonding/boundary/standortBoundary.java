@@ -20,7 +20,7 @@ public class standortBoundary {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<StandortDTO> getStandorte() {
-        return arbeitsplatzRepo.getStandorte();
+    public List<StandortDTO> getLocations() {
+        return arbeitsplatzRepo.getLocations();
     }
 }

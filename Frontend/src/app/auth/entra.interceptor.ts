@@ -4,10 +4,10 @@ import { from, switchMap } from 'rxjs';
 import { EntraAuthService } from './entra-auth.service';
 
 export const entraInterceptor: HttpInterceptorFn = (request, next) => {
-  if (!request.url.startsWith('http://127.0.0.1:8082/api')) return next(request);
+  if (!request.url.startsWith('/api/')) return next(request);
 
   const auth = inject(EntraAuthService);
-  return from(auth.zugriffstoken()).pipe(
+  return from(auth.getIdentityToken()).pipe(
     switchMap((token) => next(token
       ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
       : request))

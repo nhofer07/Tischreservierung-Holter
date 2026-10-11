@@ -29,25 +29,25 @@ public class reservierungBoundary {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response reservieren(ReservierungRequestDTO reservierungRequestDTO) {
-        ReservierungDTO reservierung = arbeitsplatzRepo.reservieren(reservierungRequestDTO);
+    public Response createReservation(ReservierungRequestDTO reservierungRequestDTO) {
+        ReservierungDTO reservierung = arbeitsplatzRepo.createReservation(reservierungRequestDTO);
         return Response.status(Response.Status.CREATED).entity(reservierung).build();
     }
 
     @GET
     @Path("/benutzer/{benutzerId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ReservierungDTO> getReservierungen(@PathParam("benutzerId") String benutzerId) {
-        return arbeitsplatzRepo.getReservierungen(benutzerId);
+    public List<ReservierungDTO> getReservations(@PathParam("benutzerId") String benutzerId) {
+        return arbeitsplatzRepo.getReservations(benutzerId);
     }
 
     @DELETE
     @Path("/{id}")
-    public Response stornieren(
+    public Response cancelReservation(
             @PathParam("id") String id,
             @QueryParam("benutzerId") String benutzerId
     ) {
-        arbeitsplatzRepo.stornieren(id, benutzerId);
+        arbeitsplatzRepo.cancelReservation(id, benutzerId);
         return Response.noContent().build();
     }
 
@@ -55,7 +55,7 @@ public class reservierungBoundary {
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ReservierungDTO bearbeiten(@PathParam("id") String id, ReservierungRequestDTO request) {
-        return arbeitsplatzRepo.reservierungAendern(id, request);
+    public ReservierungDTO updateReservation(@PathParam("id") String id, ReservierungRequestDTO request) {
+        return arbeitsplatzRepo.updateReservation(id, request);
     }
 }

@@ -30,7 +30,7 @@ db.equipment.insertMany([
   { _id: "EQ-GRAFIK", name: "Grafiktablett" }
 ])
 
-function standardElemente(tuerX, pflanzeX, pflanzeY) {
+function createDefaultRoomElements(tuerX, pflanzeX, pflanzeY) {
   return [
     { id: "WAND-OBEN", typ: "wand", x: 0, y: 0, breite: 100, hoehe: 2 },
     { id: "WAND-LINKS", typ: "wand", x: 0, y: 0, breite: 2, hoehe: 100 },
@@ -161,7 +161,7 @@ db.raeume.insertMany([
     stockwerk: "1. OG",
     abteilungId: "ABT-IT",
     abteilungName: "IT",
-    elemente: standardElemente(12, 89, 8),
+    elemente: createDefaultRoomElements(12, 89, 8),
     beschreibung: "Statischer IT-Raum in Wels fuer die Vogelperspektive"
   },
   {
@@ -171,7 +171,7 @@ db.raeume.insertMany([
     stockwerk: "EG",
     abteilungId: "ABT-MARKETING",
     abteilungName: "Marketing",
-    elemente: standardElemente(70, 7, 8).concat([{ id: "SPERRE-1", typ: "gesperrt", x: 43, y: 43, breite: 14, hoehe: 12 }]),
+    elemente: createDefaultRoomElements(70, 7, 8).concat([{ id: "SPERRE-1", typ: "gesperrt", x: 43, y: 43, breite: 14, hoehe: 12 }]),
     beschreibung: "Statischer Marketing-Raum in Wels fuer die Vogelperspektive"
   },
   {
@@ -181,7 +181,7 @@ db.raeume.insertMany([
     stockwerk: "EG",
     abteilungId: "ABT-IT",
     abteilungName: "IT",
-    elemente: standardElemente(42, 90, 82),
+    elemente: createDefaultRoomElements(42, 90, 82),
     beschreibung: "Statischer IT-Raum in Linz fuer die Vogelperspektive"
   },
   {
@@ -191,12 +191,12 @@ db.raeume.insertMany([
     stockwerk: "2. OG",
     abteilungId: "ABT-MARKETING",
     abteilungName: "Marketing",
-    elemente: standardElemente(76, 6, 82),
+    elemente: createDefaultRoomElements(76, 6, 82),
     beschreibung: "Statischer Marketing-Raum in Linz fuer die Vogelperspektive"
   }
 ])
 
-function arbeitsplatz(id, tischnr, raumId, standortId, abteilungId, abteilungName, x, y, status, equipment) {
+function createWorkstation(id, tischnr, raumId, standortId, abteilungId, abteilungName, x, y, status, equipment) {
   return {
     _id: id,
     tischnr: String(tischnr),
@@ -215,44 +215,44 @@ function arbeitsplatz(id, tischnr, raumId, standortId, abteilungId, abteilungNam
 }
 
 db.arbeitsplaetze.insertMany([
-  arbeitsplatz("WELS-TISCH-101", 101, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 20, 34, "frei", ["2 Monitore", "Dockingstation"]),
-  arbeitsplatz("WELS-TISCH-102", 102, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 40, 34, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("WELS-TISCH-103", 103, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 60, 34, "frei", ["2 Monitore", "Rollcontainer"]),
-  arbeitsplatz("WELS-TISCH-104", 104, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 80, 34, "frei", ["Monitor"]),
-  arbeitsplatz("WELS-TISCH-105", 105, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 20, 58, "frei", ["Höhenverstellbarer Tisch", "Monitor", "Dockingstation"]),
-  arbeitsplatz("WELS-TISCH-106", 106, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 40, 58, "frei", ["2 Monitore", "Dockingstation", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("WELS-TISCH-107", 107, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 60, 58, "frei", ["Monitor", "Kopfhörer", "USB-C Hub"]),
-  arbeitsplatz("WELS-TISCH-108", 108, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 80, 58, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
+  createWorkstation("WELS-TISCH-101", 101, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 20, 34, "frei", ["2 Monitore", "Dockingstation"]),
+  createWorkstation("WELS-TISCH-102", 102, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 40, 34, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
+  createWorkstation("WELS-TISCH-103", 103, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 60, 34, "frei", ["2 Monitore", "Rollcontainer"]),
+  createWorkstation("WELS-TISCH-104", 104, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 80, 34, "frei", ["Monitor"]),
+  createWorkstation("WELS-TISCH-105", 105, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 20, 58, "frei", ["Höhenverstellbarer Tisch", "Monitor", "Dockingstation"]),
+  createWorkstation("WELS-TISCH-106", 106, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 40, 58, "frei", ["2 Monitore", "Dockingstation", "Höhenverstellbarer Tisch"]),
+  createWorkstation("WELS-TISCH-107", 107, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 60, 58, "frei", ["Monitor", "Kopfhörer", "USB-C Hub"]),
+  createWorkstation("WELS-TISCH-108", 108, "RAUM-WELS-OG1-TEAM", "STANDORT-WELS", "ABT-IT", "IT", 80, 58, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
 
-  arbeitsplatz("WELS-MKT-301", 301, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 18, 30, "frei", ["2 Monitore", "Grafiktablett", "Dockingstation"]),
-  arbeitsplatz("WELS-MKT-302", 302, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 38, 30, "frei", ["Monitor", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("WELS-MKT-303", 303, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 58, 30, "frei", ["2 Monitore", "Dockingstation"]),
-  arbeitsplatz("WELS-MKT-304", 304, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 78, 30, "frei", ["Monitor", "Kopfhörer"]),
-  arbeitsplatz("WELS-MKT-305", 305, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 20, 61, "frei", ["2 Monitore", "Rollcontainer"]),
-  arbeitsplatz("WELS-MKT-306", 306, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 40, 61, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("WELS-MKT-307", 307, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 60, 61, "frei", ["2 Monitore", "Dockingstation"]),
-  arbeitsplatz("WELS-MKT-308", 308, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 80, 61, "frei", ["Monitor", "USB-C Hub"]),
+  createWorkstation("WELS-MKT-301", 301, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 18, 30, "frei", ["2 Monitore", "Grafiktablett", "Dockingstation"]),
+  createWorkstation("WELS-MKT-302", 302, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 38, 30, "frei", ["Monitor", "Höhenverstellbarer Tisch"]),
+  createWorkstation("WELS-MKT-303", 303, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 58, 30, "frei", ["2 Monitore", "Dockingstation"]),
+  createWorkstation("WELS-MKT-304", 304, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 78, 30, "frei", ["Monitor", "Kopfhörer"]),
+  createWorkstation("WELS-MKT-305", 305, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 20, 61, "frei", ["2 Monitore", "Rollcontainer"]),
+  createWorkstation("WELS-MKT-306", 306, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 40, 61, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
+  createWorkstation("WELS-MKT-307", 307, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 60, 61, "frei", ["2 Monitore", "Dockingstation"]),
+  createWorkstation("WELS-MKT-308", 308, "RAUM-WELS-EG-MARKETING", "STANDORT-WELS", "ABT-MARKETING", "Marketing", 80, 61, "frei", ["Monitor", "USB-C Hub"]),
 
-  arbeitsplatz("LINZ-TISCH-201", 201, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 20, 29, "frei", ["Monitor", "Dockingstation"]),
-  arbeitsplatz("LINZ-TISCH-202", 202, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 40, 29, "frei", ["2 Monitore"]),
-  arbeitsplatz("LINZ-TISCH-203", 203, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 60, 29, "frei", ["Monitor", "Rollcontainer", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("LINZ-TISCH-204", 204, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 80, 29, "frei", ["Höhenverstellbarer Tisch", "Monitor", "Dockingstation"]),
-  arbeitsplatz("LINZ-TISCH-205", 205, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 20, 60, "frei", ["2 Monitore", "Dockingstation"]),
-  arbeitsplatz("LINZ-TISCH-206", 206, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 40, 60, "frei", ["Monitor", "Kopfhörer"]),
-  arbeitsplatz("LINZ-TISCH-207", 207, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 60, 60, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("LINZ-TISCH-208", 208, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 80, 60, "frei", ["2 Monitore", "Dockingstation"]),
+  createWorkstation("LINZ-TISCH-201", 201, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 20, 29, "frei", ["Monitor", "Dockingstation"]),
+  createWorkstation("LINZ-TISCH-202", 202, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 40, 29, "frei", ["2 Monitore"]),
+  createWorkstation("LINZ-TISCH-203", 203, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 60, 29, "frei", ["Monitor", "Rollcontainer", "Höhenverstellbarer Tisch"]),
+  createWorkstation("LINZ-TISCH-204", 204, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 80, 29, "frei", ["Höhenverstellbarer Tisch", "Monitor", "Dockingstation"]),
+  createWorkstation("LINZ-TISCH-205", 205, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 20, 60, "frei", ["2 Monitore", "Dockingstation"]),
+  createWorkstation("LINZ-TISCH-206", 206, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 40, 60, "frei", ["Monitor", "Kopfhörer"]),
+  createWorkstation("LINZ-TISCH-207", 207, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 60, 60, "frei", ["Monitor", "Dockingstation", "Höhenverstellbarer Tisch"]),
+  createWorkstation("LINZ-TISCH-208", 208, "RAUM-LINZ-EG-PROJEKT", "STANDORT-LINZ", "ABT-IT", "IT", 80, 60, "frei", ["2 Monitore", "Dockingstation"]),
 
-  arbeitsplatz("LINZ-MKT-401", 401, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 20, 30, "frei", ["2 Monitore", "Dockingstation", "Grafiktablett"]),
-  arbeitsplatz("LINZ-MKT-402", 402, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 40, 30, "frei", ["Monitor", "Höhenverstellbarer Tisch"]),
-  arbeitsplatz("LINZ-MKT-403", 403, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 60, 30, "frei", ["2 Monitore", "Dockingstation"]),
-  arbeitsplatz("LINZ-MKT-404", 404, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 80, 30, "frei", ["Monitor", "Kopfhörer"]),
-  arbeitsplatz("LINZ-MKT-405", 405, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 20, 61, "frei", ["Höhenverstellbarer Tisch", "Monitor", "Dockingstation"]),
-  arbeitsplatz("LINZ-MKT-406", 406, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 40, 61, "frei", ["2 Monitore", "Rollcontainer"]),
-  arbeitsplatz("LINZ-MKT-407", 407, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 60, 61, "frei", ["Monitor", "USB-C Hub"]),
-  arbeitsplatz("LINZ-MKT-408", 408, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 80, 61, "frei", ["2 Monitore", "Dockingstation", "Höhenverstellbarer Tisch"])
+  createWorkstation("LINZ-MKT-401", 401, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 20, 30, "frei", ["2 Monitore", "Dockingstation", "Grafiktablett"]),
+  createWorkstation("LINZ-MKT-402", 402, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 40, 30, "frei", ["Monitor", "Höhenverstellbarer Tisch"]),
+  createWorkstation("LINZ-MKT-403", 403, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 60, 30, "frei", ["2 Monitore", "Dockingstation"]),
+  createWorkstation("LINZ-MKT-404", 404, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 80, 30, "frei", ["Monitor", "Kopfhörer"]),
+  createWorkstation("LINZ-MKT-405", 405, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 20, 61, "frei", ["Höhenverstellbarer Tisch", "Monitor", "Dockingstation"]),
+  createWorkstation("LINZ-MKT-406", 406, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 40, 61, "frei", ["2 Monitore", "Rollcontainer"]),
+  createWorkstation("LINZ-MKT-407", 407, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 60, 61, "frei", ["Monitor", "USB-C Hub"]),
+  createWorkstation("LINZ-MKT-408", 408, "RAUM-LINZ-OG2-MARKETING", "STANDORT-LINZ", "ABT-MARKETING", "Marketing", 80, 61, "frei", ["2 Monitore", "Dockingstation", "Höhenverstellbarer Tisch"])
 ])
 
-function heuteUm(stunde) {
+function getTodayAtHour(stunde) {
   const datum = new Date()
   datum.setHours(stunde, 0, 0, 0)
   return datum
@@ -266,8 +266,8 @@ db.reservierungen.insertMany([
     raumId: "RAUM-WELS-OG1-TEAM",
     standortId: "STANDORT-WELS",
     abteilungId: "ABT-IT",
-    reservierungAnfang: heuteUm(8),
-    reservierungEnde: heuteUm(16),
+    reservierungAnfang: getTodayAtHour(8),
+    reservierungEnde: getTodayAtHour(16),
     status: "reserviert"
   },
   {
@@ -277,8 +277,8 @@ db.reservierungen.insertMany([
     raumId: "RAUM-WELS-OG1-TEAM",
     standortId: "STANDORT-WELS",
     abteilungId: "ABT-IT",
-    reservierungAnfang: heuteUm(10),
-    reservierungEnde: heuteUm(14),
+    reservierungAnfang: getTodayAtHour(10),
+    reservierungEnde: getTodayAtHour(14),
     status: "reserviert"
   },
   {
@@ -288,8 +288,8 @@ db.reservierungen.insertMany([
     raumId: "RAUM-WELS-EG-MARKETING",
     standortId: "STANDORT-WELS",
     abteilungId: "ABT-MARKETING",
-    reservierungAnfang: heuteUm(8),
-    reservierungEnde: heuteUm(12),
+    reservierungAnfang: getTodayAtHour(8),
+    reservierungEnde: getTodayAtHour(12),
     status: "reserviert"
   },
   {
@@ -299,8 +299,8 @@ db.reservierungen.insertMany([
     raumId: "RAUM-LINZ-EG-PROJEKT",
     standortId: "STANDORT-LINZ",
     abteilungId: "ABT-IT",
-    reservierungAnfang: heuteUm(8),
-    reservierungEnde: heuteUm(16),
+    reservierungAnfang: getTodayAtHour(8),
+    reservierungEnde: getTodayAtHour(16),
     status: "reserviert"
   },
   {
@@ -310,8 +310,8 @@ db.reservierungen.insertMany([
     raumId: "RAUM-LINZ-OG2-MARKETING",
     standortId: "STANDORT-LINZ",
     abteilungId: "ABT-MARKETING",
-    reservierungAnfang: heuteUm(13),
-    reservierungEnde: heuteUm(17),
+    reservierungAnfang: getTodayAtHour(13),
+    reservierungEnde: getTodayAtHour(17),
     status: "reserviert"
   }
 ])

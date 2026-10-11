@@ -13,7 +13,7 @@
         type="button"
         class="location-card"
         [class.active]="selectedStandortId() === standort.id"
-        (click)="standortAuswaehlen(standort.id)"
+        (click)="selectLocation(standort.id)"
       >
         <span>HOLTER Standort</span>
         <strong>{{ standort.ort }}</strong>
@@ -22,7 +22,7 @@
     </div>
 
     <label class="selection-label" for="abteilung"><i>2</i> Abteilung auswählen</label>
-    <select id="abteilung" class="department-select" [value]="selectedAbteilung()" [disabled]="!abteilungen().length" (change)="abteilungAuswaehlen($any($event.target).value)">
+    <select id="abteilung" class="department-select" [value]="selectedAbteilung()" [disabled]="!abteilungen().length" (change)="selectDepartment($any($event.target).value)">
       <option value="">Bitte Abteilung auswählen</option>
       <option *ngFor="let abteilung of abteilungen()" [value]="abteilung">{{ abteilung }}</option>
     </select>

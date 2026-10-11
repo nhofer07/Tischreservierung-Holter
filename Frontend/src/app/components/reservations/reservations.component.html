@@ -12,12 +12,12 @@
 
   <div class="view-switch"><button type="button" [class.active]="ansicht === 'liste'" (click)="ansicht='liste'">Liste</button><button type="button" [class.active]="ansicht === 'kalender'" (click)="ansicht='kalender'">14-Tage-Kalender</button></div>
 
-  <div class="reservation-list" *ngIf="ansicht === 'liste' && aktiveReservierungen.length > 0; else emptyState">
-    <article *ngFor="let reservierung of aktiveReservierungen">
+  <div class="reservation-list" *ngIf="ansicht === 'liste' && activeReservations.length > 0; else emptyState">
+    <article *ngFor="let reservierung of activeReservations">
       <div class="date-block">
-        <span>{{ datum(reservierung.reservierungAnfang) }}</span>
+        <span>{{ formatDate(reservierung.reservierungAnfang) }}</span>
         <strong>
-          {{ uhrzeit(reservierung.reservierungAnfang) }}–{{ uhrzeit(reservierung.reservierungEnde) }}
+          {{ formatTime(reservierung.reservierungAnfang) }}–{{ formatTime(reservierung.reservierungEnde) }}
         </strong>
       </div>
 
@@ -35,14 +35,14 @@
       >
         Stornieren
       </button>
-      <button type="button" class="edit-button" (click)="bearbeitungStarten(reservierung)">Zeitraum ändern</button>
-      <div class="edit-times" *ngIf="bearbeiteteId === reservierung.id"><label>Beginn<input type="datetime-local" [(ngModel)]="bearbeitungAnfang" /></label><label>Ende<input type="datetime-local" [(ngModel)]="bearbeitungEnde" /></label><button type="button" (click)="bearbeitungSpeichern(reservierung)">Änderung speichern</button><button type="button" (click)="bearbeiteteId=''">Abbrechen</button></div>
+      <button type="button" class="edit-button" (click)="startEditingReservation(reservierung)">Zeitraum ändern</button>
+      <div class="edit-times" *ngIf="bearbeiteteId === reservierung.id"><label>Beginn<input type="datetime-local" [max]="buchbarBis + 'T23:59'" [(ngModel)]="bearbeitungAnfang" /></label><label>Ende<input type="datetime-local" [max]="buchbarBis + 'T23:59'" [(ngModel)]="bearbeitungEnde" /></label><button type="button" (click)="saveReservationChanges(reservierung)">Änderung speichern</button><button type="button" (click)="bearbeiteteId=''">Abbrechen</button></div>
     </article>
   </div>
 
-  <div class="calendar-grid" *ngIf="ansicht === 'kalender'"><article *ngFor="let tag of kalenderTage"><header><strong>{{ datum(tag.datum.toISOString()) }}</strong><span>{{ tag.reservierungen.length }} {{ tag.reservierungen.length === 1 ? 'Termin' : 'Termine' }}</span></header><div *ngFor="let reservierung of tag.reservierungen"><b>{{ uhrzeit(reservierung.reservierungAnfang) }}–{{ uhrzeit(reservierung.reservierungEnde) }}</b><span>Tisch {{ reservierung.tischnr }} · {{ reservierung.raumName }}</span></div><small *ngIf="tag.reservierungen.length === 0">Frei</small></article></div>
+  <div class="calendar-grid" *ngIf="ansicht === 'kalender'"><article *ngFor="let tag of calendarDays"><header><strong>{{ formatDate(tag.datum.toISOString()) }}</strong><span>{{ tag.reservierungen.length }} {{ tag.reservierungen.length === 1 ? 'Termin' : 'Termine' }}</span></header><div *ngFor="let reservierung of tag.reservierungen"><b>{{ formatTime(reservierung.reservierungAnfang) }}–{{ formatTime(reservierung.reservierungEnde) }}</b><span>Tisch {{ reservierung.tischnr }} · {{ reservierung.raumName }}</span></div><small *ngIf="tag.reservierungen.length === 0">Frei</small></article></div>
 
-  <section class="past-reservations" *ngIf="vergangeneReservierungen.length"><h2>Vergangen und storniert</h2><article *ngFor="let reservierung of vergangeneReservierungen"><span>{{ datum(reservierung.reservierungAnfang) }} · {{ reservierung.raumName }} · Tisch {{ reservierung.tischnr }}</span><strong>{{ vergangenerStatus(reservierung) }}</strong><small *ngIf="reservierung.stornierungsgrund">{{ reservierung.stornierungsgrund }}</small></article></section>
+  <section class="past-reservations" *ngIf="pastReservations.length"><h2>Vergangen und storniert</h2><article *ngFor="let reservierung of pastReservations"><span>{{ formatDate(reservierung.reservierungAnfang) }} · {{ reservierung.raumName }} · Tisch {{ reservierung.tischnr }}</span><strong>{{ getPastReservationStatus(reservierung) }}</strong><small *ngIf="reservierung.stornierungsgrund">{{ reservierung.stornierungsgrund }}</small></article></section>
 
   <ng-template #emptyState><ng-container *ngIf="ansicht === 'liste'">
     <div class="empty-state">

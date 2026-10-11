@@ -2,6 +2,8 @@ package at.htlleonding.model;
 
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
@@ -10,26 +12,38 @@ public class Raum {
     @BsonId
     private String id;
     private String name;
-    private String stockwerk;
-    private String standortId;
-    private String abteilungId;
-    private String abteilungName;
-    private List<RaumElement> elemente;
-    private List<Arbeitsplatz> arbeitsplaetze;
+    @BsonProperty("stockwerk")
+    @JsonProperty("stockwerk")
+    private String floor;
+    @BsonProperty("standortId")
+    @JsonProperty("standortId")
+    private String locationId;
+    @BsonProperty("abteilungId")
+    @JsonProperty("abteilungId")
+    private String departmentId;
+    @BsonProperty("abteilungName")
+    @JsonProperty("abteilungName")
+    private String departmentName;
+    @BsonProperty("elemente")
+    @JsonProperty("elemente")
+    private List<RaumElement> elements;
+    @BsonProperty("arbeitsplaetze")
+    @JsonProperty("arbeitsplaetze")
+    private List<Arbeitsplatz> workstations;
 
     public Raum() {
     }
 
-    public Raum(String id, String name, String stockwerk, String standortId, String abteilungId,
-                String abteilungName, List<RaumElement> elemente, List<Arbeitsplatz> arbeitsplaetze) {
+    public Raum(String id, String name, String floor, String locationId, String departmentId,
+                String departmentName, List<RaumElement> elements, List<Arbeitsplatz> workstations) {
         this.id = id;
         this.name = name;
-        this.stockwerk = stockwerk;
-        this.standortId = standortId;
-        this.abteilungId = abteilungId;
-        this.abteilungName = abteilungName;
-        this.elemente = elemente;
-        this.arbeitsplaetze = arbeitsplaetze;
+        this.floor = floor;
+        this.locationId = locationId;
+        this.departmentId = departmentId;
+        this.departmentName = departmentName;
+        this.elements = elements;
+        this.workstations = workstations;
     }
 
     public String getId() {
@@ -48,46 +62,46 @@ public class Raum {
         this.name = name;
     }
 
-    public String getStockwerk() {
-        return stockwerk;
+    public String getFloor() {
+        return floor;
     }
 
-    public void setStockwerk(String stockwerk) {
-        this.stockwerk = stockwerk;
+    public void setFloor(String floor) {
+        this.floor = floor;
     }
 
-    public String getStandortId() {
-        return standortId;
+    public String getLocationId() {
+        return locationId;
     }
 
-    public void setStandortId(String standortId) {
-        this.standortId = standortId;
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
     }
 
-    public String getAbteilungId() {
-        return abteilungId;
+    public String getDepartmentId() {
+        return departmentId;
     }
 
-    public void setAbteilungId(String abteilungId) {
-        this.abteilungId = abteilungId;
+    public void setDepartmentId(String departmentId) {
+        this.departmentId = departmentId;
     }
 
-    public String getAbteilungName() {
-        return abteilungName;
+    public String getDepartmentName() {
+        return departmentName;
     }
 
-    public void setAbteilungName(String abteilungName) {
-        this.abteilungName = abteilungName;
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
     }
 
-    public List<RaumElement> getElemente() { return elemente; }
-    public void setElemente(List<RaumElement> elemente) { this.elemente = elemente; }
+    public List<RaumElement> getElements() { return elements; }
+    public void setElements(List<RaumElement> elements) { this.elements = elements; }
 
-    public List<Arbeitsplatz> getArbeitsplaetze() {
-        return arbeitsplaetze;
+    public List<Arbeitsplatz> getWorkstations() {
+        return workstations;
     }
 
-    public void setArbeitsplaetze(List<Arbeitsplatz> arbeitsplaetze) {
-        this.arbeitsplaetze = arbeitsplaetze;
+    public void setWorkstations(List<Arbeitsplatz> workstations) {
+        this.workstations = workstations;
     }
 }

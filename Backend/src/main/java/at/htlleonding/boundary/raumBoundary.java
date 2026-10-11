@@ -24,19 +24,19 @@ public class raumBoundary {
     @GET
     @Path("/standort/{standortId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<RaumAuswahlDTO> getRaeumeByStandort(@PathParam("standortId") String standortId) {
-        return arbeitsplatzRepo.getRaeumeByStandort(standortId);
+    public List<RaumAuswahlDTO> getRoomsByLocation(@PathParam("standortId") String standortId) {
+        return arbeitsplatzRepo.getRoomsByLocation(standortId);
     }
 
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public RaumDTO getRaum(
+    public RaumDTO getRoom(
             @PathParam("id") String id,
             @QueryParam("von") String von,
             @QueryParam("bis") String bis,
             @QueryParam("benutzerId") String benutzerId
     ) {
-        return arbeitsplatzRepo.getRaum(id, von, bis, benutzerId);
+        return arbeitsplatzRepo.getRoom(id, von, bis, benutzerId);
     }
 }
