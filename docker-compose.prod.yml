@@ -1,0 +1,28 @@
+# Produktions-Override. Start siehe README; niemals mit den Beispielpasswörtern betreiben.
+services:
+  mongodb:
+    ports: !reset []
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?MONGO_ROOT_USER fehlt}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD fehlt}
+      MONGO_APP_USER: ${MONGO_APP_USER:?MONGO_APP_USER fehlt}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD fehlt}
+    volumes:
+      - ./Datenbank/docker-init-app-user.sh:/docker-entrypoint-initdb.d/20-deskvision-app-user.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping')\""]
+
+  backend:
+    environment:
+      QUARKUS_PROFILE: prod
+      QUARKUS_MONGODB_CONNECTION_STRING: mongodb://mongodb:27017
+      QUARKUS_MONGODB_CREDENTIALS_USERNAME: ${MONGO_APP_USER:?MONGO_APP_USER fehlt}
+      QUARKUS_MONGODB_CREDENTIALS_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD fehlt}
+      QUARKUS_MONGODB_CREDENTIALS_AUTH_SOURCE: tischreservierung
+      QUARKUS_OIDC_AUTH_SERVER_URL: https://login.microsoftonline.com/${ENTRA_TENANT_ID:?ENTRA_TENANT_ID fehlt}/v2.0
+      QUARKUS_OIDC_CLIENT_ID: ${ENTRA_CLIENT_ID:?ENTRA_CLIENT_ID fehlt}
+      QUARKUS_OIDC_TOKEN_AUDIENCE: ${ENTRA_CLIENT_ID:?ENTRA_CLIENT_ID fehlt}
+
+  frontend:
+    ports: !override
+      - "127.0.0.1:${DESKVISION_HTTP_PORT:-3000}:80"

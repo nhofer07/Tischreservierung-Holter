@@ -85,6 +85,30 @@ export interface BenutzerRequest {
   abteilungName: string; bevorzugterRaumId: string; aktiv: boolean;
 }
 
+export interface MitarbeiterImportFehler {
+  zeile: number;
+  feld: string;
+  meldung: string;
+}
+
+export interface MitarbeiterImportZeile {
+  zeile: number;
+  vorname: string;
+  nachname: string;
+  email: string;
+  abteilung: string;
+  bevorzugterRaum: string;
+  aktiv: boolean;
+}
+
+export interface MitarbeiterImportErgebnis {
+  gesamt: number;
+  gueltig: number;
+  importiert: number;
+  vorschau: MitarbeiterImportZeile[];
+  fehler: MitarbeiterImportFehler[];
+}
+
 export interface StandortRequest { name: string; adresse: string; ort: string; }
 
 export interface FirmenEinstellung {
@@ -100,7 +124,7 @@ export interface FirmenDesignHistorie extends FirmenEinstellung {
   zeitpunkt: string;
 }
 
-export interface AuditEintrag { _id: string; adminId: string; aktion: string; details: string; zeitpunkt: string; }
+export interface AuditEintrag { _id: string; adminId: string; adminName?: string; aktion: string; details: string; zeitpunkt: string; }
 
 export interface Reservierung {
   id: string;

@@ -90,12 +90,36 @@ nav button.active {
 .logout:hover { border-color: #a51e2d; color: #a51e2d; }
 
 .global-message {
+  align-items: center;
   border-bottom: 1px solid;
+  display: grid;
   font-size: 14px;
   font-weight: 700;
-  padding: 11px clamp(20px, 5vw, 72px);
+  gap: 16px;
+  grid-template-columns: 1fr auto;
+  padding: 8px clamp(20px, 5vw, 72px);
   text-align: center;
 }
+
+.global-message span { grid-column:1; justify-self:center; }
+.global-message button {
+  align-items:center;
+  background:transparent;
+  border:0;
+  border-radius:50%;
+  color:currentColor;
+  cursor:pointer;
+  display:inline-flex;
+  font:inherit;
+  font-size:21px;
+  height:30px;
+  justify-content:center;
+  line-height:1;
+  padding:0;
+  width:30px;
+}
+.global-message button:hover,
+.global-message button:focus-visible { background:rgba(0,0,0,.07); outline:none; }
 
 .error-message {
   background: #fff1f1;

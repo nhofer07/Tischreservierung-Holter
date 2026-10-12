@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, BenutzerRequest, FirmenDesignHistorie, FirmenEinstellung, Raum, RaumAuswahl, RaumRequest, Reservierung, Standort, StandortRequest, Zeitraum } from '../models';
+import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, BenutzerRequest, FirmenDesignHistorie, FirmenEinstellung, MitarbeiterImportErgebnis, Raum, RaumAuswahl, RaumRequest, Reservierung, Standort, StandortRequest, Zeitraum } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +29,10 @@ export class ArbeitsplatzService {
 
   getBookingSettings(): Observable<{ maxWochen: number; buchbarBis: string }> {
     return this.http.get<{ maxWochen: number; buchbarBis: string }>(`${this.apiUrl}/einstellungen/reservierung`);
+  }
+
+  getRuntimeSettings(): Observable<{ testLoginAktiv: boolean }> {
+    return this.http.get<{ testLoginAktiv: boolean }>(`${this.apiUrl}/einstellungen/laufzeit`);
   }
 
   saveBookingSettings(adminId: string, maxWochen: number): Observable<{ maxWochen: number; buchbarBis: string }> {
@@ -162,6 +166,24 @@ export class ArbeitsplatzService {
 
   createUser(adminId: string, request: BenutzerRequest): Observable<Benutzer> {
     return this.http.post<Benutzer>(`${this.apiUrl}/admin/benutzer`, request, { params: { adminId } });
+  }
+
+  downloadUserImportTemplate(adminId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/admin/benutzer/import/vorlage`, {
+      params: { adminId }, responseType: 'blob'
+    });
+  }
+
+  validateUserImport(adminId: string, datei: File): Observable<MitarbeiterImportErgebnis> {
+    const formular = new FormData();
+    formular.append('datei', datei, datei.name);
+    return this.http.post<MitarbeiterImportErgebnis>(`${this.apiUrl}/admin/benutzer/import/pruefen`, formular, { params: { adminId } });
+  }
+
+  importUsers(adminId: string, datei: File): Observable<MitarbeiterImportErgebnis> {
+    const formular = new FormData();
+    formular.append('datei', datei, datei.name);
+    return this.http.post<MitarbeiterImportErgebnis>(`${this.apiUrl}/admin/benutzer/import`, formular, { params: { adminId } });
   }
 
   updateUser(adminId: string, id: string, request: BenutzerRequest): Observable<Benutzer> {

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FirmenEinstellung } from '../../models';
-import { lokalerTestLoginAktiv } from '../../auth/entra-config';
 
 @Component({
   selector: 'app-login',
@@ -13,6 +12,7 @@ import { lokalerTestLoginAktiv } from '../../auth/entra-config';
 export class LoginComponent {
   @Input() laden = false;
   @Input() fehler = '';
+  @Input() lokalerTestLoginAktiv = false;
   @Input() firmenEinstellung: FirmenEinstellung = { firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' };
   @Output() entraAnmelden = new EventEmitter<void>();
   @Output() testAnmelden = new EventEmitter<{ email: string; passwort: string }>();
@@ -20,7 +20,6 @@ export class LoginComponent {
   email = '';
   passwort = '';
   testLoginOffen = false;
-  readonly lokalerTestLoginAktiv = lokalerTestLoginAktiv;
 
   submitTestLogin(): void {
     if (this.email.trim() && this.passwort) {

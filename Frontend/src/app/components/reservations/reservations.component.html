@@ -36,7 +36,7 @@
         Stornieren
       </button>
       <button type="button" class="edit-button" (click)="startEditingReservation(reservierung)">Zeitraum ändern</button>
-      <div class="edit-times" *ngIf="bearbeiteteId === reservierung.id"><label>Beginn<input type="datetime-local" [max]="buchbarBis + 'T23:59'" [(ngModel)]="bearbeitungAnfang" /></label><label>Ende<input type="datetime-local" [max]="buchbarBis + 'T23:59'" [(ngModel)]="bearbeitungEnde" /></label><button type="button" (click)="saveReservationChanges(reservierung)">Änderung speichern</button><button type="button" (click)="bearbeiteteId=''">Abbrechen</button></div>
+      <div class="edit-times" *ngIf="bearbeiteteId === reservierung.id"><label>Beginn<input type="datetime-local" [min]="minimumStartDateTime" [max]="buchbarBis + 'T23:59'" [(ngModel)]="bearbeitungAnfang" /></label><label>Ende<input type="datetime-local" [min]="bearbeitungAnfang || minimumStartDateTime" [max]="buchbarBis + 'T23:59'" [(ngModel)]="bearbeitungEnde" /></label><button type="button" [disabled]="!reservationChangeValid || laden" (click)="saveReservationChanges(reservierung)">Änderung speichern</button><button type="button" (click)="bearbeiteteId=''">Abbrechen</button><small *ngIf="!reservationChangeValid">Bitte einen zukünftigen Zeitraum mit einem Ende nach dem Beginn wählen.</small></div>
     </article>
   </div>
 

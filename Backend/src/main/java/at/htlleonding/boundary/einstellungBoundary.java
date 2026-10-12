@@ -8,6 +8,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.Map;
 
 @Path("/api/einstellungen")
 @ApplicationScoped
@@ -16,6 +19,15 @@ public class einstellungBoundary {
 
     @Inject
     ArbeitsplatzRepo arbeitsplatzRepo;
+
+    @ConfigProperty(name = "deskvision.test-login.enabled", defaultValue = "false")
+    boolean testLoginEnabled;
+
+    @GET
+    @Path("/laufzeit")
+    public Map<String, Boolean> getRuntimeSettings() {
+        return Map.of("testLoginAktiv", testLoginEnabled);
+    }
 
     @GET
     @Path("/reservierung")

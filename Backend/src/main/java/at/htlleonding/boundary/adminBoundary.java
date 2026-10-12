@@ -13,8 +13,13 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -94,6 +99,55 @@ public class adminBoundary {
     public Response deleteUser(@PathParam("id") String id, @QueryParam("adminId") String adminId) {
         arbeitsplatzRepo.deleteUser(adminId, id);
         return Response.noContent().build();
+    }
+
+    @GET
+    @Path("/benutzer/import/vorlage")
+    @Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    public Response downloadUserImportTemplate(@QueryParam("adminId") String adminId) {
+        return Response.ok(arbeitsplatzRepo.createUserImportTemplate(adminId))
+                .header("Content-Disposition", "attachment; filename=mitarbeiter-import-vorlage.xlsx")
+                .build();
+    }
+
+    @POST
+    @Path("/benutzer/import/pruefen")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public at.htlleonding.DTOs.MitarbeiterImportErgebnisDTO validateUserImport(
+            @QueryParam("adminId") String adminId, @RestForm("datei") FileUpload datei) {
+        validateImportFile(datei);
+        try (InputStream eingabe = Files.newInputStream(datei.uploadedFile())) {
+            return arbeitsplatzRepo.validateUserImport(adminId, eingabe);
+        } catch (IOException exception) {
+            throw new BadRequestException("Die Excel-Datei konnte nicht gelesen werden.");
+        }
+    }
+
+    @POST
+    @Path("/benutzer/import")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public at.htlleonding.DTOs.MitarbeiterImportErgebnisDTO importUsers(
+            @QueryParam("adminId") String adminId, @RestForm("datei") FileUpload datei) {
+        validateImportFile(datei);
+        try (InputStream eingabe = Files.newInputStream(datei.uploadedFile())) {
+            return arbeitsplatzRepo.importUsers(adminId, eingabe);
+        } catch (IOException exception) {
+            throw new BadRequestException("Die Excel-Datei konnte nicht gelesen werden.");
+        }
+    }
+
+    private void validateImportFile(FileUpload datei) {
+        if (datei == null || datei.uploadedFile() == null || datei.fileName() == null
+                || !datei.fileName().toLowerCase().endsWith(".xlsx")) {
+            throw new BadRequestException("Bitte eine Excel-Datei im Format .xlsx auswählen.");
+        }
+        try {
+            if (Files.size(datei.uploadedFile()) > 5L * 1024 * 1024) {
+                throw new BadRequestException("Die Excel-Datei darf maximal 5 MB groß sein.");
+            }
+        } catch (IOException exception) {
+            throw new BadRequestException("Die Excel-Datei konnte nicht geprüft werden.");
+        }
     }
 
     @POST
