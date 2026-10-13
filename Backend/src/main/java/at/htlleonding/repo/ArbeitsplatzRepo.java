@@ -291,13 +291,25 @@ public class ArbeitsplatzRepo {
         validateUserRequest(request);
         validateUserPermissions(admin, request);
         validatePreferredRoom(request);
-        if (getDatabase().getCollection("benutzer").find(new Document("email", request.email().trim().toLowerCase())).first() != null)
-            throw new BadRequestException("Diese E-Mail-Adresse wird bereits verwendet.");
-        String id = "USER-" + System.currentTimeMillis();
-        Document dokument = buildUserDocument(id, request).append("passwortHash", hashPassword("holter123"));
-        getDatabase().getCollection("benutzer").insertOne(dokument);
-        recordAuditEntry(adminId, "BENUTZER_ANGELEGT", request.email());
-        return toUserDto(toUser(dokument));
+        synchronized (userImportWriteLock) {
+            String email = request.email().trim().toLowerCase(Locale.ROOT);
+            Document bestehend = getDatabase().getCollection("benutzer")
+                    .find(new Document("email", email)).first();
+            if (bestehend != null && !bestehend.getBoolean("geloescht", false)) {
+                throw new BadRequestException("Diese E-Mail-Adresse wird bereits verwendet.");
+            }
+            if (bestehend != null) {
+                // Ältere Versionen haben gelöschte Konten als ausgeblendeten Datensatz behalten.
+                // Vor dem erneuten Anlegen wird dieser Altbestand entfernt, damit der eindeutige
+                // E-Mail-Index nicht kollidiert.
+                getDatabase().getCollection("benutzer").deleteOne(new Document("_id", bestehend.getString("_id")));
+            }
+            String id = "USER-" + System.currentTimeMillis();
+            Document dokument = buildUserDocument(id, request).append("passwortHash", hashPassword("holter123"));
+            getDatabase().getCollection("benutzer").insertOne(dokument);
+            recordAuditEntry(adminId, "BENUTZER_ANGELEGT", request.email());
+            return toUserDto(toUser(dokument));
+        }
     }
 
     public BenutzerDTO updateUser(String adminId, String id, BenutzerRequestDTO request) {
@@ -327,9 +339,8 @@ public class ArbeitsplatzRepo {
         if (!"USER".equals(benutzer.getString("rolle"))) {
             throw new BadRequestException("Admin-Konten werden über die Rollenverwaltung geändert und nicht als Mitarbeiter gelöscht.");
         }
-        getDatabase().getCollection("benutzer").updateOne(new Document("_id", id),
-                new Document("$set", new Document("aktiv", false).append("geloescht", true)));
         deleteUserReservations(adminId, id);
+        getDatabase().getCollection("benutzer").deleteOne(new Document("_id", id));
         recordAuditEntry(adminId, "BENUTZER_GELOESCHT", benutzer.getString("email"));
     }
 
@@ -447,9 +458,12 @@ public class ArbeitsplatzRepo {
         List<BenutzerRequestDTO> gueltigeAnfragen = new ArrayList<>();
         Set<String> dateiEmails = new HashSet<>();
         Set<String> vorhandeneEmails = new HashSet<>();
-        getDatabase().getCollection("benutzer").find().projection(new Document("email", 1)).forEach(dokument -> {
+        getDatabase().getCollection("benutzer").find()
+                .projection(new Document("email", 1).append("geloescht", 1)).forEach(dokument -> {
             String email = dokument.getString("email");
-            if (!isBlank(email)) vorhandeneEmails.add(email.trim().toLowerCase(Locale.ROOT));
+            if (!dokument.getBoolean("geloescht", false) && !isBlank(email)) {
+                vorhandeneEmails.add(email.trim().toLowerCase(Locale.ROOT));
+            }
         });
 
         Map<String, Document> abteilungen = new HashMap<>();
@@ -567,6 +581,11 @@ public class ArbeitsplatzRepo {
                 dokumente.add(buildUserDocument("USER-IMPORT-" + importZeit + "-" + index, request)
                         .append("passwortHash", hashPassword("holter123")));
             }
+            List<String> importEmails = dokumente.stream().map(dokument -> dokument.getString("email")).toList();
+            // Bereinigt Soft-Delete-Altbestände aus früheren Versionen. Aktive oder nur
+            // deaktivierte Konten wurden bereits oben als Duplikat abgewiesen.
+            getDatabase().getCollection("benutzer").deleteMany(new Document("email", new Document("$in", importEmails))
+                    .append("geloescht", true));
             getDatabase().getCollection("benutzer").insertMany(dokumente);
             importiert = dokumente.size();
             recordAuditEntry(adminId, "MITARBEITER_IMPORTIERT", importiert + " Mitarbeiter");

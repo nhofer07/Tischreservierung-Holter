@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,6 +82,22 @@ class ReservierungsFeedbackTest {
     void deleteRemovesReservations() {
         repo.deleteUser("SUPER", "USER");
         verify(reservations).deleteMany(new Document("benutzerId", "USER"));
+        verify(users).deleteOne(new Document("_id", "USER"));
+        verify(users, never()).updateOne(eq(new Document("_id", "USER")), any(Document.class));
+    }
+
+    @Test
+    void deletedEmailCanBeCreatedAgain() {
+        Document deleted = user("OLD", "USER", false).append("email", "wieder@test.at").append("geloescht", true);
+        when(users.find(new Document("email", "wieder@test.at")).first()).thenReturn(deleted);
+
+        BenutzerDTO created = repo.createUser("SUPER", new BenutzerRequestDTO(
+                "Wieder", "Da", "wieder@test.at", "USER", "IT", "IT", "", true));
+
+        assertEquals("wieder@test.at", created.email());
+        verify(users).deleteOne(new Document("_id", "OLD"));
+        verify(users).insertOne(argThat(document -> "wieder@test.at".equals(document.getString("email"))
+                && !document.containsKey("geloescht") && document.getBoolean("aktiv")));
     }
 
     @Test
@@ -182,6 +199,32 @@ class ReservierungsFeedbackTest {
         assertFalse(result.fehler().isEmpty());
         assertEquals(0, result.importiert());
         verify(users, never()).insertMany(anyList());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deletedEmailCanBeImportedAgain() throws IOException {
+        mockImportDepartment();
+        FindIterable<Document> allUsers = mock(FindIterable.class);
+        FindIterable<Document> projectedUsers = mock(FindIterable.class);
+        when(users.find()).thenReturn(allUsers);
+        when(allUsers.projection(any(Document.class))).thenReturn(projectedUsers);
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            consumer.accept(new Document("email", "zurueck@holter.test").append("geloescht", true));
+            return null;
+        }).when(projectedUsers).forEach(any());
+
+        var result = repo.importUsers("SUPER", excel(
+                new String[]{"Vorname", "Nachname", "E-Mail", "Abteilung"},
+                new String[]{"Wieder", "Da", "zurueck@holter.test", "IT"}));
+
+        assertEquals(1, result.importiert());
+        assertTrue(result.fehler().isEmpty());
+        verify(users).deleteMany(new Document("email", new Document("$in", List.of("zurueck@holter.test")))
+                .append("geloescht", true));
+        verify(users).insertMany(argThat(documents -> documents.size() == 1
+                && "zurueck@holter.test".equals(documents.getFirst().getString("email"))));
     }
 
     @SuppressWarnings("unchecked")
