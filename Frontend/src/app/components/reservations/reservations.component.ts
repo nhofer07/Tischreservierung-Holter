@@ -67,12 +67,28 @@ export class ReservationsComponent {
   }
 
   saveReservationChanges(reservierung: Reservierung): void {
+    if (!this.reservationChangeValid) return;
     this.bearbeiten.emit({
       reservierung,
       anfang: this.bearbeitungAnfang,
       ende: this.bearbeitungEnde,
     });
     this.bearbeiteteId = '';
+  }
+
+  get minimumStartDateTime(): string {
+    return this.toLocalDateTimeInput(new Date().toISOString());
+  }
+
+  get reservationChangeValid(): boolean {
+    const anfang = new Date(this.bearbeitungAnfang);
+    const ende = new Date(this.bearbeitungEnde);
+    return (
+      !Number.isNaN(anfang.getTime()) &&
+      !Number.isNaN(ende.getTime()) &&
+      anfang.getTime() >= Date.now() &&
+      anfang < ende
+    );
   }
 
   private toLocalDateTimeInput(iso: string): string {

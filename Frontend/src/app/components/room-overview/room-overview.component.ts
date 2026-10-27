@@ -29,6 +29,15 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   get today(): string {
     return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
   }
+  get minimumStartTime(): string {
+    if (this.zeitraumSignal().datum !== this.today) return '00:00';
+    return new Intl.DateTimeFormat('de-AT', {
+      timeZone: 'Europe/Vienna',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date());
+  }
 
   @Input({ required: true }) raum!: Raum;
   @Input({ required: true }) benutzer!: Benutzer;
@@ -37,6 +46,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   @Input() fehler = '';
 
   @Output() tischAuswaehlen = new EventEmitter<Arbeitsplatz>();
+  @Output() tischAuswahlAufheben = new EventEmitter<void>();
   @Output() schliessen = new EventEmitter<void>();
   @Output() reservieren = new EventEmitter<void>();
   @Output() raumWechseln = new EventEmitter<string>();
@@ -142,6 +152,16 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
     this.ausstattungFilter.update((filter) =>
       aktiv ? [...filter, name] : filter.filter((eintrag) => eintrag !== name),
     );
+    if (
+      this.ausgewaehlterTisch &&
+      !this.visibleDesks.some((tisch) => tisch.id === this.ausgewaehlterTisch?.id)
+    ) {
+      // Die Detailkarte darf keinen inzwischen ausgefilterten Tisch behalten.
+      // Das lokale Zurücksetzen wirkt sofort; das Event hält zusätzlich den
+      // Auswahlzustand der übergeordneten Ansicht synchron.
+      this.ausgewaehlterTisch = null;
+      this.tischAuswahlAufheben.emit();
+    }
   }
 
   checkAvailability(): void {

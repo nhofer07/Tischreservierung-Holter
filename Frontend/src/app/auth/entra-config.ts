@@ -34,8 +34,3 @@ export const entraLoginRequest: RedirectRequest = {
   scopes: entraScopes,
   prompt: 'select_account',
 };
-
-// Der lokale Login bleibt nur für Entwicklung und Schulpräsentationen vorhanden.
-export const lokalerTestLoginAktiv =
-  (runtimeConfig?.enableLocalTestLogin ?? true) &&
-  ['localhost', '127.0.0.1'].includes(window.location.hostname);

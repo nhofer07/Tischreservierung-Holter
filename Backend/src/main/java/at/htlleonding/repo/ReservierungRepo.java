@@ -30,6 +30,8 @@ import org.bson.Document;
 @ApplicationScoped
 public class ReservierungRepo extends MongoRepository {
 
+    private final Object reservationWriteLock = new Object();
+
     @Inject
     AuditRepo auditRepo;
 
@@ -54,55 +56,61 @@ public class ReservierungRepo extends MongoRepository {
     }
 
     public ReservierungDTO createReservation(ReservierungRequestDTO request) {
-        BenutzerDTO benutzer = benutzerZugriff.getUser(request.benutzerId());
-        Date anfang = parseDateTime(request.reservierungAnfang());
-        Date ende = parseDateTime(request.reservierungEnde());
-        validateTimeRange(anfang, ende);
-        einstellungRepo.validateBookingLimit(anfang, ende);
+        synchronized (reservationWriteLock) {
+            BenutzerDTO benutzer = benutzerZugriff.getUser(request.benutzerId());
+            Date anfang = parseDateTime(request.reservierungAnfang());
+            Date ende = parseDateTime(request.reservierungEnde());
+            validateTimeRange(anfang, ende);
+            einstellungRepo.validateBookingLimit(anfang, ende);
 
-        MongoDatabase db = getDatabase();
-        Document arbeitsplatzDocument = db
-            .getCollection("arbeitsplaetze")
-            .find(new Document("_id", request.arbeitsplatzId()))
-            .first();
+            MongoDatabase db = getDatabase();
+            Document arbeitsplatzDocument = db
+                .getCollection("arbeitsplaetze")
+                .find(new Document("_id", request.arbeitsplatzId()))
+                .first();
 
-        if (arbeitsplatzDocument == null) {
-            throw new NotFoundException("Arbeitsplatz wurde nicht in der Datenbank gefunden.");
-        }
+            if (arbeitsplatzDocument == null) {
+                throw new NotFoundException("Arbeitsplatz wurde nicht in der Datenbank gefunden.");
+            }
 
-        Arbeitsplatz arbeitsplatz = toWorkstation(arbeitsplatzDocument);
-        validateDepartmentAccess(arbeitsplatz, benutzer);
-        if (request.wiederholungen() < 0 || request.wiederholungen() > 51) {
-            throw new BadRequestException(
+            Arbeitsplatz arbeitsplatz = toWorkstation(arbeitsplatzDocument);
+            validateDepartmentAccess(arbeitsplatz, benutzer);
+            if (
+                request.wiederholungen() < 0 || request.wiederholungen() > 51
+            ) throw new BadRequestException(
                 "Die Anzahl der Wiederholungen muss zwischen 0 und 51 liegen."
             );
+            int anzahl = request.wiederholungen() + 1;
+            List<Document> neueReservierungen = new ArrayList<>();
+            for (int index = 0; index < anzahl; index++) {
+                Date serienAnfang = Date.from(
+                    anfang
+                        .toInstant()
+                        .atZone(ZoneId.of("Europe/Vienna"))
+                        .plusWeeks(index)
+                        .toInstant()
+                );
+                Date serienEnde = Date.from(
+                    ende.toInstant().atZone(ZoneId.of("Europe/Vienna")).plusWeeks(index).toInstant()
+                );
+                einstellungRepo.validateBookingLimit(serienAnfang, serienEnde);
+                validateWorkstationAvailability(db, arbeitsplatz.getId(), serienAnfang, serienEnde);
+                validateUserAvailability(db, benutzer.id(), serienAnfang, serienEnde, null);
+                neueReservierungen.add(
+                    new Document("_id", "RES-" + System.currentTimeMillis() + "-" + index)
+                        .append("benutzerId", benutzer.id())
+                        .append("arbeitsplatzId", arbeitsplatz.getId())
+                        .append("raumId", arbeitsplatz.getRoomId())
+                        .append("standortId", arbeitsplatz.getLocationId())
+                        .append("abteilungId", arbeitsplatz.getDepartmentId())
+                        .append("reservierungAnfang", serienAnfang)
+                        .append("reservierungEnde", serienEnde)
+                        .append("status", "reserviert")
+                );
+            }
+            db.getCollection("reservierungen").insertMany(neueReservierungen);
+            return toReservationDto(db, neueReservierungen.get(0));
         }
-        int anzahl = request.wiederholungen() + 1;
-        List<Document> neueReservierungen = new ArrayList<>();
-        for (int index = 0; index < anzahl; index++) {
-            Date serienAnfang = Date.from(
-                anfang.toInstant().atZone(ZoneId.of("Europe/Vienna")).plusWeeks(index).toInstant()
-            );
-            Date serienEnde = Date.from(
-                ende.toInstant().atZone(ZoneId.of("Europe/Vienna")).plusWeeks(index).toInstant()
-            );
-            einstellungRepo.validateBookingLimit(serienAnfang, serienEnde);
-            validateWorkstationAvailability(db, arbeitsplatz.getId(), serienAnfang, serienEnde);
-            validateUserAvailability(db, benutzer.id(), serienAnfang, serienEnde, null);
-            neueReservierungen.add(
-                new Document("_id", "RES-" + System.currentTimeMillis() + "-" + index)
-                    .append("benutzerId", benutzer.id())
-                    .append("arbeitsplatzId", arbeitsplatz.getId())
-                    .append("raumId", arbeitsplatz.getRoomId())
-                    .append("standortId", arbeitsplatz.getLocationId())
-                    .append("abteilungId", arbeitsplatz.getDepartmentId())
-                    .append("reservierungAnfang", serienAnfang)
-                    .append("reservierungEnde", serienEnde)
-                    .append("status", "reserviert")
-            );
-        }
-        db.getCollection("reservierungen").insertMany(neueReservierungen);
-        return toReservationDto(db, neueReservierungen.get(0));
     }
 
     public List<ReservierungDTO> getReservations(String benutzerId) {
@@ -137,45 +145,45 @@ public class ReservierungRepo extends MongoRepository {
     }
 
     public ReservierungDTO updateReservation(String id, ReservierungRequestDTO request) {
-        benutzerZugriff.getUser(request.benutzerId());
-        Date anfang = parseDateTime(request.reservierungAnfang());
-        Date ende = parseDateTime(request.reservierungEnde());
-        validateTimeRange(anfang, ende);
-        einstellungRepo.validateBookingLimit(anfang, ende);
-        MongoDatabase db = getDatabase();
-        Document filter = new Document("_id", id)
-            .append("benutzerId", request.benutzerId())
-            .append("status", "reserviert");
-        Document reservierung = db.getCollection("reservierungen").find(filter).first();
-        if (reservierung == null) {
-            throw new NotFoundException("Aktive Reservierung wurde nicht gefunden.");
-        }
-        Document konflikt = db
-            .getCollection("reservierungen")
-            .find(
-                new Document("_id", new Document("$ne", id))
-                    .append("arbeitsplatzId", reservierung.getString("arbeitsplatzId"))
-                    .append("status", "reserviert")
-                    .append("reservierungAnfang", new Document("$lt", ende))
-                    .append("reservierungEnde", new Document("$gt", anfang))
-            )
-            .first();
-        if (konflikt != null) {
-            throw new BadRequestException(
+        synchronized (reservationWriteLock) {
+            benutzerZugriff.getUser(request.benutzerId());
+            Date anfang = parseDateTime(request.reservierungAnfang());
+            Date ende = parseDateTime(request.reservierungEnde());
+            validateTimeRange(anfang, ende);
+            einstellungRepo.validateBookingLimit(anfang, ende);
+            MongoDatabase db = getDatabase();
+            Document filter = new Document("_id", id)
+                .append("benutzerId", request.benutzerId())
+                .append("status", "reserviert");
+            Document reservierung = db.getCollection("reservierungen").find(filter).first();
+            if (reservierung == null) throw new NotFoundException(
+                "Aktive Reservierung wurde nicht gefunden."
+            );
+            Document konflikt = db
+                .getCollection("reservierungen")
+                .find(
+                    new Document("_id", new Document("$ne", id))
+                        .append("arbeitsplatzId", reservierung.getString("arbeitsplatzId"))
+                        .append("status", "reserviert")
+                        .append("reservierungAnfang", new Document("$lt", ende))
+                        .append("reservierungEnde", new Document("$gt", anfang))
+                )
+                .first();
+            if (konflikt != null) throw new BadRequestException(
                 "Der geänderte Zeitraum überschneidet eine Reservierung."
             );
+            validateUserAvailability(db, request.benutzerId(), anfang, ende, id);
+            db.getCollection("reservierungen").updateOne(
+                filter,
+                new Document(
+                    "$set",
+                    new Document("reservierungAnfang", anfang).append("reservierungEnde", ende)
+                )
+            );
+            reservierung.put("reservierungAnfang", anfang);
+            reservierung.put("reservierungEnde", ende);
+            return toReservationDto(db, reservierung);
         }
-        validateUserAvailability(db, request.benutzerId(), anfang, ende, id);
-        db.getCollection("reservierungen").updateOne(
-            filter,
-            new Document(
-                "$set",
-                new Document("reservierungAnfang", anfang).append("reservierungEnde", ende)
-            )
-        );
-        reservierung.put("reservierungAnfang", anfang);
-        reservierung.put("reservierungEnde", ende);
-        return toReservationDto(db, reservierung);
     }
 
     public void cancelReservationAsAdmin(String adminId, String id, NameRequestDTO request) {

@@ -7,7 +7,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.bson.Document;
 
 @ApplicationScoped
@@ -21,12 +23,27 @@ public class AuditRepo extends MongoRepository {
         Document filter = isSuperadmin(admin)
             ? new Document()
             : new Document("adminId", admin.id());
-        return getDatabase()
+        List<Document> eintraege = getDatabase()
             .getCollection("auditLog")
             .find(filter)
             .sort(new Document("zeitpunkt", -1))
             .limit(100)
             .into(new ArrayList<>());
+        Map<String, String> adminNamen = new HashMap<>();
+        for (Document eintrag : eintraege) {
+            String id = eintrag.getString("adminId");
+            String name = adminNamen.computeIfAbsent(id, schluessel -> {
+                Document benutzer = getDatabase()
+                    .getCollection("benutzer")
+                    .find(new Document("_id", schluessel))
+                    .first();
+                return benutzer == null
+                    ? schluessel
+                    : benutzer.getString("vorname") + " " + benutzer.getString("nachname");
+            });
+            eintrag.put("adminName", name);
+        }
+        return eintraege;
     }
 
     void recordAuditEntry(String adminId, String aktion, String details) {

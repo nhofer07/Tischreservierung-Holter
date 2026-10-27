@@ -42,6 +42,7 @@ export class App implements OnInit {
   aktiveAnsicht = signal<'start' | 'raum' | 'reservierungen' | 'admin'>('start');
   fehler = signal('');
   nachricht = signal('');
+  testLoginAktiv = signal(false);
   laden = signal(false);
   firmenEinstellung = signal<FirmenEinstellung>({
     firmenname: 'HOLTER',
@@ -74,6 +75,7 @@ export class App implements OnInit {
     this.laden.set(true);
     this.loadCompanySettings();
     this.loadBookingSettings();
+    this.loadRuntimeSettings();
     this.entraAuth
       .initialize()
       .then((angemeldet) => (angemeldet ? this.loadCurrentEntraUser() : this.laden.set(false)))
@@ -87,6 +89,13 @@ export class App implements OnInit {
         );
         this.laden.set(false);
       });
+  }
+
+  private loadRuntimeSettings(): void {
+    this.arbeitsplatzService.getRuntimeSettings().subscribe({
+      next: (einstellung) => this.testLoginAktiv.set(einstellung.testLoginAktiv),
+      error: () => this.testLoginAktiv.set(false),
+    });
   }
 
   loadCompanySettings(): void {
@@ -278,6 +287,12 @@ export class App implements OnInit {
     }
 
     this.zeitraum.set(zeitraum);
+    if (this.timeRangeStartsInPast(zeitraum)) {
+      this.ausgewaehlterTisch.set(null);
+      this.fehler.set('Reservierungen in der Vergangenheit sind nicht möglich.');
+      return;
+    }
+    this.fehler.set('');
     this.openRoom(raum.id);
   }
 
@@ -311,11 +326,21 @@ export class App implements OnInit {
     this.nachricht.set('');
   }
 
+  clearDeskSelection(): void {
+    this.ausgewaehlterTisch.set(null);
+    this.fehler.set('');
+  }
+
   createReservation(): void {
     const benutzer = this.aktiverBenutzer();
     const tisch = this.ausgewaehlterTisch();
 
     if (!benutzer || !tisch || !tisch.reservierbar) {
+      return;
+    }
+
+    if (this.timeRangeStartsInPast(this.zeitraum())) {
+      this.fehler.set('Reservierungen in der Vergangenheit sind nicht möglich.');
       return;
     }
 
@@ -362,7 +387,17 @@ export class App implements OnInit {
 
   updateReservation(aenderung: { reservierung: Reservierung; anfang: string; ende: string }): void {
     const benutzer = this.aktiverBenutzer();
-    if (!benutzer) {
+    if (!benutzer) return;
+    const anfang = new Date(aenderung.anfang);
+    const ende = new Date(aenderung.ende);
+    if (Number.isNaN(anfang.getTime()) || Number.isNaN(ende.getTime()) || anfang >= ende) {
+      this.fehler.set(
+        'Bitte einen gültigen Zeitraum auswählen. Das Ende muss nach dem Beginn liegen.',
+      );
+      return;
+    }
+    if (anfang.getTime() < Date.now()) {
+      this.fehler.set('Reservierungen in der Vergangenheit sind nicht möglich.');
       return;
     }
     this.laden.set(true);
@@ -382,6 +417,16 @@ export class App implements OnInit {
           this.laden.set(false);
         },
       });
+  }
+
+  closeMessage(type: 'error' | 'success'): void {
+    if (type === 'error') this.fehler.set('');
+    else this.nachricht.set('');
+  }
+
+  private timeRangeStartsInPast(zeitraum: Zeitraum): boolean {
+    const anfang = new Date(`${zeitraum.datum}T${zeitraum.beginn}`);
+    return Number.isNaN(anfang.getTime()) || anfang.getTime() < Date.now();
   }
 
   private loadReservations(): void {

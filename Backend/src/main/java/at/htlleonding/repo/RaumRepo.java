@@ -80,6 +80,11 @@ public class RaumRepo extends MongoRepository {
 
     public void deleteRoom(String adminId, String id) {
         benutzerZugriff.requireSuperadmin(adminId);
+        Document geloeschterRaum = getDatabase()
+            .getCollection("raeume")
+            .find(new Document("_id", id))
+            .first();
+        if (geloeschterRaum == null) throw new NotFoundException("Raum wurde nicht gefunden.");
         if (
             getDatabase()
                 .getCollection("reservierungen")
@@ -104,7 +109,21 @@ public class RaumRepo extends MongoRepository {
         ) {
             throw new NotFoundException("Raum wurde nicht gefunden.");
         }
-        Document ersatz = getDatabase().getCollection("raeume").find().first();
+        Document ersatz = getDatabase()
+            .getCollection("raeume")
+            .find(
+                new Document("abteilungId", geloeschterRaum.getString("abteilungId")).append(
+                    "standortId",
+                    geloeschterRaum.getString("standortId")
+                )
+            )
+            .first();
+        if (ersatz == null) {
+            ersatz = getDatabase()
+                .getCollection("raeume")
+                .find(new Document("abteilungId", geloeschterRaum.getString("abteilungId")))
+                .first();
+        }
         getDatabase()
             .getCollection("benutzer")
             .updateMany(

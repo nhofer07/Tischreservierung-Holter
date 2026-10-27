@@ -2,6 +2,7 @@
   *ngIf="!aktiverBenutzer()"
   [laden]="laden()"
   [fehler]="fehler()"
+  [lokalerTestLoginAktiv]="testLoginAktiv()"
   [firmenEinstellung]="firmenEinstellung()"
   (entraAnmelden)="loginWithMicrosoft()"
   (testAnmelden)="loginWithTestAccount($event)"
@@ -112,14 +113,30 @@
   <div
     class="global-message error-message"
     *ngIf="fehler()"
+    role="alert"
   >
-    {{ fehler() }}
+    <span>{{ fehler() }}</span>
+    <button
+      type="button"
+      aria-label="Fehlermeldung schließen"
+      (click)="closeMessage('error')"
+    >
+      ×
+    </button>
   </div>
   <div
     class="global-message success-message"
     *ngIf="nachricht()"
+    role="status"
   >
-    {{ nachricht() }}
+    <span>{{ nachricht() }}</span>
+    <button
+      type="button"
+      aria-label="Meldung schließen"
+      (click)="closeMessage('success')"
+    >
+      ×
+    </button>
   </div>
   <div
     class="loading-line"
@@ -150,6 +167,7 @@
     (raumWechseln)="openRoom($event)"
     (zeitraumPruefen)="checkAvailability($event)"
     (tischAuswaehlen)="selectDesk($event)"
+    (tischAuswahlAufheben)="clearDeskSelection()"
     (reservieren)="createReservation()"
   />
 

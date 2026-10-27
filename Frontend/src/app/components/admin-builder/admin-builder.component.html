@@ -403,7 +403,7 @@
           <button
             type="button"
             class="builder-desk position-preview selected"
-            *ngIf="!ausgewaehlterTisch"
+            *ngIf="neuerTischAktiv && !ausgewaehlterTisch"
             [style.left.%]="tischForm.x"
             [style.top.%]="tischForm.y"
             [style.--desk-width]="tischForm.breite + '%'"
@@ -448,6 +448,7 @@
 
       <form
         class="editor"
+        *ngIf="ausgewaehlterTisch || neuerTischAktiv"
         (ngSubmit)="saveDesk()"
       >
         <div class="editor-title">
@@ -550,6 +551,16 @@
           Arbeitsplatz speichern
         </button>
       </form>
+      <aside
+        class="editor empty-editor"
+        *ngIf="!ausgewaehlterTisch && !neuerTischAktiv"
+      >
+        <p>Arbeitsplatz</p>
+        <h2>Bereit zum Bearbeiten</h2>
+        <span>
+          Wähle einen vorhandenen Tisch im Raum aus oder lege über „+ Arbeitsplatz“ einen neuen an.
+        </span>
+      </aside>
     </div>
 
     <div
@@ -838,10 +849,20 @@
         >
           Grundriss auf Vorlage zurücksetzen
         </button>
+        <div
+          class="builder-check"
+          [class.invalid]="floorPlanProblems.length > 0"
+        >
+          <strong>{{ floorPlanProblems.length ? 'Bitte noch prüfen' : 'Grundriss bereit' }}</strong>
+          <span *ngIf="!floorPlanProblems.length">
+            Türen und Fenster sind verbunden, es wurden keine Überlappungen erkannt.
+          </span>
+          <span *ngFor="let problem of floorPlanProblems">{{ problem }}</span>
+        </div>
         <button
           type="button"
           class="save"
-          [disabled]="!hasUnsavedFloorPlanChanges"
+          [disabled]="!hasUnsavedFloorPlanChanges || floorPlanProblems.length > 0"
           (click)="saveFloorPlan()"
         >
           {{ hasUnsavedFloorPlanChanges ? 'Grundriss speichern' : 'Alles gespeichert' }}
@@ -919,7 +940,10 @@
             </button>
           </div>
         </div>
-        <div class="floor-canvas">
+        <div
+          class="floor-canvas"
+          [class.has-problems]="floorPlanProblems.length > 0"
+        >
           <svg
             class="floor-svg"
             [attr.viewBox]="svgViewBox"
@@ -1651,6 +1675,142 @@
   </section>
 
   <section
+    class="user-import"
+    *ngIf="bereich === 'benutzer'"
+  >
+    <div class="user-import-copy">
+      <p>Sammelimport</p>
+      <h2>Mitarbeiter aus Excel übernehmen</h2>
+      <span>
+        Lade zuerst die Vorlage herunter, ergänze die Mitarbeiter und wähle anschließend die
+        ausgefüllte .xlsx-Datei aus. Vor dem Import wird jede Zeile geprüft.
+      </span>
+    </div>
+    <div class="user-import-actions">
+      <button
+        type="button"
+        class="secondary"
+        (click)="downloadUserImportTemplate()"
+      >
+        Excel-Vorlage herunterladen
+      </button>
+      <label
+        class="file-action"
+        [class.disabled]="importWirdGeprueft || importWirdGespeichert"
+      >
+        {{ importWirdGeprueft ? 'Datei wird geprüft …' : 'Excel-Datei auswählen' }}
+        <input
+          type="file"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          [disabled]="importWirdGeprueft || importWirdGespeichert"
+          (change)="selectUserImportFile($event)"
+        />
+      </label>
+    </div>
+    <div
+      class="import-result"
+      *ngIf="importDatei || importErgebnis"
+    >
+      <div class="import-file">
+        <span>
+          <strong>{{ importDatei?.name }}</strong>
+          <small>Maximal 1.000 Mitarbeiter · 5 MB</small>
+        </span>
+        <button
+          type="button"
+          (click)="clearUserImport()"
+          [disabled]="importWirdGespeichert"
+        >
+          Schließen
+        </button>
+      </div>
+      <ng-container *ngIf="importErgebnis as ergebnis">
+        <div class="import-summary">
+          <span>
+            <strong>{{ ergebnis.gesamt }}</strong>
+            Datenzeilen
+          </span>
+          <span class="valid">
+            <strong>{{ ergebnis.gueltig }}</strong>
+            gültig
+          </span>
+          <span [class.invalid]="ergebnis.fehler.length">
+            <strong>{{ ergebnis.fehler.length }}</strong>
+            Fehler
+          </span>
+        </div>
+        <div
+          class="import-errors"
+          *ngIf="ergebnis.fehler.length"
+        >
+          <h3>Bitte vor dem Import korrigieren</h3>
+          <ul>
+            <li *ngFor="let eintrag of ergebnis.fehler">
+              <strong>Zeile {{ eintrag.zeile }} · {{ eintrag.feld }}</strong>
+              <span>{{ eintrag.meldung }}</span>
+            </li>
+          </ul>
+        </div>
+        <div
+          class="import-preview"
+          *ngIf="ergebnis.vorschau.length"
+        >
+          <h3>
+            Vorschau
+            <small *ngIf="ergebnis.vorschau.length > 10">
+              Erste 10 von {{ ergebnis.vorschau.length }} Zeilen
+            </small>
+          </h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Zeile</th>
+                  <th>Mitarbeiter</th>
+                  <th>E-Mail</th>
+                  <th>Abteilung</th>
+                  <th>Raum</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let eintrag of ergebnis.vorschau | slice: 0 : 10">
+                  <td>{{ eintrag.zeile }}</td>
+                  <td>
+                    <strong>{{ eintrag.vorname }} {{ eintrag.nachname }}</strong>
+                  </td>
+                  <td>{{ eintrag.email }}</td>
+                  <td>{{ eintrag.abteilung }}</td>
+                  <td>{{ eintrag.bevorzugterRaum || '–' }}</td>
+                  <td>{{ eintrag.aktiv ? 'Aktiv' : 'Deaktiviert' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="import-confirm">
+          <p *ngIf="ergebnis.gesamt === 0">Die Datei enthält noch keine Mitarbeiter.</p>
+          <p *ngIf="ergebnis.fehler.length">Es wurde noch nichts gespeichert.</p>
+          <button
+            type="button"
+            class="save"
+            [disabled]="
+              ergebnis.fehler.length > 0 || ergebnis.gueltig === 0 || importWirdGespeichert
+            "
+            (click)="importUsers()"
+          >
+            {{
+              importWirdGespeichert
+                ? 'Import wird gespeichert …'
+                : ergebnis.gueltig + ' Mitarbeiter importieren'
+            }}
+          </button>
+        </div>
+      </ng-container>
+    </div>
+  </section>
+
+  <section
     class="user-management"
     *ngIf="bereich === 'benutzer'"
   >
@@ -1751,6 +1911,7 @@
           <select
             name="userAbteilung"
             [(ngModel)]="benutzerForm.abteilungId"
+            (ngModelChange)="onUserDepartmentChange()"
           >
             <option
               *ngFor="let abteilung of abteilungen"
@@ -1769,13 +1930,16 @@
         >
           <option value="">Kein bevorzugter Raum</option>
           <option
-            *ngFor="let eintrag of raeume"
+            *ngFor="let eintrag of preferredRoomOptions"
             [value]="eintrag.id"
           >
-            {{ eintrag.name }}
+            {{ getLocationName(eintrag.standortId) }} · {{ eintrag.name }}
           </option>
         </select>
       </label>
+      <small *ngIf="preferredRoomOptions.length === 0">
+        Für diese Abteilung ist noch kein Raum vorhanden.
+      </small>
       <label class="check-option">
         <input
           type="checkbox"
@@ -1801,7 +1965,11 @@
     <div class="section-head">
       <div>
         <p>Übersicht</p>
-        <h2>Reservierungen aller Mitarbeiter</h2>
+        <h2>
+          {{
+            isSuperadmin ? 'Reservierungen aller Mitarbeiter' : 'Reservierungen deiner Abteilung'
+          }}
+        </h2>
       </div>
       <div class="section-actions">
         <span>{{ filteredReservations.length }} Einträge</span>
@@ -1856,45 +2024,63 @@
       </form>
     </details>
     <div class="reservation-filters">
-      <input
-        [(ngModel)]="reservierungsSuche"
-        placeholder="Mitarbeiter, Raum oder Arbeitsplatz suchen"
-      />
-      <select
-        [(ngModel)]="reservierungsStandort"
-        (ngModelChange)="reservierungsRaum = ''"
-      >
-        <option value="">Alle Standorte</option>
-        <option
-          *ngFor="let standort of standorte"
-          [value]="standort.id"
+      <label>
+        <span>Suche</span>
+        <input
+          [(ngModel)]="reservierungsSuche"
+          placeholder="Mitarbeiter, Raum oder Arbeitsplatz"
+        />
+      </label>
+      <label>
+        <span>Standort</span>
+        <select
+          [(ngModel)]="reservierungsStandort"
+          (ngModelChange)="reservierungsRaum = ''"
         >
-          {{ standort.name }}
-        </option>
-      </select>
-      <select [(ngModel)]="reservierungsRaum">
-        <option value="">Alle Räume</option>
-        <option
-          *ngFor="let eintrag of reservationRooms"
-          [value]="eintrag.id"
-        >
-          {{ eintrag.name }}
-        </option>
-      </select>
-      <select [(ngModel)]="reservierungsStatus">
-        <option value="">Alle Status</option>
-        <option value="aktiv">Aktiv</option>
-        <option value="abgelaufen">Abgelaufen</option>
-        <option value="storniert">Storniert</option>
-      </select>
-      <input
-        type="date"
-        [(ngModel)]="reservierungsDatum"
-      />
-      <input
-        [(ngModel)]="stornierungsgrund"
-        placeholder="Stornierungsgrund (Pflicht)"
-      />
+          <option value="">Alle Standorte</option>
+          <option
+            *ngFor="let standort of standorte"
+            [value]="standort.id"
+          >
+            {{ standort.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>Raum</span>
+        <select [(ngModel)]="reservierungsRaum">
+          <option value="">Alle Räume</option>
+          <option
+            *ngFor="let eintrag of reservationRooms"
+            [value]="eintrag.id"
+          >
+            {{ eintrag.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>Status</span>
+        <select [(ngModel)]="reservierungsStatus">
+          <option value="">Alle Status</option>
+          <option value="aktiv">Aktiv</option>
+          <option value="abgelaufen">Abgelaufen</option>
+          <option value="storniert">Storniert</option>
+        </select>
+      </label>
+      <label>
+        <span>Datum</span>
+        <input
+          type="date"
+          [(ngModel)]="reservierungsDatum"
+        />
+      </label>
+      <label>
+        <span>Stornierungsgrund</span>
+        <input
+          [(ngModel)]="stornierungsgrund"
+          placeholder="Vor dem Stornieren angeben"
+        />
+      </label>
     </div>
     <div class="table-wrap">
       <table>
@@ -1975,13 +2161,16 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let eintrag of auditEintraege">
-            <td>{{ eintrag.zeitpunkt | date: 'dd.MM.yyyy HH:mm:ss' }}</td>
-            <td>{{ eintrag.adminId }}</td>
+          <tr *ngFor="let eintrag of displayedAuditEntries">
+            <td>{{ eintrag.zeitpunkt | date: 'dd.MM.yyyy HH:mm' }}</td>
             <td>
-              <strong>{{ eintrag.aktion }}</strong>
+              <strong>{{ eintrag.adminName || eintrag.adminId }}</strong>
             </td>
-            <td>{{ eintrag.details }}</td>
+            <td>
+              {{ getAuditActionLabel(eintrag.aktion) }}
+              <small *ngIf="eintrag.anzahl > 1">({{ eintrag.anzahl }}×)</small>
+            </td>
+            <td>{{ getAuditDetails(eintrag) }}</td>
           </tr>
         </tbody>
       </table>

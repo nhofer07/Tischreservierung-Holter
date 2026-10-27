@@ -209,6 +209,25 @@ können auch über eine bestehende Sitzung keine Buchungen mehr ausführen.
 Die administrative Passwort-Zurücksetzung wurde entfernt. Der lokale Testlogin
 bleibt für Entwicklung und Schulpräsentationen verfügbar.
 
+### Viele Mitarbeiter aus Excel importieren
+
+Unter **Verwaltung → Mitarbeiter** steht ein Sammelimport für `.xlsx`-Dateien zur
+Verfügung. Zuerst wird eine aktuelle Vorlage heruntergeladen. Sie enthält die
+Spalten `Vorname`, `Nachname`, `E-Mail`, `Abteilung`, `Bevorzugter Raum` und `Aktiv`
+sowie ein zweites Tabellenblatt mit den im System gültigen Abteilungen und Räumen.
+
+Die ausgefüllte Datei wird vor dem Speichern vollständig geprüft. Angezeigt werden
+eine Vorschau und konkrete Fehler mit Excel-Zeilennummer. Unbekannte Abteilungen,
+mehrdeutige Räume, ungültige oder doppelte E-Mail-Adressen und falsche Statuswerte
+werden nicht akzeptiert. Sobald eine Zeile fehlerhaft ist, wird **niemand** aus der
+Datei importiert. Dadurch entsteht kein unvollständiger Teilimport.
+
+Pro Datei sind maximal 1.000 Mitarbeiter und 5 MB erlaubt. Importierte Konten
+erhalten immer die Rolle `Mitarbeiter`; Adminrollen werden bewusst nur einzeln durch
+einen Superadmin vergeben. Eine normale Abteilungsleitung kann ausschließlich
+Mitarbeiter der eigenen Abteilung importieren, ein Superadmin alle Abteilungen. Der
+erfolgreiche Sammelimport wird im Admin-Protokoll festgehalten.
+
 ## Einzelne Dienste für die Entwicklung starten
 
 Nur MongoDB starten:
@@ -326,9 +345,9 @@ Admin-Testprofil zugeordnet. `admin@holter.test` ist die Kennung dieses Profils.
 
 Im Quarkus-Produktionsprofil (`prod`) sind die fachlichen `/api/*`-Endpunkte durch
 Entra geschützt. Zusätzlich wird geprüft, ob eine mitgesendete Benutzer-ID zum
-Microsoft-Konto des Tokens gehört. Auf `localhost` ist zusätzlich ein
-einklappbarer Testlogin verfügbar. In Docker kann er über das ausdrücklich
-gewählte lokale Demo-Profil verwendet werden:
+Microsoft-Konto des Tokens gehört. Der lokale Testlogin wird nur im Entwicklungs-
+oder Demo-Profil eingeblendet. In Docker wird er über das ausdrücklich gewählte
+lokale Demo-Profil verwendet:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d
@@ -359,6 +378,30 @@ npm run build
 
 Die Backend-Regressionstests prüfen Kontodeaktivierung, Reservierungslöschung,
 Entra-Zuordnung, Adminrechte und Buchungsgrenzen einschließlich Wiederholungen.
+
+## Für einen echten Server härten
+
+Die normale Compose-Datei und `docker-compose.demo.yml` bleiben für Entwicklung und
+Vorführungen gedacht. Für einen Server gibt es zusätzlich `docker-compose.prod.yml`:
+
+```bash
+cp .env.production.example .env.production
+# .env.production mit langen, unterschiedlichen Passwörtern befüllen
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Der Produktions-Override aktiviert MongoDB-Authentifizierung, verwendet für das
+Backend einen eigenen `readWrite`-Benutzer, veröffentlicht MongoDB nicht am Host und
+bindet den Web-Port nur an `127.0.0.1`. Vor Nginx muss auf dem Server ein HTTPS-
+Reverse-Proxy (z. B. Caddy, Traefik oder die Firmen-Infrastruktur) stehen. In Entra
+muss genau dessen HTTPS-Adresse als SPA-Redirect-URI eingetragen werden.
+
+Wichtig: MongoDB führt Initialisierungsskripte nur bei einem **neuen** Datenvolume
+aus. Ein bereits ohne Authentifizierung angelegtes Demo-Volume darf deshalb nicht
+einfach als Produktivdatenbank übernommen werden; Daten zuerst exportieren, ein neues
+geschütztes Volume anlegen und anschließend kontrolliert importieren. Die echte
+`.env.production` ist durch `.gitignore` ausgeschlossen und darf nie committed werden.
 
 ## Methodennamen
 

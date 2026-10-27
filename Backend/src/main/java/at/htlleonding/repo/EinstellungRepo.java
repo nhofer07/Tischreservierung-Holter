@@ -236,9 +236,9 @@ public class EinstellungRepo extends MongoRepository {
             .plusDays(1)
             .atStartOfDay(zone)
             .toInstant();
-        if (anfang.toInstant().atZone(zone).toLocalDate().isBefore(heute)) {
+        if (anfang.toInstant().isBefore(Instant.now())) {
             throw new BadRequestException(
-                "Reservierungen können nicht an vergangenen Tagen beginnen."
+                "Reservierungen können nicht in der Vergangenheit beginnen."
             );
         }
         if (!anfang.toInstant().isBefore(grenze) || ende.toInstant().isAfter(grenze)) {

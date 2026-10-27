@@ -74,6 +74,7 @@
           Beginn
           <input
             type="datetime-local"
+            [min]="minimumStartDateTime"
             [max]="buchbarBis + 'T23:59'"
             [(ngModel)]="bearbeitungAnfang"
           />
@@ -82,12 +83,14 @@
           Ende
           <input
             type="datetime-local"
+            [min]="bearbeitungAnfang || minimumStartDateTime"
             [max]="buchbarBis + 'T23:59'"
             [(ngModel)]="bearbeitungEnde"
           />
         </label>
         <button
           type="button"
+          [disabled]="!reservationChangeValid || laden"
           (click)="saveReservationChanges(reservierung)"
         >
           Änderung speichern
@@ -98,6 +101,9 @@
         >
           Abbrechen
         </button>
+        <small *ngIf="!reservationChangeValid">
+          Bitte einen zukünftigen Zeitraum mit einem Ende nach dem Beginn wählen.
+        </small>
       </div>
     </article>
   </div>

@@ -76,6 +76,7 @@
             Beginn
             <input
               type="time"
+              [min]="minimumStartTime"
               [value]="zeitraumSignal().beginn"
               (input)="updateTimeRange('beginn', $event)"
             />

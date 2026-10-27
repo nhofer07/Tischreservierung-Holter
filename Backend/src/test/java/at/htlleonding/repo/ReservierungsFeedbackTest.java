@@ -5,14 +5,25 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import at.htlleonding.DTOs.*;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.result.DeleteResult;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.function.Consumer;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.bson.Document;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +39,7 @@ class ReservierungsFeedbackTest {
     MongoCollection<Document> users;
     MongoCollection<Document> reservations;
     MongoCollection<Document> settings;
+    MongoCollection<Document> departments;
     final ZoneId zone = ZoneId.of("Europe/Vienna");
 
     @BeforeEach
@@ -55,6 +67,7 @@ class ReservierungsFeedbackTest {
         users = db.getCollection("benutzer");
         reservations = db.getCollection("reservierungen");
         settings = db.getCollection("einstellungen");
+        departments = db.getCollection("abteilungen");
         when(users.find(new Document("_id", "ADMIN")).first()).thenReturn(
             user("ADMIN", "ADMIN", true)
         );
@@ -124,6 +137,32 @@ class ReservierungsFeedbackTest {
     void deleteRemovesReservations() {
         benutzerRepo.deleteUser("SUPER", "USER");
         verify(reservations).deleteMany(new Document("benutzerId", "USER"));
+        verify(users).deleteOne(new Document("_id", "USER"));
+        verify(users, never()).updateOne(eq(new Document("_id", "USER")), any(Document.class));
+    }
+
+    @Test
+    void deletedEmailCanBeCreatedAgain() {
+        Document deleted = user("OLD", "USER", false)
+            .append("email", "wieder@test.at")
+            .append("geloescht", true);
+        when(users.find(new Document("email", "wieder@test.at")).first()).thenReturn(deleted);
+
+        BenutzerDTO created = benutzerRepo.createUser(
+            "SUPER",
+            new BenutzerRequestDTO("Wieder", "Da", "wieder@test.at", "USER", "IT", "IT", "", true)
+        );
+
+        assertEquals("wieder@test.at", created.email());
+        verify(users).deleteOne(new Document("_id", "OLD"));
+        verify(users).insertOne(
+            argThat(
+                document ->
+                    "wieder@test.at".equals(document.getString("email")) &&
+                    !document.containsKey("geloescht") &&
+                    document.getBoolean("aktiv")
+            )
+        );
     }
 
     @Test
@@ -168,6 +207,23 @@ class ReservierungsFeedbackTest {
         );
         assertThrows(BadRequestException.class, () ->
             reservierungRepo.updateReservation("RES", booking(1, 15, 0))
+        );
+        verify(reservations, never()).insertMany(anyList());
+    }
+
+    @Test
+    void pastTimeTodayIsRejectedForCreationAndEditing() {
+        Instant jetzt = Instant.now();
+        var request = new ReservierungRequestDTO(
+            "USER",
+            "DESK",
+            jetzt.minusSeconds(3600).toString(),
+            jetzt.plusSeconds(3600).toString(),
+            0
+        );
+        assertThrows(BadRequestException.class, () -> reservierungRepo.createReservation(request));
+        assertThrows(BadRequestException.class, () ->
+            reservierungRepo.updateReservation("RES", request)
         );
         verify(reservations, never()).insertMany(anyList());
     }
@@ -272,5 +328,146 @@ class ReservierungsFeedbackTest {
             any(Document.class),
             any(com.mongodb.client.model.UpdateOptions.class)
         );
+    }
+
+    @Test
+    void validExcelRowIsValidatedAndImportedAsEmployee() throws IOException {
+        mockImportDepartment();
+        var validation = benutzerRepo.validateUserImport(
+            "SUPER",
+            excel(
+                new String[] {
+                    "Vorname",
+                    "Nachname",
+                    "E-Mail",
+                    "Abteilung",
+                    "Bevorzugter Raum",
+                    "Aktiv",
+                },
+                new String[] { "Max", "Muster", "max.muster@holter.test", "IT", "", "Ja" }
+            )
+        );
+
+        assertEquals(1, validation.gesamt());
+        assertEquals(1, validation.gueltig());
+        assertTrue(validation.fehler().isEmpty());
+        assertEquals("max.muster@holter.test", validation.vorschau().getFirst().email());
+
+        var result = benutzerRepo.importUsers(
+            "SUPER",
+            excel(
+                new String[] {
+                    "Vorname",
+                    "Nachname",
+                    "E-Mail",
+                    "Abteilung",
+                    "Bevorzugter Raum",
+                    "Aktiv",
+                },
+                new String[] { "Max", "Muster", "max.muster@holter.test", "IT", "", "Ja" }
+            )
+        );
+        assertEquals(1, result.importiert());
+        verify(users).insertMany(
+            argThat(
+                documents ->
+                    documents.size() == 1 &&
+                    "USER".equals(documents.getFirst().getString("rolle")) &&
+                    "max.muster@holter.test".equals(documents.getFirst().getString("email"))
+            )
+        );
+    }
+
+    @Test
+    void duplicateEmailPreventsEntireExcelImport() throws IOException {
+        mockImportDepartment();
+        var result = benutzerRepo.importUsers(
+            "SUPER",
+            excel(
+                new String[] { "Vorname", "Nachname", "E-Mail", "Abteilung" },
+                new String[] { "Max", "Muster", "doppelt@holter.test", "IT" },
+                new String[] { "Maria", "Muster", "doppelt@holter.test", "IT" }
+            )
+        );
+
+        assertEquals(2, result.gesamt());
+        assertFalse(result.fehler().isEmpty());
+        assertEquals(0, result.importiert());
+        verify(users, never()).insertMany(anyList());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deletedEmailCanBeImportedAgain() throws IOException {
+        mockImportDepartment();
+        FindIterable<Document> allUsers = mock(FindIterable.class);
+        FindIterable<Document> projectedUsers = mock(FindIterable.class);
+        when(users.find()).thenReturn(allUsers);
+        when(allUsers.projection(any(Document.class))).thenReturn(projectedUsers);
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            consumer.accept(new Document("email", "zurueck@holter.test").append("geloescht", true));
+            return null;
+        })
+            .when(projectedUsers)
+            .forEach(any());
+
+        var result = benutzerRepo.importUsers(
+            "SUPER",
+            excel(
+                new String[] { "Vorname", "Nachname", "E-Mail", "Abteilung" },
+                new String[] { "Wieder", "Da", "zurueck@holter.test", "IT" }
+            )
+        );
+
+        assertEquals(1, result.importiert());
+        assertTrue(result.fehler().isEmpty());
+        verify(users).deleteMany(
+            new Document("email", new Document("$in", List.of("zurueck@holter.test"))).append(
+                "geloescht",
+                true
+            )
+        );
+        verify(users).insertMany(
+            argThat(
+                documents ->
+                    documents.size() == 1 &&
+                    "zurueck@holter.test".equals(documents.getFirst().getString("email"))
+            )
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mockImportDepartment() {
+        FindIterable<Document> result = mock(FindIterable.class);
+        when(departments.find()).thenReturn(result);
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            consumer.accept(new Document("_id", "IT").append("name", "IT"));
+            return null;
+        })
+            .when(result)
+            .forEach(any());
+    }
+
+    private ByteArrayInputStream excel(String[] header, String[]... rows) throws IOException {
+        try (
+            Workbook workbook = new XSSFWorkbook();
+            ByteArrayOutputStream output = new ByteArrayOutputStream()
+        ) {
+            Sheet sheet = workbook.createSheet("Mitarbeiter");
+            Row headerRow = sheet.createRow(0);
+            for (int column = 0; column < header.length; column++) headerRow
+                .createCell(column)
+                .setCellValue(header[column]);
+            for (int index = 0; index < rows.length; index++) {
+                Row row = sheet.createRow(index + 1);
+                for (int column = 0; column < rows[index].length; column++) row.createCell(
+                    column
+                ).setCellValue(rows[index][column]);
+            }
+            workbook.write(output);
+            return new ByteArrayInputStream(output.toByteArray());
+        }
     }
 }

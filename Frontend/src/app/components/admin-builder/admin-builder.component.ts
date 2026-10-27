@@ -18,6 +18,7 @@ import {
   BenutzerRequest,
   FirmenDesignHistorie,
   FirmenEinstellung,
+  MitarbeiterImportErgebnis,
   Raum,
   RaumAuswahl,
   RaumElement,
@@ -28,7 +29,14 @@ import {
   Zeitraum,
 } from '../../models';
 import { ArbeitsplatzService } from '../../services/arbeitsplatz.service';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
+import {
+  Flaeche,
+  begrenzen,
+  flaechenAbstand,
+  gedrehteFlaeche,
+  ueberlappt,
+} from './room-builder-geometry';
 
 @Component({
   selector: 'app-admin-builder',
@@ -91,16 +99,22 @@ export class AdminBuilderComponent implements OnInit {
   modus: 'tisch' | 'raum' | 'grundriss' = 'tisch';
   werkzeug: RaumElement['typ'] | 'auswahl' = 'auswahl';
   raeume: RaumAuswahl[] = [];
+  benutzerRaeume: RaumAuswahl[] = [];
   stammdatenRaeume: RaumAuswahl[] = [];
   raum: Raum | null = null;
   standortId = '';
   raumId = '';
   ausgewaehlterTisch: Arbeitsplatz | null = null;
+  neuerTischAktiv = false;
   ausgewaehltesElement: RaumElement | null = null;
   abteilungen: Abteilung[] = [];
   equipmentListe: string[] = [];
   alleReservierungen: Reservierung[] = [];
   benutzerListe: Benutzer[] = [];
+  importDatei: File | null = null;
+  importErgebnis: MitarbeiterImportErgebnis | null = null;
+  importWirdGeprueft = false;
+  importWirdGespeichert = false;
   auditEintraege: AuditEintrag[] = [];
   ausgewaehlterBenutzerId = '';
   benutzerForm: BenutzerRequest = this.createEmptyUserForm();
@@ -165,6 +179,7 @@ export class AdminBuilderComponent implements OnInit {
     breite: number;
     hoehe: number;
   } | null = null;
+  private elementAktionStart: RaumElement[] | null = null;
 
   constructor(
     private service: ArbeitsplatzService,
@@ -181,6 +196,7 @@ export class AdminBuilderComponent implements OnInit {
     });
     this.loadMasterData();
     this.loadUsers();
+    this.loadUserRooms();
     this.loadReservations();
     if (this.isSuperadmin) {
       this.loadCompanySettings();
@@ -284,18 +300,13 @@ export class AdminBuilderComponent implements OnInit {
       return;
     }
     this.bereich = bereich;
-    if (bereich === 'stammdaten') {
-      this.loadMasterData();
-    }
-    if (bereich === 'reservierungen') {
-      this.loadReservations();
-    }
+    if (bereich === 'stammdaten') this.loadMasterData();
+    if (bereich === 'reservierungen') this.loadReservations();
     if (bereich === 'benutzer') {
       this.loadUsers();
+      this.loadUserRooms();
     }
-    if (bereich === 'audit') {
-      this.loadAuditLog();
-    }
+    if (bereich === 'audit') this.loadAuditLog();
   }
 
   selectLocation(id: string): void {
@@ -416,7 +427,10 @@ export class AdminBuilderComponent implements OnInit {
           elemente: [...raum.elemente],
         };
         this.gespeicherterGrundriss = JSON.stringify(raum.elemente);
-        this.startNewDesk();
+        this.modus = 'tisch';
+        this.ausgewaehlterTisch = null;
+        this.neuerTischAktiv = false;
+        this.prepareNewDeskForm();
         this.historie = [];
         this.wiederholenHistorie = [];
         this.cdr.detectChanges();
@@ -471,7 +485,10 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   saveFloorPlan(): void {
-    if (!this.raum) {
+    if (!this.raum) return;
+    const probleme = this.floorPlanProblems;
+    if (probleme.length > 0) {
+      this.fehler.emit(`Grundriss noch nicht gespeichert: ${probleme[0]}`);
       return;
     }
     this.raumForm.elemente = [...this.raum.elemente];
@@ -526,6 +543,7 @@ export class AdminBuilderComponent implements OnInit {
       this.applyDeskFormToRoom();
     }
     this.ausgewaehlterTisch = tisch;
+    this.neuerTischAktiv = false;
     this.tischForm = {
       tischnr: tisch.tischnr,
       name: tisch.name,
@@ -548,6 +566,11 @@ export class AdminBuilderComponent implements OnInit {
     }
     this.modus = 'tisch';
     this.ausgewaehlterTisch = null;
+    this.neuerTischAktiv = true;
+    this.prepareNewDeskForm();
+  }
+
+  private prepareNewDeskForm(): void {
     this.tischForm = this.createEmptyDeskForm();
     if (this.raum) {
       Object.assign(this.tischForm, {
@@ -565,9 +588,8 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   setDeskPosition(event: MouseEvent): void {
-    if (!this.raum || this.tischWirdGezogen) {
+    if (!this.raum || this.tischWirdGezogen || (!this.ausgewaehlterTisch && !this.neuerTischAktiv))
       return;
-    }
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     this.tischForm.x = Math.round(Math.max(8, Math.min(92, (event.offsetX / rect.width) * 100)));
     this.tischForm.y = Math.round(Math.max(12, Math.min(86, (event.offsetY / rect.height) * 100)));
@@ -624,9 +646,7 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   saveDesk(): void {
-    if (!this.raum) {
-      return;
-    }
+    if (!this.raum || (!this.ausgewaehlterTisch && !this.neuerTischAktiv)) return;
     if (this.hasDeskCollision(this.tischForm.x, this.tischForm.y, this.ausgewaehlterTisch?.id)) {
       this.fehler.emit('Der Arbeitsplatz überlappt eine Wand, Sperrzone oder einen anderen Tisch.');
       return;
@@ -779,8 +799,17 @@ export class AdminBuilderComponent implements OnInit {
       groesse.breite,
       groesse.hoehe,
     );
-    if (element.typ === 'tuer' || element.typ === 'fenster') {
-      this.snapElementToWall(element);
+    if ((element.typ === 'tuer' || element.typ === 'fenster') && !this.snapElementToWall(element)) {
+      this.historie.pop();
+      this.fehler.emit(
+        `${element.typ === 'tuer' ? 'Türen' : 'Fenster'} bitte direkt an einer Wand platzieren.`,
+      );
+      return;
+    }
+    if (!this.isFloorElementPlacementValid(element)) {
+      this.historie.pop();
+      this.fehler.emit('Das Element überlappt einen Arbeitsplatz oder ein anderes Raumobjekt.');
+      return;
     }
     this.raum.elemente.push(element);
     this.ausgewaehltesElement = element;
@@ -897,6 +926,7 @@ export class AdminBuilderComponent implements OnInit {
         Math.abs(ende.x - this.startpunkt.x) < 1.5 &&
         Math.abs(ende.y - this.startpunkt.y) < 1.5
       ) {
+        this.historie.pop();
         this.startpunkt = null;
         this.wandVorschau = null;
         return;
@@ -930,16 +960,32 @@ export class AdminBuilderComponent implements OnInit {
         this.snapWallToWalls(element);
       }
     }
+    const bearbeiteteElemente = this.raum
+      ? this.raum.elemente.filter((element) => this.ausgewaehlteElementIds.includes(element.id))
+      : [];
+    const ungueltig = bearbeiteteElemente.find(
+      (element) => !this.isFloorElementPlacementValid(element),
+    );
+    if (ungueltig && this.elementAktionStart && this.raum) {
+      this.raum.elemente = this.cloneElements(this.elementAktionStart);
+      this.historie.pop();
+      this.clearSelection();
+      this.fehler.emit(
+        'Position nicht übernommen: Elemente und Arbeitsplätze dürfen sich nicht überlappen.',
+      );
+    }
     this.startpunkt = null;
     this.wandVorschau = null;
     this.dragElementId = '';
     this.resizeElementId = '';
     this.rotateElementId = '';
     this.resizeStart = null;
+    this.elementAktionStart = null;
   }
 
   handleElementPointerDown(event: PointerEvent, element: RaumElement): void {
     event.stopPropagation();
+    this.elementAktionStart = this.raum ? this.cloneElements(this.raum.elemente) : null;
     this.recordUndoState();
     this.ausgewaehltesElement = element;
     if (event.shiftKey) {
@@ -962,6 +1008,7 @@ export class AdminBuilderComponent implements OnInit {
     richtung: 'nw' | 'ne' | 'sw' | 'se',
   ): void {
     event.stopPropagation();
+    this.elementAktionStart = this.raum ? this.cloneElements(this.raum.elemente) : null;
     this.recordUndoState();
     this.ausgewaehltesElement = element;
     this.ausgewaehlteElementIds = [element.id];
@@ -981,6 +1028,7 @@ export class AdminBuilderComponent implements OnInit {
 
   startElementRotation(event: PointerEvent, element: RaumElement): void {
     event.stopPropagation();
+    this.elementAktionStart = this.raum ? this.cloneElements(this.raum.elemente) : null;
     this.recordUndoState();
     this.ausgewaehltesElement = element;
     this.ausgewaehlteElementIds = [element.id];
@@ -1120,6 +1168,24 @@ export class AdminBuilderComponent implements OnInit {
 
   get hasUnsavedFloorPlanChanges(): boolean {
     return !!this.raum && JSON.stringify(this.raum.elemente) !== this.gespeicherterGrundriss;
+  }
+
+  get floorPlanProblems(): string[] {
+    if (!this.raum) return [];
+    const probleme: string[] = [];
+    for (const element of this.raum.elemente) {
+      if (
+        (element.typ === 'tuer' || element.typ === 'fenster') &&
+        !this.isAttachedToWall(element)
+      ) {
+        probleme.push(
+          `${element.typ === 'tuer' ? 'Eine Tür' : 'Ein Fenster'} ist nicht sauber mit einer Wand verbunden.`,
+        );
+      } else if (!this.isFloorElementPlacementValid(element)) {
+        probleme.push('Ein Raumobjekt überlappt einen Arbeitsplatz oder ein anderes Objekt.');
+      }
+    }
+    return [...new Set(probleme)];
   }
 
   get svgViewBox(): string {
@@ -1710,6 +1776,148 @@ export class AdminBuilderComponent implements OnInit {
     });
   }
 
+  downloadUserImportTemplate(): void {
+    this.service.downloadUserImportTemplate(this.admin.id).subscribe({
+      next: (datei) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(datei);
+        link.download = 'mitarbeiter-import-vorlage.xlsx';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      },
+      error: () => this.fehler.emit('Die Excel-Vorlage konnte nicht heruntergeladen werden.'),
+    });
+  }
+
+  selectUserImportFile(event: Event): void {
+    const eingabe = event.target as HTMLInputElement;
+    const datei = eingabe.files?.[0] ?? null;
+    eingabe.value = '';
+    this.importErgebnis = null;
+    if (!datei) return;
+    if (!datei.name.toLowerCase().endsWith('.xlsx')) {
+      this.importDatei = null;
+      this.fehler.emit('Bitte eine Excel-Datei im Format .xlsx auswählen.');
+      return;
+    }
+    if (datei.size > 5 * 1024 * 1024) {
+      this.importDatei = null;
+      this.fehler.emit('Die Excel-Datei darf maximal 5 MB groß sein.');
+      return;
+    }
+    this.importDatei = datei;
+    this.validateUserImport();
+  }
+
+  validateUserImport(): void {
+    if (!this.importDatei) return;
+    this.importWirdGeprueft = true;
+    this.importErgebnis = null;
+    this.service.validateUserImport(this.admin.id, this.importDatei).subscribe({
+      next: (ergebnis) => {
+        this.importErgebnis = ergebnis;
+        this.importWirdGeprueft = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.importWirdGeprueft = false;
+        this.fehler.emit(
+          error?.error?.details ||
+            error?.error?.message ||
+            'Die Excel-Datei konnte nicht geprüft werden.',
+        );
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  importUsers(): void {
+    if (
+      !this.importDatei ||
+      !this.importErgebnis ||
+      this.importErgebnis.fehler.length > 0 ||
+      this.importErgebnis.gueltig === 0
+    )
+      return;
+    this.importWirdGespeichert = true;
+    this.service.importUsers(this.admin.id, this.importDatei).subscribe({
+      next: (ergebnis) => {
+        this.importWirdGespeichert = false;
+        if (ergebnis.fehler.length > 0) {
+          this.importErgebnis = ergebnis;
+          this.fehler.emit(
+            'Die Daten haben sich seit der Prüfung geändert. Bitte die Fehler korrigieren und erneut prüfen.',
+          );
+        } else {
+          this.nachricht.emit(`${ergebnis.importiert} Mitarbeiter wurden importiert.`);
+          this.clearUserImport();
+          this.loadUsers();
+        }
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.importWirdGespeichert = false;
+        this.fehler.emit(
+          error?.error?.details ||
+            error?.error?.message ||
+            'Die Mitarbeiter konnten nicht importiert werden.',
+        );
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  clearUserImport(): void {
+    this.importDatei = null;
+    this.importErgebnis = null;
+    this.importWirdGeprueft = false;
+    this.importWirdGespeichert = false;
+  }
+
+  loadUserRooms(): void {
+    if (this.standorte.length === 0) {
+      this.benutzerRaeume = [];
+      return;
+    }
+    forkJoin(
+      this.standorte.map((standort) =>
+        this.service
+          .getRoomsByLocation(standort.id)
+          .pipe(catchError(() => of([] as RaumAuswahl[]))),
+      ),
+    ).subscribe((listen) => {
+      this.benutzerRaeume = listen
+        .flat()
+        .sort(
+          (a, b) =>
+            this.getLocationName(a.standortId).localeCompare(this.getLocationName(b.standortId)) ||
+            a.name.localeCompare(b.name),
+        );
+      this.onUserDepartmentChange();
+      this.cdr.detectChanges();
+    });
+  }
+
+  get preferredRoomOptions(): RaumAuswahl[] {
+    const abteilung =
+      this.abteilungen.find((eintrag) => eintrag.id === this.benutzerForm.abteilungId)?.name ??
+      this.benutzerForm.abteilungName;
+    return this.benutzerRaeume.filter((raum) => raum.abteilungName === abteilung);
+  }
+
+  onUserDepartmentChange(): void {
+    const abteilung = this.abteilungen.find(
+      (eintrag) => eintrag.id === this.benutzerForm.abteilungId,
+    );
+    if (abteilung) this.benutzerForm.abteilungName = abteilung.name;
+    if (
+      this.benutzerForm.bevorzugterRaumId &&
+      !this.preferredRoomOptions.some((raum) => raum.id === this.benutzerForm.bevorzugterRaumId)
+    ) {
+      this.benutzerForm.bevorzugterRaumId = '';
+    }
+  }
+
   startNewUser(): void {
     this.ausgewaehlterBenutzerId = '';
     this.benutzerForm = this.createEmptyUserForm();
@@ -1727,6 +1935,7 @@ export class AdminBuilderComponent implements OnInit {
       bevorzugterRaumId: benutzer.bevorzugterRaumId,
       aktiv: benutzer.aktiv,
     };
+    this.onUserDepartmentChange();
   }
 
   saveUser(): void {
@@ -1814,6 +2023,57 @@ export class AdminBuilderComponent implements OnInit {
       this.auditEintraege = daten;
       this.cdr.detectChanges();
     });
+  }
+
+  get displayedAuditEntries(): (AuditEintrag & { anzahl: number })[] {
+    const gruppen = new Map<string, AuditEintrag & { anzahl: number }>();
+    for (const eintrag of this.auditEintraege) {
+      const minute = new Date(eintrag.zeitpunkt).toISOString().slice(0, 16);
+      const schluessel = `${eintrag.adminId}|${eintrag.aktion}|${minute}`;
+      const gruppe = gruppen.get(schluessel);
+      if (gruppe) {
+        gruppe.anzahl++;
+      } else {
+        gruppen.set(schluessel, { ...eintrag, anzahl: 1 });
+      }
+    }
+    return [...gruppen.values()];
+  }
+
+  getAuditActionLabel(aktion: string): string {
+    const texte: Record<string, string> = {
+      RAUM_ANGELEGT: 'Raum angelegt',
+      RAUM_GEAENDERT: 'Raum bearbeitet',
+      RAUM_GELOESCHT: 'Raum gelöscht',
+      ARBEITSPLATZ_ANGELEGT: 'Arbeitsplatz angelegt',
+      ARBEITSPLATZ_GEAENDERT: 'Arbeitsplatz bearbeitet',
+      ARBEITSPLATZ_GELOESCHT: 'Arbeitsplatz gelöscht',
+      BENUTZER_ANGELEGT: 'Mitarbeiter angelegt',
+      BENUTZER_GEAENDERT: 'Mitarbeiter bearbeitet',
+      BENUTZER_GELOESCHT: 'Mitarbeiter gelöscht',
+      MITARBEITER_IMPORTIERT: 'Mitarbeiter aus Excel importiert',
+      RESERVIERUNG_STORNIERT: 'Reservierung storniert',
+      STANDORT_ANGELEGT: 'Standort angelegt',
+      STANDORT_GEAENDERT: 'Standort bearbeitet',
+      STANDORT_GELOESCHT: 'Standort gelöscht',
+      ABTEILUNG_ANGELEGT: 'Abteilung angelegt',
+      ABTEILUNG_GELOESCHT: 'Abteilung gelöscht',
+      EQUIPMENT_ANGELEGT: 'Ausstattung angelegt',
+      EQUIPMENT_GELOESCHT: 'Ausstattung gelöscht',
+      FIRMENDESIGN_GEAENDERT: 'Firmendesign gespeichert',
+      FIRMENDESIGN_VERWENDET: 'Designvariante verwendet',
+      FIRMENDESIGN_HISTORIE_GELOESCHT: 'Designvariante entfernt',
+      RESERVIERUNGSGRENZE_GEAENDERT: 'Buchungsgrenze geändert',
+      PASSWORT_ZURUECKGESETZT: 'Testpasswort zurückgesetzt',
+    };
+    return texte[aktion] ?? aktion.toLowerCase().replaceAll('_', ' ');
+  }
+
+  getAuditDetails(eintrag: AuditEintrag): string {
+    if (eintrag.details?.startsWith('DESIGN-')) {
+      return 'Gespeicherte Designvariante';
+    }
+    return eintrag.details || '–';
   }
 
   isReservationActive(reservierung: Reservierung): boolean {
@@ -1929,13 +2189,11 @@ export class AdminBuilderComponent implements OnInit {
     return { breite: 7, hoehe: (7 * 16) / 9 };
   }
 
-  private snapElementToWall(element: RaumElement): void {
-    if (!this.raum) {
-      return;
-    }
+  private snapElementToWall(element: RaumElement): boolean {
+    if (!this.raum) return false;
     const waende = this.raum.elemente.filter((eintrag) => eintrag.typ === 'wand');
     let besteWand: RaumElement | undefined;
-    let kleinsterAbstand = 8;
+    let kleinsterAbstand = 12;
     const mitteX = element.x + element.breite / 2;
     const mitteY = element.y + element.hoehe / 2;
     for (const wand of waende) {
@@ -1950,9 +2208,7 @@ export class AdminBuilderComponent implements OnInit {
         besteWand = wand;
       }
     }
-    if (!besteWand) {
-      return;
-    }
+    if (!besteWand) return false;
     const waagrecht = besteWand.breite >= besteWand.hoehe;
     if (element.typ === 'tuer') {
       const seite = Math.max(4, Math.min(25, element.breite));
@@ -1978,7 +2234,7 @@ export class AdminBuilderComponent implements OnInit {
         );
         element.rotation = mitteX <= wandMitte ? 270 : 90;
       }
-      return;
+      return true;
     }
     if (waagrecht) {
       const laenge = Math.max(element.breite, element.hoehe);
@@ -1997,6 +2253,7 @@ export class AdminBuilderComponent implements OnInit {
       element.x = besteWand.x + besteWand.breite / 2 - element.breite / 2;
       element.y = this.clamp(element.y, besteWand.y, besteWand.y + besteWand.hoehe - element.hoehe);
     }
+    return true;
   }
 
   private connectWallEndpoints(wand: RaumElement): void {
@@ -2085,7 +2342,7 @@ export class AdminBuilderComponent implements OnInit {
     return this.rasterAktiv ? Math.round(wert) : Math.round(wert * 10) / 10;
   }
   private clamp(wert: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, wert));
+    return begrenzen(wert, min, max);
   }
 
   private recordUndoState(): void {
@@ -2156,6 +2413,61 @@ export class AdminBuilderComponent implements OnInit {
       return Math.abs(tisch.x - x) < mindestAbstandX && Math.abs(tisch.y - y) < mindestAbstandY;
     });
     return elementTreffer || tischTreffer;
+  }
+
+  private isFloorElementPlacementValid(element: RaumElement): boolean {
+    if (!this.raum) return true;
+    if (element.typ === 'beschriftung' || element.typ === 'tuer' || element.typ === 'fenster') {
+      return element.typ === 'beschriftung' || this.isAttachedToWall(element);
+    }
+
+    const flaeche = this.getElementArea(element);
+    const trifftTisch = this.raum.arbeitsplaetze.some((tisch) =>
+      ueberlappt(flaeche, this.getDeskArea(tisch), -0.35),
+    );
+    if (trifftTisch) return false;
+
+    if (element.typ === 'wand') return true;
+    return !this.raum.elemente.some((anderes) => {
+      if (
+        anderes.id === element.id ||
+        anderes.typ === 'beschriftung' ||
+        anderes.typ === 'tuer' ||
+        anderes.typ === 'fenster'
+      )
+        return false;
+      // Feuerlöscher, Klima und ähnliche Objekte dürfen direkt an einer Wand montiert sein.
+      if (anderes.typ === 'wand') return false;
+      return ueberlappt(flaeche, this.getElementArea(anderes), 0.25);
+    });
+  }
+
+  private isAttachedToWall(element: RaumElement): boolean {
+    if (!this.raum) return false;
+    const flaeche = this.getElementArea(element);
+    return this.raum.elemente
+      .filter((eintrag) => eintrag.typ === 'wand')
+      .some((wand) => flaechenAbstand(flaeche, this.getElementArea(wand)) <= 1.1);
+  }
+
+  private getElementArea(element: RaumElement): Flaeche {
+    return gedrehteFlaeche(
+      element.x + element.breite / 2,
+      element.y + element.hoehe / 2,
+      element.breite,
+      element.hoehe,
+      element.rotation || 0,
+    );
+  }
+
+  private getDeskArea(tisch: Arbeitsplatz): Flaeche {
+    return gedrehteFlaeche(
+      tisch.x,
+      tisch.y,
+      tisch.breite || 12,
+      tisch.hoehe || 12,
+      tisch.rotation || 0,
+    );
   }
 
   private getRotatedSize(

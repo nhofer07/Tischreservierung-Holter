@@ -10,6 +10,7 @@ import {
   BenutzerRequest,
   FirmenDesignHistorie,
   FirmenEinstellung,
+  MitarbeiterImportErgebnis,
   Raum,
   RaumAuswahl,
   RaumRequest,
@@ -47,6 +48,10 @@ export class ArbeitsplatzService {
     return this.http.get<{ maxWochen: number; buchbarBis: string }>(
       `${this.apiUrl}/einstellungen/reservierung`,
     );
+  }
+
+  getRuntimeSettings(): Observable<{ testLoginAktiv: boolean }> {
+    return this.http.get<{ testLoginAktiv: boolean }>(`${this.apiUrl}/einstellungen/laufzeit`);
   }
 
   saveBookingSettings(
@@ -252,6 +257,33 @@ export class ArbeitsplatzService {
     return this.http.post<Benutzer>(`${this.apiUrl}/admin/benutzer`, request, {
       params: { adminId },
     });
+  }
+
+  downloadUserImportTemplate(adminId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/admin/benutzer/import/vorlage`, {
+      params: { adminId },
+      responseType: 'blob',
+    });
+  }
+
+  validateUserImport(adminId: string, datei: File): Observable<MitarbeiterImportErgebnis> {
+    const formular = new FormData();
+    formular.append('datei', datei, datei.name);
+    return this.http.post<MitarbeiterImportErgebnis>(
+      `${this.apiUrl}/admin/benutzer/import/pruefen`,
+      formular,
+      { params: { adminId } },
+    );
+  }
+
+  importUsers(adminId: string, datei: File): Observable<MitarbeiterImportErgebnis> {
+    const formular = new FormData();
+    formular.append('datei', datei, datei.name);
+    return this.http.post<MitarbeiterImportErgebnis>(
+      `${this.apiUrl}/admin/benutzer/import`,
+      formular,
+      { params: { adminId } },
+    );
   }
 
   updateUser(adminId: string, id: string, request: BenutzerRequest): Observable<Benutzer> {
