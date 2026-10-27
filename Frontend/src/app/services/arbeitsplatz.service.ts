@@ -1,10 +1,26 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, BenutzerRequest, FirmenDesignHistorie, FirmenEinstellung, Raum, RaumAuswahl, RaumRequest, Reservierung, Standort, StandortRequest, Zeitraum } from '../models';
+import {
+  Abteilung,
+  Arbeitsplatz,
+  ArbeitsplatzRequest,
+  AuditEintrag,
+  Benutzer,
+  BenutzerRequest,
+  FirmenDesignHistorie,
+  FirmenEinstellung,
+  Raum,
+  RaumAuswahl,
+  RaumRequest,
+  Reservierung,
+  Standort,
+  StandortRequest,
+  Zeitraum,
+} from '../models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ArbeitsplatzService {
   private apiUrl = '/api';
@@ -28,31 +44,53 @@ export class ArbeitsplatzService {
   }
 
   getBookingSettings(): Observable<{ maxWochen: number; buchbarBis: string }> {
-    return this.http.get<{ maxWochen: number; buchbarBis: string }>(`${this.apiUrl}/einstellungen/reservierung`);
+    return this.http.get<{ maxWochen: number; buchbarBis: string }>(
+      `${this.apiUrl}/einstellungen/reservierung`,
+    );
   }
 
-  saveBookingSettings(adminId: string, maxWochen: number): Observable<{ maxWochen: number; buchbarBis: string }> {
-    return this.http.put<{ maxWochen: number; buchbarBis: string }>(`${this.apiUrl}/admin/reservierungseinstellungen`, { maxWochen }, { params: { adminId } });
+  saveBookingSettings(
+    adminId: string,
+    maxWochen: number,
+  ): Observable<{ maxWochen: number; buchbarBis: string }> {
+    return this.http.put<{ maxWochen: number; buchbarBis: string }>(
+      `${this.apiUrl}/admin/reservierungseinstellungen`,
+      { maxWochen },
+      { params: { adminId } },
+    );
   }
 
   getCompanySettings(): Observable<FirmenEinstellung> {
     return this.http.get<FirmenEinstellung>(`${this.apiUrl}/einstellungen`);
   }
 
-  saveCompanySettings(adminId: string, einstellung: FirmenEinstellung): Observable<FirmenEinstellung> {
-    return this.http.put<FirmenEinstellung>(`${this.apiUrl}/admin/einstellungen`, einstellung, { params: { adminId } });
+  saveCompanySettings(
+    adminId: string,
+    einstellung: FirmenEinstellung,
+  ): Observable<FirmenEinstellung> {
+    return this.http.put<FirmenEinstellung>(`${this.apiUrl}/admin/einstellungen`, einstellung, {
+      params: { adminId },
+    });
   }
 
   getBrandingHistory(adminId: string): Observable<FirmenDesignHistorie[]> {
-    return this.http.get<FirmenDesignHistorie[]>(`${this.apiUrl}/admin/einstellungen/historie`, { params: { adminId } });
+    return this.http.get<FirmenDesignHistorie[]>(`${this.apiUrl}/admin/einstellungen/historie`, {
+      params: { adminId },
+    });
   }
 
   applyBrandingHistoryEntry(adminId: string, historieId: string): Observable<FirmenEinstellung> {
-    return this.http.put<FirmenEinstellung>(`${this.apiUrl}/admin/einstellungen/historie/${historieId}`, {}, { params: { adminId } });
+    return this.http.put<FirmenEinstellung>(
+      `${this.apiUrl}/admin/einstellungen/historie/${historieId}`,
+      {},
+      { params: { adminId } },
+    );
   }
 
   deleteBrandingHistoryEntry(adminId: string, historieId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/admin/einstellungen/historie/${historieId}`, { params: { adminId } });
+    return this.http.delete<void>(`${this.apiUrl}/admin/einstellungen/historie/${historieId}`, {
+      params: { adminId },
+    });
   }
 
   getRoomsByLocation(standortId: string): Observable<RaumAuswahl[]> {
@@ -64,18 +102,22 @@ export class ArbeitsplatzService {
       params: {
         von: this.toIsoDateTime(zeitraum.datum, zeitraum.beginn),
         bis: this.toIsoDateTime(zeitraum.endDatum, zeitraum.ende),
-        benutzerId
-      }
+        benutzerId,
+      },
     });
   }
 
-  createReservation(benutzerId: string, arbeitsplatzId: string, zeitraum: Zeitraum): Observable<Reservierung> {
+  createReservation(
+    benutzerId: string,
+    arbeitsplatzId: string,
+    zeitraum: Zeitraum,
+  ): Observable<Reservierung> {
     return this.http.post<Reservierung>(`${this.apiUrl}/reservierungen`, {
       benutzerId,
       arbeitsplatzId,
       reservierungAnfang: this.toIsoDateTime(zeitraum.datum, zeitraum.beginn),
       reservierungEnde: this.toIsoDateTime(zeitraum.endDatum, zeitraum.ende),
-      wiederholungen: 0
+      wiederholungen: 0,
     });
   }
 
@@ -85,23 +127,35 @@ export class ArbeitsplatzService {
 
   cancelReservation(reservierungId: string, benutzerId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/reservierungen/${reservierungId}`, {
-      params: { benutzerId }
+      params: { benutzerId },
     });
   }
 
-  updateReservation(reservierung: Reservierung, benutzerId: string, anfang: string, ende: string): Observable<Reservierung> {
+  updateReservation(
+    reservierung: Reservierung,
+    benutzerId: string,
+    anfang: string,
+    ende: string,
+  ): Observable<Reservierung> {
     return this.http.put<Reservierung>(`${this.apiUrl}/reservierungen/${reservierung.id}`, {
-      benutzerId, arbeitsplatzId: reservierung.arbeitsplatzId,
-      reservierungAnfang: new Date(anfang).toISOString(), reservierungEnde: new Date(ende).toISOString(), wiederholungen: 0
+      benutzerId,
+      arbeitsplatzId: reservierung.arbeitsplatzId,
+      reservierungAnfang: new Date(anfang).toISOString(),
+      reservierungEnde: new Date(ende).toISOString(),
+      wiederholungen: 0,
     });
   }
 
   createRoom(adminId: string, raum: RaumRequest): Observable<RaumAuswahl> {
-    return this.http.post<RaumAuswahl>(`${this.apiUrl}/admin/raeume`, raum, { params: { adminId } });
+    return this.http.post<RaumAuswahl>(`${this.apiUrl}/admin/raeume`, raum, {
+      params: { adminId },
+    });
   }
 
   updateRoom(adminId: string, raumId: string, raum: RaumRequest): Observable<RaumAuswahl> {
-    return this.http.put<RaumAuswahl>(`${this.apiUrl}/admin/raeume/${raumId}`, raum, { params: { adminId } });
+    return this.http.put<RaumAuswahl>(`${this.apiUrl}/admin/raeume/${raumId}`, raum, {
+      params: { adminId },
+    });
   }
 
   deleteRoom(adminId: string, raumId: string): Observable<void> {
@@ -109,15 +163,27 @@ export class ArbeitsplatzService {
   }
 
   createWorkstation(adminId: string, arbeitsplatz: ArbeitsplatzRequest): Observable<Arbeitsplatz> {
-    return this.http.post<Arbeitsplatz>(`${this.apiUrl}/admin/arbeitsplaetze`, arbeitsplatz, { params: { adminId } });
+    return this.http.post<Arbeitsplatz>(`${this.apiUrl}/admin/arbeitsplaetze`, arbeitsplatz, {
+      params: { adminId },
+    });
   }
 
-  updateWorkstation(adminId: string, arbeitsplatzId: string, arbeitsplatz: ArbeitsplatzRequest): Observable<Arbeitsplatz> {
-    return this.http.put<Arbeitsplatz>(`${this.apiUrl}/admin/arbeitsplaetze/${arbeitsplatzId}`, arbeitsplatz, { params: { adminId } });
+  updateWorkstation(
+    adminId: string,
+    arbeitsplatzId: string,
+    arbeitsplatz: ArbeitsplatzRequest,
+  ): Observable<Arbeitsplatz> {
+    return this.http.put<Arbeitsplatz>(
+      `${this.apiUrl}/admin/arbeitsplaetze/${arbeitsplatzId}`,
+      arbeitsplatz,
+      { params: { adminId } },
+    );
   }
 
   deleteWorkstation(adminId: string, arbeitsplatzId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/admin/arbeitsplaetze/${arbeitsplatzId}`, { params: { adminId } });
+    return this.http.delete<void>(`${this.apiUrl}/admin/arbeitsplaetze/${arbeitsplatzId}`, {
+      params: { adminId },
+    });
   }
 
   getDepartments(adminId: string): Observable<Abteilung[]> {
@@ -125,11 +191,17 @@ export class ArbeitsplatzService {
   }
 
   createDepartment(adminId: string, name: string): Observable<Abteilung> {
-    return this.http.post<Abteilung>(`${this.apiUrl}/admin/abteilungen`, { name }, { params: { adminId } });
+    return this.http.post<Abteilung>(
+      `${this.apiUrl}/admin/abteilungen`,
+      { name },
+      { params: { adminId } },
+    );
   }
 
   deleteDepartment(adminId: string, id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/admin/abteilungen/${id}`, { params: { adminId } });
+    return this.http.delete<void>(`${this.apiUrl}/admin/abteilungen/${id}`, {
+      params: { adminId },
+    });
   }
 
   getEquipmentCatalog(adminId: string): Observable<string[]> {
@@ -137,19 +209,35 @@ export class ArbeitsplatzService {
   }
 
   createEquipment(adminId: string, name: string): Observable<string> {
-    return this.http.post<string>(`${this.apiUrl}/admin/equipment`, { name }, { params: { adminId } });
+    return this.http.post<string>(
+      `${this.apiUrl}/admin/equipment`,
+      { name },
+      { params: { adminId } },
+    );
   }
 
   deleteEquipment(adminId: string, name: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/admin/equipment/${encodeURIComponent(name)}`, { params: { adminId } });
+    return this.http.delete<void>(`${this.apiUrl}/admin/equipment/${encodeURIComponent(name)}`, {
+      params: { adminId },
+    });
   }
 
   getAllReservations(adminId: string): Observable<Reservierung[]> {
-    return this.http.get<Reservierung[]>(`${this.apiUrl}/admin/reservierungen`, { params: { adminId } });
+    return this.http.get<Reservierung[]>(`${this.apiUrl}/admin/reservierungen`, {
+      params: { adminId },
+    });
   }
 
-  cancelReservationAsAdmin(adminId: string, reservierungId: string, grund: string): Observable<void> {
-    return this.http.request<void>('DELETE', `${this.apiUrl}/admin/reservierungen/${reservierungId}`, { body: { name: grund }, params: { adminId } });
+  cancelReservationAsAdmin(
+    adminId: string,
+    reservierungId: string,
+    grund: string,
+  ): Observable<void> {
+    return this.http.request<void>(
+      'DELETE',
+      `${this.apiUrl}/admin/reservierungen/${reservierungId}`,
+      { body: { name: grund }, params: { adminId } },
+    );
   }
 
   getAuditLog(adminId: string): Observable<AuditEintrag[]> {
@@ -161,25 +249,31 @@ export class ArbeitsplatzService {
   }
 
   createUser(adminId: string, request: BenutzerRequest): Observable<Benutzer> {
-    return this.http.post<Benutzer>(`${this.apiUrl}/admin/benutzer`, request, { params: { adminId } });
+    return this.http.post<Benutzer>(`${this.apiUrl}/admin/benutzer`, request, {
+      params: { adminId },
+    });
   }
 
   updateUser(adminId: string, id: string, request: BenutzerRequest): Observable<Benutzer> {
-    return this.http.put<Benutzer>(`${this.apiUrl}/admin/benutzer/${id}`, request, { params: { adminId } });
+    return this.http.put<Benutzer>(`${this.apiUrl}/admin/benutzer/${id}`, request, {
+      params: { adminId },
+    });
   }
-
-
 
   deleteUser(adminId: string, id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/admin/benutzer/${id}`, { params: { adminId } });
   }
 
   createLocation(adminId: string, request: StandortRequest): Observable<Standort> {
-    return this.http.post<Standort>(`${this.apiUrl}/admin/standorte`, request, { params: { adminId } });
+    return this.http.post<Standort>(`${this.apiUrl}/admin/standorte`, request, {
+      params: { adminId },
+    });
   }
 
   updateLocation(adminId: string, id: string, request: StandortRequest): Observable<Standort> {
-    return this.http.put<Standort>(`${this.apiUrl}/admin/standorte/${id}`, request, { params: { adminId } });
+    return this.http.put<Standort>(`${this.apiUrl}/admin/standorte/${id}`, request, {
+      params: { adminId },
+    });
   }
 
   deleteLocation(adminId: string, id: string): Observable<void> {

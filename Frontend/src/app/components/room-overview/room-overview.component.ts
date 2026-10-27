@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, computed, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  OnInit,
+  Output,
+  computed,
+  signal,
+} from '@angular/core';
 import { Arbeitsplatz, Benutzer, Raum, RaumAuswahl, Zeitraum } from '../../models';
 import { DeskDetailsComponent } from '../desk-details/desk-details.component';
 
@@ -7,12 +16,16 @@ import { DeskDetailsComponent } from '../desk-details/desk-details.component';
   selector: 'app-room-overview',
   imports: [CommonModule, DeskDetailsComponent],
   templateUrl: './room-overview.component.html',
-  styleUrl: './room-overview.component.css'
+  styleUrl: './room-overview.component.css',
 })
 export class RoomOverviewComponent implements OnInit, OnDestroy {
   private buchbarBisSignal = signal('');
-  @Input() set buchbarBis(value: string) { this.buchbarBisSignal.set(value); }
-  get buchbarBis(): string { return this.buchbarBisSignal(); }
+  @Input() set buchbarBis(value: string) {
+    this.buchbarBisSignal.set(value);
+  }
+  get buchbarBis(): string {
+    return this.buchbarBisSignal();
+  }
   get today(): string {
     return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
   }
@@ -35,10 +48,16 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   private aktualisierung?: ReturnType<typeof setInterval>;
   private zeitraumTimer?: ReturnType<typeof setTimeout>;
 
-  ngOnInit(): void { this.aktualisierung = setInterval(() => this.checkAvailability(), 30000); }
+  ngOnInit(): void {
+    this.aktualisierung = setInterval(() => this.checkAvailability(), 30000);
+  }
   ngOnDestroy(): void {
-    if (this.aktualisierung) clearInterval(this.aktualisierung);
-    if (this.zeitraumTimer) clearTimeout(this.zeitraumTimer);
+    if (this.aktualisierung) {
+      clearInterval(this.aktualisierung);
+    }
+    if (this.zeitraumTimer) {
+      clearTimeout(this.zeitraumTimer);
+    }
   }
 
   @Input({ required: true }) set zeitraum(value: Zeitraum) {
@@ -47,8 +66,16 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
 
   zeitraumGueltig = computed(() => {
     const zeitraum = this.zeitraumSignal();
-    if (!zeitraum.datum || !zeitraum.endDatum || !zeitraum.beginn || !zeitraum.ende) return false;
-    if (!this.buchbarBisSignal() || zeitraum.datum < this.today || zeitraum.endDatum > this.buchbarBisSignal()) return false;
+    if (!zeitraum.datum || !zeitraum.endDatum || !zeitraum.beginn || !zeitraum.ende) {
+      return false;
+    }
+    if (
+      !this.buchbarBisSignal() ||
+      zeitraum.datum < this.today ||
+      zeitraum.endDatum > this.buchbarBisSignal()
+    ) {
+      return false;
+    }
     return `${zeitraum.datum}T${zeitraum.beginn}` < `${zeitraum.endDatum}T${zeitraum.ende}`;
   });
 
@@ -61,12 +88,20 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   }
 
   get canSwitchRooms(): boolean {
-    return this.raeume.filter((eintrag) => eintrag.standortId === this.raum.standortId &&
-      (this.benutzer.rolle === 'SUPERADMIN' || eintrag.abteilungName === this.raum.abteilungName)).length > 1;
+    return (
+      this.raeume.filter(
+        (eintrag) =>
+          eintrag.standortId === this.raum.standortId &&
+          (this.benutzer.rolle === 'SUPERADMIN' ||
+            eintrag.abteilungName === this.raum.abteilungName),
+      ).length > 1
+    );
   }
 
   get availableEquipment(): string[] {
-    const namen = this.raum.arbeitsplaetze.flatMap((tisch) => tisch.equipment.map((item) => item.name));
+    const namen = this.raum.arbeitsplaetze.flatMap((tisch) =>
+      tisch.equipment.map((item) => item.name),
+    );
     return [...new Set(namen)].sort();
   }
 
@@ -77,7 +112,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
     }
 
     return this.raum.arbeitsplaetze.filter((tisch) =>
-      filter.every((name) => tisch.equipment.some((item) => item.name === name))
+      filter.every((name) => tisch.equipment.some((item) => item.name === name)),
     );
   }
 
@@ -94,7 +129,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const neuerZeitraum = {
       ...this.zeitraumSignal(),
-      [feld]: input.value
+      [feld]: input.value,
     };
     if (feld === 'datum' && neuerZeitraum.endDatum < neuerZeitraum.datum) {
       neuerZeitraum.endDatum = neuerZeitraum.datum;
@@ -105,7 +140,7 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
 
   updateEquipmentFilter(name: string, aktiv: boolean): void {
     this.ausstattungFilter.update((filter) =>
-      aktiv ? [...filter, name] : filter.filter((eintrag) => eintrag !== name)
+      aktiv ? [...filter, name] : filter.filter((eintrag) => eintrag !== name),
     );
   }
 
@@ -116,36 +151,54 @@ export class RoomOverviewComponent implements OnInit, OnDestroy {
   }
 
   private scheduleAvailabilityCheck(): void {
-    if (this.zeitraumTimer) clearTimeout(this.zeitraumTimer);
+    if (this.zeitraumTimer) {
+      clearTimeout(this.zeitraumTimer);
+    }
     this.zeitraumTimer = setTimeout(() => this.checkAvailability(), 300);
   }
 
   applyTimePreset(typ: 'ganztag' | 'vormittag' | 'nachmittag'): void {
-    const zeiten = typ === 'ganztag' ? ['08:00','16:00'] : typ === 'vormittag' ? ['08:00','12:00'] : ['12:00','16:00'];
-    this.zeitraumSignal.set({ ...this.zeitraumSignal(), beginn:zeiten[0], ende:zeiten[1] });
+    const zeiten =
+      typ === 'ganztag'
+        ? ['08:00', '16:00']
+        : typ === 'vormittag'
+          ? ['08:00', '12:00']
+          : ['12:00', '16:00'];
+    this.zeitraumSignal.set({ ...this.zeitraumSignal(), beginn: zeiten[0], ende: zeiten[1] });
     this.checkAvailability();
   }
 
   getDeskTooltip(tisch: Arbeitsplatz): string {
-    if (!tisch.reserviertVon) return tisch.name;
-    const von = new Date(tisch.reservierungAnfang).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'});
-    const bis = new Date(tisch.reservierungEnde).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'});
+    if (!tisch.reserviertVon) {
+      return tisch.name;
+    }
+    const von = new Date(tisch.reservierungAnfang).toLocaleTimeString('de-AT', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const bis = new Date(tisch.reservierungEnde).toLocaleTimeString('de-AT', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     return `Reserviert von ${tisch.reserviertVon}, ${von}–${bis}`;
   }
 
-  toggleFullscreen(): void { this.vollbild.update((aktiv) => !aktiv); }
+  toggleFullscreen(): void {
+    this.vollbild.update((aktiv) => !aktiv);
+  }
 
   private getAdjacentRoom(richtung: -1 | 1) {
-    const standortRaeume = this.raeume.filter((raum) =>
-      raum.standortId === this.raum.standortId &&
-      (this.benutzer.rolle === 'SUPERADMIN' || raum.abteilungName === this.raum.abteilungName)
+    const standortRaeume = this.raeume.filter(
+      (raum) =>
+        raum.standortId === this.raum.standortId &&
+        (this.benutzer.rolle === 'SUPERADMIN' || raum.abteilungName === this.raum.abteilungName),
     );
     if (standortRaeume.length === 0) {
       return {
         id: this.raum.id,
         name: this.raum.name,
         standortId: this.raum.standortId,
-        abteilungName: this.raum.abteilungName
+        abteilungName: this.raum.abteilungName,
       };
     }
 

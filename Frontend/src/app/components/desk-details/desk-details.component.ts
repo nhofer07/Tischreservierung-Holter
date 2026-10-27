@@ -6,7 +6,7 @@ import { Arbeitsplatz, Raum } from '../../models';
   selector: 'app-desk-details',
   imports: [CommonModule],
   templateUrl: './desk-details.component.html',
-  styleUrl: './desk-details.component.css'
+  styleUrl: './desk-details.component.css',
 })
 export class DeskDetailsComponent {
   @Input({ required: true }) tisch!: Arbeitsplatz;
@@ -14,5 +14,4 @@ export class DeskDetailsComponent {
   @Input() fehler = '';
   @Input() zeitraumGueltig = true;
   @Output() reservieren = new EventEmitter<void>();
-
 }

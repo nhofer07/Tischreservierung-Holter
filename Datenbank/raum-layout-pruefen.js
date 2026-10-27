@@ -1,64 +1,74 @@
-db = db.getSiblingDB("tischreservierung")
+db = db.getSiblingDB('tischreservierung');
 
 // Einfache Qualitätskontrolle für die im Room Builder gespeicherten Räume.
 // Türen und Fenster dürfen Wände absichtlich schneiden und werden ausgelassen.
 function getRotatedSize(breite, hoehe, rotation) {
-  const winkel = (rotation || 0) * Math.PI / 180
+  const winkel = ((rotation || 0) * Math.PI) / 180;
   return {
     breite: Math.abs(breite * Math.cos(winkel)) + Math.abs(hoehe * Math.sin(winkel)),
-    hoehe: Math.abs(breite * Math.sin(winkel)) + Math.abs(hoehe * Math.cos(winkel))
-  }
+    hoehe: Math.abs(breite * Math.sin(winkel)) + Math.abs(hoehe * Math.cos(winkel)),
+  };
 }
 
 function getDeskBounds(tisch) {
-  const groesse = getRotatedSize(tisch.breite || 12, tisch.hoehe || 12, tisch.rotation || 0)
+  const groesse = getRotatedSize(tisch.breite || 12, tisch.hoehe || 12, tisch.rotation || 0);
   return {
     links: tisch.position.x - groesse.breite / 2,
     rechts: tisch.position.x + groesse.breite / 2,
     oben: tisch.position.y - groesse.hoehe / 2,
-    unten: tisch.position.y + groesse.hoehe / 2
-  }
+    unten: tisch.position.y + groesse.hoehe / 2,
+  };
 }
 
 function getElementBounds(element) {
-  const groesse = getRotatedSize(element.breite, element.hoehe, element.rotation || 0)
-  const mitteX = element.x + element.breite / 2
-  const mitteY = element.y + element.hoehe / 2
+  const groesse = getRotatedSize(element.breite, element.hoehe, element.rotation || 0);
+  const mitteX = element.x + element.breite / 2;
+  const mitteY = element.y + element.hoehe / 2;
   return {
     links: mitteX - groesse.breite / 2,
     rechts: mitteX + groesse.breite / 2,
     oben: mitteY - groesse.hoehe / 2,
-    unten: mitteY + groesse.hoehe / 2
-  }
+    unten: mitteY + groesse.hoehe / 2,
+  };
 }
 
 function overlaps(a, b, toleranz = 0.5) {
-  return a.rechts - toleranz > b.links && a.links + toleranz < b.rechts &&
-    a.unten - toleranz > b.oben && a.oben + toleranz < b.unten
+  return (
+    a.rechts - toleranz > b.links &&
+    a.links + toleranz < b.rechts &&
+    a.unten - toleranz > b.oben &&
+    a.oben + toleranz < b.unten
+  );
 }
 
-const physischeElemente = ["wand", "gesperrt", "saeule", "pflanze", "klima", "feuerloescher"]
-const fehler = []
+const physischeElemente = ['wand', 'gesperrt', 'saeule', 'pflanze', 'klima', 'feuerloescher'];
+const fehler = [];
 
-db.raeume.find().forEach(raum => {
-  const tische = db.arbeitsplaetze.find({ raumId: raum._id }).toArray()
+db.raeume.find().forEach((raum) => {
+  const tische = db.arbeitsplaetze.find({ raumId: raum._id }).toArray();
   for (let i = 0; i < tische.length; i++) {
     for (let j = i + 1; j < tische.length; j++) {
       if (overlaps(getDeskBounds(tische[i]), getDeskBounds(tische[j]), 1)) {
-        fehler.push(`${raum.name}: Tisch ${tische[i].tischnr} überlappt Tisch ${tische[j].tischnr}`)
+        fehler.push(
+          `${raum.name}: Tisch ${tische[i].tischnr} überlappt Tisch ${tische[j].tischnr}`,
+        );
       }
     }
-    ;(raum.elemente || []).filter(element => physischeElemente.includes(element.typ)).forEach(element => {
-      if (overlaps(getDeskBounds(tische[i]), getElementBounds(element), 0.8)) {
-        fehler.push(`${raum.name}: Tisch ${tische[i].tischnr} überlappt ${element.typ} ${element.id}`)
-      }
-    })
+    (raum.elemente || [])
+      .filter((element) => physischeElemente.includes(element.typ))
+      .forEach((element) => {
+        if (overlaps(getDeskBounds(tische[i]), getElementBounds(element), 0.8)) {
+          fehler.push(
+            `${raum.name}: Tisch ${tische[i].tischnr} überlappt ${element.typ} ${element.id}`,
+          );
+        }
+      });
   }
-})
+});
 
 if (fehler.length === 0) {
-  print("Layoutprüfung erfolgreich: keine ungewollten Überlappungen gefunden.")
+  print('Layoutprüfung erfolgreich: keine ungewollten Überlappungen gefunden.');
 } else {
-  print(`Layoutprüfung: ${fehler.length} Überlappungen gefunden.`)
-  fehler.forEach(eintrag => print("- " + eintrag))
+  print(`Layoutprüfung: ${fehler.length} Überlappungen gefunden.`);
+  fehler.forEach((eintrag) => print('- ' + eintrag));
 }

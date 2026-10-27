@@ -8,12 +8,18 @@ import { lokalerTestLoginAktiv } from '../../auth/entra-config';
   selector: 'app-login',
   imports: [CommonModule, FormsModule],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  styleUrl: './login.component.css',
 })
 export class LoginComponent {
   @Input() laden = false;
   @Input() fehler = '';
-  @Input() firmenEinstellung: FirmenEinstellung = { firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' };
+  @Input() firmenEinstellung: FirmenEinstellung = {
+    firmenname: 'HOLTER',
+    produktname: 'DeskVision',
+    primaerfarbe: '#a51e2d',
+    akzentfarbe: '#343638',
+    logoUrl: '/holter-logo.png',
+  };
   @Output() entraAnmelden = new EventEmitter<void>();
   @Output() testAnmelden = new EventEmitter<{ email: string; passwort: string }>();
 

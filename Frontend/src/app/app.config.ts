@@ -6,6 +6,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideHttpClient(withInterceptors([entraInterceptor])),
-    { provide: LOCALE_ID, useValue: 'de-AT' }
-  ]
+    { provide: LOCALE_ID, useValue: 'de-AT' },
+  ],
 };

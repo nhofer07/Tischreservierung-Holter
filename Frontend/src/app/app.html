@@ -7,10 +7,22 @@
   (testAnmelden)="loginWithTestAccount($event)"
 />
 
-<main class="page" *ngIf="aktiverBenutzer() as benutzerAktiv">
+<main
+  class="page"
+  *ngIf="aktiverBenutzer() as benutzerAktiv"
+>
   <header class="topbar">
-    <button class="brand" type="button" aria-label="Zur Startseite" (click)="openHome()">
-      <img *ngIf="firmenEinstellung().logoUrl" [src]="firmenEinstellung().logoUrl" [alt]="firmenEinstellung().firmenname" />
+    <button
+      class="brand"
+      type="button"
+      aria-label="Zur Startseite"
+      (click)="openHome()"
+    >
+      <img
+        *ngIf="firmenEinstellung().logoUrl"
+        [src]="firmenEinstellung().logoUrl"
+        [alt]="firmenEinstellung().firmenname"
+      />
       <span>{{ firmenEinstellung().produktname }}</span>
     </button>
 
@@ -40,28 +52,79 @@
     </nav>
 
     <div class="profile-menu">
-      <details class="profile-details" (keydown.escape)="profil.removeAttribute('open')" (document:click)="closeProfileOnOutsideClick($event, profil)" #profil>
-      <summary aria-label="Mein Profil anzeigen">
-      <span class="avatar">{{ benutzerAktiv.vorname.charAt(0) }}{{ benutzerAktiv.nachname.charAt(0) }}</span>
-      <span class="profile-name"><strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong><small>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Abteilungsleitung' : benutzerAktiv.abteilungName }}</small></span>
-      </summary>
-      <section class="profile-card" aria-label="Mein Profil">
-        <h2>Mein Profil</h2>
-        <strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong>
-        <dl>
-          <dt>E-Mail</dt><dd>{{ benutzerAktiv.email }}</dd>
-          <dt>Rolle</dt><dd>{{ benutzerAktiv.rolle === 'SUPERADMIN' ? 'Superadmin' : benutzerAktiv.rolle === 'ADMIN' ? 'Admin · Abteilungsleitung' : 'Mitarbeiter' }}</dd>
-          <dt>Abteilung</dt><dd>{{ benutzerAktiv.abteilungName }}</dd>
-        </dl>
-        <button type="button" class="logout" (click)="logout()">Abmelden</button>
-      </section>
+      <details
+        class="profile-details"
+        (keydown.escape)="profil.removeAttribute('open')"
+        (document:click)="closeProfileOnOutsideClick($event, profil)"
+        #profil
+      >
+        <summary aria-label="Mein Profil anzeigen">
+          <span class="avatar">
+            {{ benutzerAktiv.vorname.charAt(0) }}{{ benutzerAktiv.nachname.charAt(0) }}
+          </span>
+          <span class="profile-name">
+            <strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong>
+            <small>
+              {{
+                benutzerAktiv.rolle === 'SUPERADMIN'
+                  ? 'Superadmin'
+                  : benutzerAktiv.rolle === 'ADMIN'
+                    ? 'Abteilungsleitung'
+                    : benutzerAktiv.abteilungName
+              }}
+            </small>
+          </span>
+        </summary>
+        <section
+          class="profile-card"
+          aria-label="Mein Profil"
+        >
+          <h2>Mein Profil</h2>
+          <strong>{{ benutzerAktiv.vorname }} {{ benutzerAktiv.nachname }}</strong>
+          <dl>
+            <dt>E-Mail</dt>
+            <dd>{{ benutzerAktiv.email }}</dd>
+            <dt>Rolle</dt>
+            <dd>
+              {{
+                benutzerAktiv.rolle === 'SUPERADMIN'
+                  ? 'Superadmin'
+                  : benutzerAktiv.rolle === 'ADMIN'
+                    ? 'Admin · Abteilungsleitung'
+                    : 'Mitarbeiter'
+              }}
+            </dd>
+            <dt>Abteilung</dt>
+            <dd>{{ benutzerAktiv.abteilungName }}</dd>
+          </dl>
+          <button
+            type="button"
+            class="logout"
+            (click)="logout()"
+          >
+            Abmelden
+          </button>
+        </section>
       </details>
     </div>
   </header>
 
-  <div class="global-message error-message" *ngIf="fehler()">{{ fehler() }}</div>
-  <div class="global-message success-message" *ngIf="nachricht()">{{ nachricht() }}</div>
-  <div class="loading-line" *ngIf="laden()"></div>
+  <div
+    class="global-message error-message"
+    *ngIf="fehler()"
+  >
+    {{ fehler() }}
+  </div>
+  <div
+    class="global-message success-message"
+    *ngIf="nachricht()"
+  >
+    {{ nachricht() }}
+  </div>
+  <div
+    class="loading-line"
+    *ngIf="laden()"
+  ></div>
 
   <app-intro
     *ngIf="aktiveAnsicht() === 'start'"

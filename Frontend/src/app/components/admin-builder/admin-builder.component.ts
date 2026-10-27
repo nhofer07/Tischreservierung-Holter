@@ -1,7 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Abteilung, Arbeitsplatz, ArbeitsplatzRequest, AuditEintrag, Benutzer, BenutzerRequest, FirmenDesignHistorie, FirmenEinstellung, Raum, RaumAuswahl, RaumElement, RaumRequest, Reservierung, Standort, StandortRequest, Zeitraum } from '../../models';
+import {
+  Abteilung,
+  Arbeitsplatz,
+  ArbeitsplatzRequest,
+  AuditEintrag,
+  Benutzer,
+  BenutzerRequest,
+  FirmenDesignHistorie,
+  FirmenEinstellung,
+  Raum,
+  RaumAuswahl,
+  RaumElement,
+  RaumRequest,
+  Reservierung,
+  Standort,
+  StandortRequest,
+  Zeitraum,
+} from '../../models';
 import { ArbeitsplatzService } from '../../services/arbeitsplatz.service';
 import { forkJoin } from 'rxjs';
 
@@ -9,7 +34,7 @@ import { forkJoin } from 'rxjs';
   selector: 'app-admin-builder',
   imports: [CommonModule, FormsModule],
   templateUrl: './admin-builder.component.html',
-  styleUrl: './admin-builder.component.css'
+  styleUrl: './admin-builder.component.css',
 })
 export class AdminBuilderComponent implements OnInit {
   @Output() nachricht = new EventEmitter<string>();
@@ -22,8 +47,18 @@ export class AdminBuilderComponent implements OnInit {
   saveBookingSettings(): void {
     this.grenzeWirdGespeichert = true;
     this.service.saveBookingSettings(this.admin.id, this.maxReservierungsWochen).subscribe({
-      next: (wert) => { this.maxReservierungsWochen = wert.maxWochen; this.grenzeWirdGespeichert = false; this.reservierungsgrenzeGeaendert.emit(); this.nachricht.emit("Buchungsgrenze wurde gespeichert."); this.cdr.detectChanges(); },
-      error: () => { this.grenzeWirdGespeichert = false; this.fehler.emit("Bitte eine ganze Zahl zwischen 1 und 52 Wochen eingeben."); this.cdr.detectChanges(); }
+      next: (wert) => {
+        this.maxReservierungsWochen = wert.maxWochen;
+        this.grenzeWirdGespeichert = false;
+        this.reservierungsgrenzeGeaendert.emit();
+        this.nachricht.emit('Buchungsgrenze wurde gespeichert.');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.grenzeWirdGespeichert = false;
+        this.fehler.emit('Bitte eine ganze Zahl zwischen 1 und 52 Wochen eingeben.');
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -40,7 +75,9 @@ export class AdminBuilderComponent implements OnInit {
     return this.adminWert!;
   }
 
-  get isSuperadmin(): boolean { return this.admin.rolle === 'SUPERADMIN'; }
+  get isSuperadmin(): boolean {
+    return this.admin.rolle === 'SUPERADMIN';
+  }
 
   @Input() set standorte(value: Standort[]) {
     this.standortListe = value;
@@ -77,7 +114,13 @@ export class AdminBuilderComponent implements OnInit {
   stornierungsgrund = '';
   neueAbteilung = '';
   neuesEquipment = '';
-  firmenEinstellung: FirmenEinstellung = { firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' };
+  firmenEinstellung: FirmenEinstellung = {
+    firmenname: 'HOLTER',
+    produktname: 'DeskVision',
+    primaerfarbe: '#a51e2d',
+    akzentfarbe: '#343638',
+    logoUrl: '/holter-logo.png',
+  };
   designHistorie: FirmenDesignHistorie[] = [];
   laden = false;
   benutzerWerdenGeladen = false;
@@ -93,7 +136,15 @@ export class AdminBuilderComponent implements OnInit {
   private gespeicherterGrundriss = '';
   private tischWirdGezogen = false;
   private tischAktion: 'verschieben' | 'groesse' | 'drehen' | '' = '';
-  private tischStart: { mausX: number; mausY: number; x: number; y: number; breite: number; hoehe: number; rotation: number } | null = null;
+  private tischStart: {
+    mausX: number;
+    mausY: number;
+    x: number;
+    y: number;
+    breite: number;
+    hoehe: number;
+    rotation: number;
+  } | null = null;
   private tischResizeRichtung: 'nw' | 'ne' | 'sw' | 'se' = 'se';
 
   raumForm: RaumRequest = this.createEmptyRoomForm();
@@ -106,22 +157,43 @@ export class AdminBuilderComponent implements OnInit {
   private resizeElementId = '';
   private rotateElementId = '';
   private resizeRichtung: 'nw' | 'ne' | 'sw' | 'se' = 'se';
-  private resizeStart: { mausX: number; mausY: number; x: number; y: number; breite: number; hoehe: number } | null = null;
+  private resizeStart: {
+    mausX: number;
+    mausY: number;
+    x: number;
+    y: number;
+    breite: number;
+    hoehe: number;
+  } | null = null;
 
-  constructor(private service: ArbeitsplatzService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private service: ArbeitsplatzService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
-    this.service.getBookingSettings().subscribe({ next: (wert) => { this.maxReservierungsWochen = wert.maxWochen; this.cdr.detectChanges(); }, error: () => this.fehler.emit("Buchungsgrenze konnte nicht geladen werden.") });
+    this.service.getBookingSettings().subscribe({
+      next: (wert) => {
+        this.maxReservierungsWochen = wert.maxWochen;
+        this.cdr.detectChanges();
+      },
+      error: () => this.fehler.emit('Buchungsgrenze konnte nicht geladen werden.'),
+    });
     this.loadMasterData();
     this.loadUsers();
     this.loadReservations();
-    if (this.isSuperadmin) this.loadCompanySettings();
+    if (this.isSuperadmin) {
+      this.loadCompanySettings();
+    }
   }
 
   loadCompanySettings(): void {
     this.service.getCompanySettings().subscribe({
-      next: (einstellung) => { this.firmenEinstellung = einstellung; this.cdr.detectChanges(); },
-      error: () => this.fehler.emit('Firmendesign konnte nicht geladen werden.')
+      next: (einstellung) => {
+        this.firmenEinstellung = einstellung;
+        this.cdr.detectChanges();
+      },
+      error: () => this.fehler.emit('Firmendesign konnte nicht geladen werden.'),
     });
     this.service.getBrandingHistory(this.admin.id).subscribe((historie) => {
       this.designHistorie = historie;
@@ -137,12 +209,19 @@ export class AdminBuilderComponent implements OnInit {
         this.loadCompanySettings();
         this.nachricht.emit('Firmendesign wurde gespeichert.');
       },
-      error: () => this.fehler.emit('Firmendesign konnte nicht gespeichert werden. Bitte Eingaben prüfen.')
+      error: () =>
+        this.fehler.emit('Firmendesign konnte nicht gespeichert werden. Bitte Eingaben prüfen.'),
     });
   }
 
   resetCompanyBranding(): void {
-    this.firmenEinstellung = { firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' };
+    this.firmenEinstellung = {
+      firmenname: 'HOLTER',
+      produktname: 'DeskVision',
+      primaerfarbe: '#a51e2d',
+      akzentfarbe: '#343638',
+      logoUrl: '/holter-logo.png',
+    };
     this.saveCompanySettings();
   }
 
@@ -153,7 +232,7 @@ export class AdminBuilderComponent implements OnInit {
         this.designGeaendert.emit(einstellung);
         this.nachricht.emit('Designvariante wurde angewendet.');
       },
-      error: () => this.fehler.emit('Designvariante konnte nicht angewendet werden.')
+      error: () => this.fehler.emit('Designvariante konnte nicht angewendet werden.'),
     });
   }
 
@@ -164,16 +243,25 @@ export class AdminBuilderComponent implements OnInit {
         this.designHistorie = this.designHistorie.filter((item) => item.id !== eintrag.id);
         this.nachricht.emit('Designvariante wurde aus der Historie entfernt.');
       },
-      error: () => this.fehler.emit('Designvariante konnte nicht entfernt werden.')
+      error: () => this.fehler.emit('Designvariante konnte nicht entfernt werden.'),
     });
   }
 
   selectLogo(event: Event): void {
     const input = event.target as HTMLInputElement;
     const datei = input.files?.[0];
-    if (!datei) return;
-    if (!datei.type.startsWith('image/')) { this.fehler.emit('Bitte eine Bilddatei auswählen.'); return; }
-    if (datei.size > 2_000_000) { this.fehler.emit('Das Logo darf maximal 2 MB groß sein.'); input.value = ''; return; }
+    if (!datei) {
+      return;
+    }
+    if (!datei.type.startsWith('image/')) {
+      this.fehler.emit('Bitte eine Bilddatei auswählen.');
+      return;
+    }
+    if (datei.size > 2_000_000) {
+      this.fehler.emit('Das Logo darf maximal 2 MB groß sein.');
+      input.value = '';
+      return;
+    }
     const leser = new FileReader();
     leser.onerror = () => this.fehler.emit('Die Bilddatei konnte nicht gelesen werden.');
     leser.onload = () => {
@@ -192,16 +280,28 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   openSection(bereich: 'builder' | 'stammdaten' | 'benutzer' | 'reservierungen' | 'audit'): void {
-    if (this.bereich === 'builder' && bereich !== 'builder' && !this.canLeaveFloorPlan()) return;
+    if (this.bereich === 'builder' && bereich !== 'builder' && !this.canLeaveFloorPlan()) {
+      return;
+    }
     this.bereich = bereich;
-    if (bereich === 'stammdaten') this.loadMasterData();
-    if (bereich === 'reservierungen') this.loadReservations();
-    if (bereich === 'benutzer') this.loadUsers();
-    if (bereich === 'audit') this.loadAuditLog();
+    if (bereich === 'stammdaten') {
+      this.loadMasterData();
+    }
+    if (bereich === 'reservierungen') {
+      this.loadReservations();
+    }
+    if (bereich === 'benutzer') {
+      this.loadUsers();
+    }
+    if (bereich === 'audit') {
+      this.loadAuditLog();
+    }
   }
 
   selectLocation(id: string): void {
-    if (!this.canLeaveFloorPlan()) return;
+    if (!this.canLeaveFloorPlan()) {
+      return;
+    }
     this.standortId = id;
     this.raumId = '';
     this.raum = null;
@@ -210,9 +310,13 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   selectRoom(id: string): void {
-    if (!this.canLeaveFloorPlan()) return;
+    if (!this.canLeaveFloorPlan()) {
+      return;
+    }
     this.raumId = id;
-    if (this.raumId) this.loadRoom(this.raumId);
+    if (this.raumId) {
+      this.loadRoom(this.raumId);
+    }
   }
 
   get roomGroups(): { abteilung: string; raeume: RaumAuswahl[] }[] {
@@ -228,74 +332,103 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   loadRooms(gewuenschterRaumId = ''): void {
-    if (!this.standortId) return;
+    if (!this.standortId) {
+      return;
+    }
     this.laden = true;
     const angefragterStandort = this.standortId;
     this.service.getRoomsByLocation(angefragterStandort).subscribe({
       next: (raeume) => {
-        if (this.standortId !== angefragterStandort) return;
+        if (this.standortId !== angefragterStandort) {
+          return;
+        }
         const sichtbareRaeume = this.isSuperadmin
           ? raeume
           : raeume.filter((raum) => raum.abteilungName === this.admin.abteilungName);
         this.raeume = sichtbareRaeume;
         const ziel = sichtbareRaeume.find((raum) => raum.id === gewuenschterRaumId);
-        if (ziel) this.loadRoom(ziel.id);
-        else { this.raumId = ''; this.raum = null; }
+        if (ziel) {
+          this.loadRoom(ziel.id);
+        } else {
+          this.raumId = '';
+          this.raum = null;
+        }
         this.laden = false;
         this.cdr.detectChanges();
       },
       error: () => {
-        if (this.standortId !== angefragterStandort) return;
+        if (this.standortId !== angefragterStandort) {
+          return;
+        }
         this.raeume = [];
         this.raumId = '';
         this.raum = null;
         this.laden = false;
         this.fehler.emit('Räume konnten nicht geladen werden.');
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
   loadRoom(id: string): void {
     this.raumId = id;
-    const zeitraum: Zeitraum = { datum: this.getCurrentDate(), endDatum: this.getCurrentDate(), beginn: '08:00', ende: '16:00' };
+    const zeitraum: Zeitraum = {
+      datum: this.getCurrentDate(),
+      endDatum: this.getCurrentDate(),
+      beginn: '08:00',
+      ende: '16:00',
+    };
     this.service.getRoom(id, zeitraum, this.admin.id).subscribe({
       next: (raum) => {
         raum.elemente = raum.elemente.map((element) => {
           if (element.typ === 'tuer') {
-            const hoehe = element.breite * 16 / 9;
+            const hoehe = (element.breite * 16) / 9;
             return { ...element, y: element.y + element.hoehe / 2 - hoehe / 2, hoehe };
           }
           if (element.typ === 'wand' || element.typ === 'fenster') {
             const mitteX = element.x + element.breite / 2;
             const mitteY = element.y + element.hoehe / 2;
             const gedreht = Math.round((element.rotation || 0) / 90) % 2 !== 0;
-            const waagrecht = gedreht ? element.breite < element.hoehe : element.breite >= element.hoehe;
+            const waagrecht = gedreht
+              ? element.breite < element.hoehe
+              : element.breite >= element.hoehe;
             const laenge = Math.max(element.breite, element.hoehe);
             const breite = waagrecht ? laenge : 2;
             const hoehe = waagrecht ? 2 : laenge;
-            return { ...element,
+            return {
+              ...element,
               x: this.clamp(mitteX - breite / 2, 0, 100 - breite),
               y: this.clamp(mitteY - hoehe / 2, 0, 100 - hoehe),
-              breite, hoehe, rotation: 0 };
+              breite,
+              hoehe,
+              rotation: 0,
+            };
           }
           return element;
         });
         this.raum = raum;
-        this.raumForm = { name: raum.name, stockwerk: raum.stockwerk, standortId: raum.standortId,
-          abteilungId: raum.abteilungId, abteilungName: raum.abteilungName, elemente: [...raum.elemente] };
+        this.raumForm = {
+          name: raum.name,
+          stockwerk: raum.stockwerk,
+          standortId: raum.standortId,
+          abteilungId: raum.abteilungId,
+          abteilungName: raum.abteilungName,
+          elemente: [...raum.elemente],
+        };
         this.gespeicherterGrundriss = JSON.stringify(raum.elemente);
         this.startNewDesk();
         this.historie = [];
         this.wiederholenHistorie = [];
         this.cdr.detectChanges();
       },
-      error: () => this.fehler.emit('Der Raum konnte nicht geladen werden.')
+      error: () => this.fehler.emit('Der Raum konnte nicht geladen werden.'),
     });
   }
 
   startNewRoom(): void {
-    if (!this.canLeaveFloorPlan()) return;
+    if (!this.canLeaveFloorPlan()) {
+      return;
+    }
     this.modus = 'raum';
     this.raumId = '';
     this.raum = null;
@@ -303,7 +436,9 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   editRoom(): void {
-    if (this.raum && this.canLeaveFloorPlan()) this.modus = 'raum';
+    if (this.raum && this.canLeaveFloorPlan()) {
+      this.modus = 'raum';
+    }
   }
 
   editFloorPlan(): void {
@@ -322,39 +457,67 @@ export class AdminBuilderComponent implements OnInit {
       : this.service.createRoom(this.admin.id, this.raumForm);
     aufruf.subscribe({
       next: (raum) => {
-        this.nachricht.emit(warNeu ? 'Raum wurde angelegt und kann sofort bearbeitet werden.' : 'Raum wurde aktualisiert.');
+        this.nachricht.emit(
+          warNeu
+            ? 'Raum wurde angelegt und kann sofort bearbeitet werden.'
+            : 'Raum wurde aktualisiert.',
+        );
         this.standortId = this.raumForm.standortId;
         this.modus = 'grundriss';
         this.loadRooms(raum.id);
       },
-      error: () => this.fehler.emit('Raum konnte nicht gespeichert werden.')
+      error: () => this.fehler.emit('Raum konnte nicht gespeichert werden.'),
     });
   }
 
   saveFloorPlan(): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     this.raumForm.elemente = [...this.raum.elemente];
     this.service.updateRoom(this.admin.id, this.raum.id, this.raumForm).subscribe({
-      next: () => { this.gespeicherterGrundriss = JSON.stringify(this.raum!.elemente); this.nachricht.emit('Grundriss wurde gespeichert und ist für Mitarbeiter sichtbar.'); this.loadRoom(this.raum!.id); },
-      error: () => this.fehler.emit('Grundriss konnte nicht gespeichert werden.')
+      next: () => {
+        this.gespeicherterGrundriss = JSON.stringify(this.raum!.elemente);
+        this.nachricht.emit('Grundriss wurde gespeichert und ist für Mitarbeiter sichtbar.');
+        this.loadRoom(this.raum!.id);
+      },
+      error: () => this.fehler.emit('Grundriss konnte nicht gespeichert werden.'),
     });
   }
 
   deleteRoom(): void {
-    if (this.raumId) this.deleteRoomFromMasterData(this.raumId, this.raum?.name ?? this.raumId);
+    if (this.raumId) {
+      this.deleteRoomFromMasterData(this.raumId, this.raum?.name ?? this.raumId);
+    }
   }
 
   deleteRoomFromMasterData(id: string, name: string): void {
-    if (!this.isSuperadmin) return;
-    if (!confirm(`Raum „${name}“ wirklich löschen? Arbeitsplätze sowie vergangene und stornierte Reservierungen dieses Raums werden ebenfalls entfernt.`)) return;
+    if (!this.isSuperadmin) {
+      return;
+    }
+    if (
+      !confirm(
+        `Raum „${name}“ wirklich löschen? Arbeitsplätze sowie vergangene und stornierte Reservierungen dieses Raums werden ebenfalls entfernt.`,
+      )
+    ) {
+      return;
+    }
     this.service.deleteRoom(this.admin.id, id).subscribe({
       next: () => {
-        if (this.raumId === id) { this.raumId = ''; this.raum = null; }
+        if (this.raumId === id) {
+          this.raumId = '';
+          this.raum = null;
+        }
         this.nachricht.emit('Raum wurde gelöscht.');
         this.loadMasterDataRooms();
-        if (this.standortId) this.loadRooms();
+        if (this.standortId) {
+          this.loadRooms();
+        }
       },
-      error: () => this.fehler.emit('Räume mit laufenden oder zukünftigen Reservierungen können nicht gelöscht werden.')
+      error: () =>
+        this.fehler.emit(
+          'Räume mit laufenden oder zukünftigen Reservierungen können nicht gelöscht werden.',
+        ),
     });
   }
 
@@ -363,31 +526,48 @@ export class AdminBuilderComponent implements OnInit {
       this.applyDeskFormToRoom();
     }
     this.ausgewaehlterTisch = tisch;
-    this.tischForm = { tischnr: tisch.tischnr, name: tisch.name, raumId: this.raum!.id,
-      standortId: this.raum!.standortId, abteilungId: tisch.abteilungId,
-      abteilungName: tisch.abteilungName, x: tisch.x, y: tisch.y,
+    this.tischForm = {
+      tischnr: tisch.tischnr,
+      name: tisch.name,
+      raumId: this.raum!.id,
+      standortId: this.raum!.standortId,
+      abteilungId: tisch.abteilungId,
+      abteilungName: tisch.abteilungName,
+      x: tisch.x,
+      y: tisch.y,
       rotation: tisch.rotation || 0,
       breite: tisch.breite || 12,
       hoehe: tisch.hoehe || 12,
-      equipment: tisch.equipment.map((item) => item.name) };
+      equipment: tisch.equipment.map((item) => item.name),
+    };
   }
 
   startNewDesk(): void {
-    if (this.modus === 'grundriss' && !this.canLeaveFloorPlan()) return;
+    if (this.modus === 'grundriss' && !this.canLeaveFloorPlan()) {
+      return;
+    }
     this.modus = 'tisch';
     this.ausgewaehlterTisch = null;
     this.tischForm = this.createEmptyDeskForm();
     if (this.raum) {
-      Object.assign(this.tischForm, { raumId: this.raum.id, standortId: this.raum.standortId,
-        abteilungId: this.raum.abteilungId, abteilungName: this.raum.abteilungName,
-        tischnr: this.getNextDeskNumber() });
+      Object.assign(this.tischForm, {
+        raumId: this.raum.id,
+        standortId: this.raum.standortId,
+        abteilungId: this.raum.abteilungId,
+        abteilungName: this.raum.abteilungName,
+        tischnr: this.getNextDeskNumber(),
+      });
       this.tischForm.name = `Arbeitsplatz ${this.tischForm.tischnr}`;
     }
-    this.tischForm.equipment = this.equipmentListe.filter((name) => name === 'Tastatur' || name === 'Maus' || name === 'Monitor');
+    this.tischForm.equipment = this.equipmentListe.filter(
+      (name) => name === 'Tastatur' || name === 'Maus' || name === 'Monitor',
+    );
   }
 
   setDeskPosition(event: MouseEvent): void {
-    if (!this.raum || this.tischWirdGezogen) return;
+    if (!this.raum || this.tischWirdGezogen) {
+      return;
+    }
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     this.tischForm.x = Math.round(Math.max(8, Math.min(92, (event.offsetX / rect.width) * 100)));
     this.tischForm.y = Math.round(Math.max(12, Math.min(86, (event.offsetY / rect.height) * 100)));
@@ -407,62 +587,98 @@ export class AdminBuilderComponent implements OnInit {
     const wert = groesse === 'klein' ? 9 : groesse === 'mittel' ? 12 : 16;
     this.tischForm.breite = wert;
     this.tischForm.hoehe = wert;
-    if (!this.raum || this.raum.arbeitsplaetze.length === 0) return;
+    if (!this.raum || this.raum.arbeitsplaetze.length === 0) {
+      return;
+    }
 
     const aenderungen = this.raum.arbeitsplaetze.map((tisch) => {
       const request: ArbeitsplatzRequest = {
-        tischnr: tisch.tischnr, name: tisch.name, raumId: this.raum!.id,
-        standortId: this.raum!.standortId, abteilungId: tisch.abteilungId,
-        abteilungName: tisch.abteilungName, x: tisch.x, y: tisch.y,
-        rotation: tisch.rotation || 0, breite: wert, hoehe: wert,
-        equipment: tisch.equipment.map((item) => item.name)
+        tischnr: tisch.tischnr,
+        name: tisch.name,
+        raumId: this.raum!.id,
+        standortId: this.raum!.standortId,
+        abteilungId: tisch.abteilungId,
+        abteilungName: tisch.abteilungName,
+        x: tisch.x,
+        y: tisch.y,
+        rotation: tisch.rotation || 0,
+        breite: wert,
+        hoehe: wert,
+        equipment: tisch.equipment.map((item) => item.name),
       };
       return this.service.updateWorkstation(this.admin.id, tisch.id, request);
     });
 
     forkJoin(aenderungen).subscribe({
       next: () => {
-        this.raum!.arbeitsplaetze.forEach((tisch) => { tisch.breite = wert; tisch.hoehe = wert; });
-        this.nachricht.emit(`Alle Tische wurden auf ${groesse === 'gross' ? 'Groß' : groesse[0].toUpperCase() + groesse.slice(1)} gesetzt.`);
+        this.raum!.arbeitsplaetze.forEach((tisch) => {
+          tisch.breite = wert;
+          tisch.hoehe = wert;
+        });
+        this.nachricht.emit(
+          `Alle Tische wurden auf ${groesse === 'gross' ? 'Groß' : groesse[0].toUpperCase() + groesse.slice(1)} gesetzt.`,
+        );
       },
-      error: () => this.fehler.emit('Die Tischgrößen konnten nicht gespeichert werden.')
+      error: () => this.fehler.emit('Die Tischgrößen konnten nicht gespeichert werden.'),
     });
   }
 
   saveDesk(): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     if (this.hasDeskCollision(this.tischForm.x, this.tischForm.y, this.ausgewaehlterTisch?.id)) {
       this.fehler.emit('Der Arbeitsplatz überlappt eine Wand, Sperrzone oder einen anderen Tisch.');
       return;
     }
     if (this.ausgewaehlterTisch) {
       const aenderungen = this.raum.arbeitsplaetze.map((tisch) => {
-        const request: ArbeitsplatzRequest = tisch.id === this.ausgewaehlterTisch!.id
-          ? { ...this.tischForm }
-          : {
-              tischnr: tisch.tischnr, name: tisch.name, raumId: this.raum!.id,
-              standortId: this.raum!.standortId, abteilungId: tisch.abteilungId,
-              abteilungName: tisch.abteilungName, x: tisch.x, y: tisch.y,
-              rotation: tisch.rotation || 0, breite: tisch.breite || 12,
-              hoehe: tisch.hoehe || 12, equipment: tisch.equipment.map((item) => item.name)
-            };
+        const request: ArbeitsplatzRequest =
+          tisch.id === this.ausgewaehlterTisch!.id
+            ? { ...this.tischForm }
+            : {
+                tischnr: tisch.tischnr,
+                name: tisch.name,
+                raumId: this.raum!.id,
+                standortId: this.raum!.standortId,
+                abteilungId: tisch.abteilungId,
+                abteilungName: tisch.abteilungName,
+                x: tisch.x,
+                y: tisch.y,
+                rotation: tisch.rotation || 0,
+                breite: tisch.breite || 12,
+                hoehe: tisch.hoehe || 12,
+                equipment: tisch.equipment.map((item) => item.name),
+              };
         return this.service.updateWorkstation(this.admin.id, tisch.id, request);
       });
       forkJoin(aenderungen).subscribe({
-        next: () => { this.nachricht.emit('Arbeitsplätze wurden gespeichert.'); this.loadRoom(this.raum!.id); },
-        error: () => this.fehler.emit('Die Arbeitsplätze konnten nicht gespeichert werden.')
+        next: () => {
+          this.nachricht.emit('Arbeitsplätze wurden gespeichert.');
+          this.loadRoom(this.raum!.id);
+        },
+        error: () => this.fehler.emit('Die Arbeitsplätze konnten nicht gespeichert werden.'),
       });
       return;
     }
 
     const raumId = this.raum.id;
-    const neuerTischRequest: ArbeitsplatzRequest = { ...this.tischForm, equipment: [...this.tischForm.equipment] };
+    const neuerTischRequest: ArbeitsplatzRequest = {
+      ...this.tischForm,
+      equipment: [...this.tischForm.equipment],
+    };
     const vorhandeneTischeSpeichern = this.raum.arbeitsplaetze.map((tisch) =>
-      this.service.updateWorkstation(this.admin.id, tisch.id, this.buildDeskRequest(tisch)));
-    const neuenTischAnlegen = () => this.service.createWorkstation(this.admin.id, neuerTischRequest).subscribe({
-      next: () => { this.nachricht.emit('Arbeitsplatz und aktuelle Anordnung wurden gespeichert.'); this.loadRoom(raumId); },
-      error: () => this.fehler.emit('Arbeitsplatz konnte nicht gespeichert werden. Tischnummer prüfen.')
-    });
+      this.service.updateWorkstation(this.admin.id, tisch.id, this.buildDeskRequest(tisch)),
+    );
+    const neuenTischAnlegen = () =>
+      this.service.createWorkstation(this.admin.id, neuerTischRequest).subscribe({
+        next: () => {
+          this.nachricht.emit('Arbeitsplatz und aktuelle Anordnung wurden gespeichert.');
+          this.loadRoom(raumId);
+        },
+        error: () =>
+          this.fehler.emit('Arbeitsplatz konnte nicht gespeichert werden. Tischnummer prüfen.'),
+      });
 
     if (vorhandeneTischeSpeichern.length === 0) {
       neuenTischAnlegen();
@@ -470,13 +686,17 @@ export class AdminBuilderComponent implements OnInit {
     }
     forkJoin(vorhandeneTischeSpeichern).subscribe({
       next: () => neuenTischAnlegen(),
-      error: () => this.fehler.emit('Die aktuelle Tischanordnung konnte nicht gespeichert werden.')
+      error: () => this.fehler.emit('Die aktuelle Tischanordnung konnte nicht gespeichert werden.'),
     });
   }
 
   deleteDesk(): void {
-    if (!this.ausgewaehlterTisch || !this.raum) return;
-    if (!confirm(`Arbeitsplatz ${this.ausgewaehlterTisch.tischnr} wirklich löschen?`)) return;
+    if (!this.ausgewaehlterTisch || !this.raum) {
+      return;
+    }
+    if (!confirm(`Arbeitsplatz ${this.ausgewaehlterTisch.tischnr} wirklich löschen?`)) {
+      return;
+    }
     const geloeschteId = this.ausgewaehlterTisch.id;
     const raumId = this.raum.id;
     const uebrigeTische = this.raum.arbeitsplaetze.filter((tisch) => tisch.id !== geloeschteId);
@@ -488,31 +708,45 @@ export class AdminBuilderComponent implements OnInit {
           return;
         }
         const positionenSpeichern = uebrigeTische.map((tisch) =>
-          this.service.updateWorkstation(this.admin.id, tisch.id, this.buildDeskRequest(tisch)));
+          this.service.updateWorkstation(this.admin.id, tisch.id, this.buildDeskRequest(tisch)),
+        );
         forkJoin(positionenSpeichern).subscribe({
           next: () => {
             this.nachricht.emit('Arbeitsplatz wurde gelöscht und die Anordnung wurde gespeichert.');
             this.loadRoom(raumId);
           },
-          error: () => this.fehler.emit('Der Arbeitsplatz wurde gelöscht, aber die übrige Anordnung konnte nicht vollständig gespeichert werden.')
+          error: () =>
+            this.fehler.emit(
+              'Der Arbeitsplatz wurde gelöscht, aber die übrige Anordnung konnte nicht vollständig gespeichert werden.',
+            ),
         });
       },
-      error: () => this.fehler.emit('Arbeitsplatz mit aktiver Reservierung kann nicht gelöscht werden.')
+      error: () =>
+        this.fehler.emit('Arbeitsplatz mit aktiver Reservierung kann nicht gelöscht werden.'),
     });
   }
 
   private buildDeskRequest(tisch: Arbeitsplatz): ArbeitsplatzRequest {
     return {
-      tischnr: tisch.tischnr, name: tisch.name, raumId: this.raum!.id,
-      standortId: this.raum!.standortId, abteilungId: tisch.abteilungId,
-      abteilungName: tisch.abteilungName, x: tisch.x, y: tisch.y,
-      rotation: tisch.rotation || 0, breite: tisch.breite || 12,
-      hoehe: tisch.hoehe || 12, equipment: tisch.equipment.map((item) => item.name)
+      tischnr: tisch.tischnr,
+      name: tisch.name,
+      raumId: this.raum!.id,
+      standortId: this.raum!.standortId,
+      abteilungId: tisch.abteilungId,
+      abteilungName: tisch.abteilungName,
+      x: tisch.x,
+      y: tisch.y,
+      rotation: tisch.rotation || 0,
+      breite: tisch.breite || 12,
+      hoehe: tisch.hoehe || 12,
+      equipment: tisch.equipment.map((item) => item.name),
     };
   }
 
   handleCanvasPointerDown(event: PointerEvent): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     if (this.werkzeug === 'auswahl') {
       this.clearSelection();
       return;
@@ -520,10 +754,14 @@ export class AdminBuilderComponent implements OnInit {
     const punkt = this.getCanvasCoordinates(event);
     if (this.rotateElementId) {
       const element = this.raum.elemente.find((eintrag) => eintrag.id === this.rotateElementId);
-      if (!element) return;
+      if (!element) {
+        return;
+      }
       const mitteX = element.x + element.breite / 2;
       const mitteY = element.y + element.hoehe / 2;
-      element.rotation = Math.round((Math.atan2(punkt.y - mitteY, punkt.x - mitteX) * 180 / Math.PI + 90 + 360) % 360);
+      element.rotation = Math.round(
+        ((Math.atan2(punkt.y - mitteY, punkt.x - mitteX) * 180) / Math.PI + 90 + 360) % 360,
+      );
       return;
     }
     if (this.werkzeug === 'wand') {
@@ -534,15 +772,25 @@ export class AdminBuilderComponent implements OnInit {
     }
     this.recordUndoState();
     const groesse = this.getDefaultElementSize(this.werkzeug);
-    const element = this.createFloorPlanElement(this.werkzeug, punkt.x, punkt.y, groesse.breite, groesse.hoehe);
-    if (element.typ === 'tuer' || element.typ === 'fenster') this.snapElementToWall(element);
+    const element = this.createFloorPlanElement(
+      this.werkzeug,
+      punkt.x,
+      punkt.y,
+      groesse.breite,
+      groesse.hoehe,
+    );
+    if (element.typ === 'tuer' || element.typ === 'fenster') {
+      this.snapElementToWall(element);
+    }
     this.raum.elemente.push(element);
     this.ausgewaehltesElement = element;
     this.werkzeug = 'auswahl';
   }
 
   handleCanvasPointerMove(event: PointerEvent): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     const punkt = this.getCanvasCoordinates(event);
     if (this.startpunkt && this.werkzeug === 'wand') {
       this.wandVorschau = this.calculateWallGeometry(this.startpunkt, punkt);
@@ -550,60 +798,117 @@ export class AdminBuilderComponent implements OnInit {
     }
     if (this.resizeElementId && this.resizeStart) {
       const element = this.raum.elemente.find((eintrag) => eintrag.id === this.resizeElementId);
-      if (!element) return;
+      if (!element) {
+        return;
+      }
       const links = this.resizeRichtung.includes('w');
       const oben = this.resizeRichtung.includes('n');
       const deltaX = punkt.x - this.resizeStart.mausX;
       const deltaY = punkt.y - this.resizeStart.mausY;
       if (element.typ === 'tuer') {
-        const deltaYAlsBreite = deltaY * 9 / 16;
-        const delta = Math.abs(deltaX) >= Math.abs(deltaYAlsBreite)
-          ? (links ? -deltaX : deltaX)
-          : (oben ? -deltaYAlsBreite : deltaYAlsBreite);
+        const deltaYAlsBreite = (deltaY * 9) / 16;
+        const delta =
+          Math.abs(deltaX) >= Math.abs(deltaYAlsBreite)
+            ? links
+              ? -deltaX
+              : deltaX
+            : oben
+              ? -deltaYAlsBreite
+              : deltaYAlsBreite;
         const seite = this.clamp(this.snapToGrid(this.resizeStart.breite + delta), 4, 25);
-        const hoehe = seite * 16 / 9;
-        element.x = links ? this.resizeStart.x + this.resizeStart.breite - seite : this.resizeStart.x;
+        const hoehe = (seite * 16) / 9;
+        element.x = links
+          ? this.resizeStart.x + this.resizeStart.breite - seite
+          : this.resizeStart.x;
         element.y = oben ? this.resizeStart.y + this.resizeStart.hoehe - hoehe : this.resizeStart.y;
         element.breite = seite;
         element.hoehe = hoehe;
         return;
       }
       if (links) {
-        const x = this.clamp(this.snapToGrid(this.resizeStart.x + deltaX), 0, this.resizeStart.x + this.resizeStart.breite - 1);
-        element.x = x; element.breite = this.resizeStart.breite + this.resizeStart.x - x;
-      } else element.breite = this.clamp(this.snapToGrid(this.resizeStart.breite + deltaX), 1, 100 - element.x);
+        const x = this.clamp(
+          this.snapToGrid(this.resizeStart.x + deltaX),
+          0,
+          this.resizeStart.x + this.resizeStart.breite - 1,
+        );
+        element.x = x;
+        element.breite = this.resizeStart.breite + this.resizeStart.x - x;
+      } else {
+        element.breite = this.clamp(
+          this.snapToGrid(this.resizeStart.breite + deltaX),
+          1,
+          100 - element.x,
+        );
+      }
       if (oben) {
-        const y = this.clamp(this.snapToGrid(this.resizeStart.y + deltaY), 0, this.resizeStart.y + this.resizeStart.hoehe - 1);
-        element.y = y; element.hoehe = this.resizeStart.hoehe + this.resizeStart.y - y;
-      } else element.hoehe = this.clamp(this.snapToGrid(this.resizeStart.hoehe + deltaY), 1, 100 - element.y);
+        const y = this.clamp(
+          this.snapToGrid(this.resizeStart.y + deltaY),
+          0,
+          this.resizeStart.y + this.resizeStart.hoehe - 1,
+        );
+        element.y = y;
+        element.hoehe = this.resizeStart.hoehe + this.resizeStart.y - y;
+      } else {
+        element.hoehe = this.clamp(
+          this.snapToGrid(this.resizeStart.hoehe + deltaY),
+          1,
+          100 - element.y,
+        );
+      }
       return;
     }
-    if (!this.dragElementId) return;
+    if (!this.dragElementId) {
+      return;
+    }
     const element = this.raum.elemente.find((eintrag) => eintrag.id === this.dragElementId);
     if (element) {
-      const neuesX = this.clamp(this.snapToGrid(punkt.x - this.dragVersatz.x), 0, 100 - element.breite);
-      const neuesY = this.clamp(this.snapToGrid(punkt.y - this.dragVersatz.y), 0, 100 - element.hoehe);
-      const deltaX = neuesX - element.x; const deltaY = neuesY - element.y;
-      element.x = neuesX; element.y = neuesY;
+      const neuesX = this.clamp(
+        this.snapToGrid(punkt.x - this.dragVersatz.x),
+        0,
+        100 - element.breite,
+      );
+      const neuesY = this.clamp(
+        this.snapToGrid(punkt.y - this.dragVersatz.y),
+        0,
+        100 - element.hoehe,
+      );
+      const deltaX = neuesX - element.x;
+      const deltaY = neuesY - element.y;
+      element.x = neuesX;
+      element.y = neuesY;
       if (this.ausgewaehlteElementIds.length > 1) {
-        this.raum.elemente.filter((e) => e.id !== element.id && this.ausgewaehlteElementIds.includes(e.id)).forEach((e) => {
-          e.x = this.clamp(e.x + deltaX, 0, 100 - e.breite); e.y = this.clamp(e.y + deltaY, 0, 100 - e.hoehe);
-        });
+        this.raum.elemente
+          .filter((e) => e.id !== element.id && this.ausgewaehlteElementIds.includes(e.id))
+          .forEach((e) => {
+            e.x = this.clamp(e.x + deltaX, 0, 100 - e.breite);
+            e.y = this.clamp(e.y + deltaY, 0, 100 - e.hoehe);
+          });
       }
-      if (element.typ === 'tuer' || element.typ === 'fenster') this.snapElementToWall(element);
+      if (element.typ === 'tuer' || element.typ === 'fenster') {
+        this.snapElementToWall(element);
+      }
     }
   }
 
   handleCanvasPointerUp(event: PointerEvent): void {
     if (this.raum && this.startpunkt && this.werkzeug === 'wand') {
       const ende = this.getCanvasCoordinates(event);
-      if (Math.abs(ende.x - this.startpunkt.x) < 1.5 && Math.abs(ende.y - this.startpunkt.y) < 1.5) {
+      if (
+        Math.abs(ende.x - this.startpunkt.x) < 1.5 &&
+        Math.abs(ende.y - this.startpunkt.y) < 1.5
+      ) {
         this.startpunkt = null;
         this.wandVorschau = null;
         return;
       }
       const form = this.calculateWallGeometry(this.startpunkt, ende);
-      const wand = this.createFloorPlanElement('wand', form.x + form.breite / 2, form.y + form.hoehe / 2, form.breite, form.hoehe);
+      const wand = this.createFloorPlanElement(
+        'wand',
+        form.x + form.breite / 2,
+        form.y + form.hoehe / 2,
+        form.breite,
+        form.hoehe,
+      );
       this.connectWallEndpoints(wand);
       this.raum.elemente.push(wand);
       this.ausgewaehltesElement = wand;
@@ -612,12 +917,18 @@ export class AdminBuilderComponent implements OnInit {
     }
     if (this.raum && this.resizeElementId) {
       const element = this.raum.elemente.find((eintrag) => eintrag.id === this.resizeElementId);
-      if (element?.typ === 'tuer' || element?.typ === 'fenster') this.snapElementToWall(element);
-      if (element?.typ === 'wand') this.snapWallToWalls(element);
+      if (element?.typ === 'tuer' || element?.typ === 'fenster') {
+        this.snapElementToWall(element);
+      }
+      if (element?.typ === 'wand') {
+        this.snapWallToWalls(element);
+      }
     }
     if (this.raum && this.dragElementId) {
       const element = this.raum.elemente.find((eintrag) => eintrag.id === this.dragElementId);
-      if (element?.typ === 'wand') this.snapWallToWalls(element);
+      if (element?.typ === 'wand') {
+        this.snapWallToWalls(element);
+      }
     }
     this.startpunkt = null;
     this.wandVorschau = null;
@@ -645,7 +956,11 @@ export class AdminBuilderComponent implements OnInit {
     (event.currentTarget as SVGElement).setPointerCapture(event.pointerId);
   }
 
-  startElementResize(event: PointerEvent, element: RaumElement, richtung: 'nw' | 'ne' | 'sw' | 'se'): void {
+  startElementResize(
+    event: PointerEvent,
+    element: RaumElement,
+    richtung: 'nw' | 'ne' | 'sw' | 'se',
+  ): void {
     event.stopPropagation();
     this.recordUndoState();
     this.ausgewaehltesElement = element;
@@ -653,7 +968,14 @@ export class AdminBuilderComponent implements OnInit {
     this.resizeElementId = element.id;
     this.resizeRichtung = richtung;
     const punkt = this.getCanvasCoordinates(event);
-    this.resizeStart = { mausX: punkt.x, mausY: punkt.y, x: element.x, y: element.y, breite: element.breite, hoehe: element.hoehe };
+    this.resizeStart = {
+      mausX: punkt.x,
+      mausY: punkt.y,
+      x: element.x,
+      y: element.y,
+      breite: element.breite,
+      hoehe: element.hoehe,
+    };
     (event.currentTarget as SVGElement).setPointerCapture(event.pointerId);
   }
 
@@ -667,19 +989,31 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   updateElementRotation(event: PointerEvent): void {
-    if (!this.raum || !this.rotateElementId) return;
+    if (!this.raum || !this.rotateElementId) {
+      return;
+    }
     const element = this.raum.elemente.find((eintrag) => eintrag.id === this.rotateElementId);
-    if (!element) return;
+    if (!element) {
+      return;
+    }
     const punkt = this.getCanvasCoordinates(event);
     const mitteX = element.x + element.breite / 2;
     const mitteY = element.y + element.hoehe / 2;
-    element.rotation = Math.round((Math.atan2(punkt.y - mitteY, punkt.x - mitteX) * 180 / Math.PI + 90 + 360) % 360);
+    element.rotation = Math.round(
+      ((Math.atan2(punkt.y - mitteY, punkt.x - mitteX) * 180) / Math.PI + 90 + 360) % 360,
+    );
   }
 
   deleteSelectedElement(): void {
-    if (!this.raum || !this.ausgewaehltesElement) return;
+    if (!this.raum || !this.ausgewaehltesElement) {
+      return;
+    }
     this.recordUndoState();
-    const ids = new Set(this.ausgewaehlteElementIds.length ? this.ausgewaehlteElementIds : [this.ausgewaehltesElement.id]);
+    const ids = new Set(
+      this.ausgewaehlteElementIds.length
+        ? this.ausgewaehlteElementIds
+        : [this.ausgewaehltesElement.id],
+    );
     this.raum.elemente = this.raum.elemente.filter((element) => !ids.has(element.id));
     this.ausgewaehltesElement = null;
     this.ausgewaehlteElementIds = [];
@@ -694,7 +1028,9 @@ export class AdminBuilderComponent implements OnInit {
   editLabel(element: RaumElement): void {
     this.selectLabel(element);
     const text = prompt('Beschriftung eingeben:', element.text || '');
-    if (text !== null && text.trim()) element.text = text.trim();
+    if (text !== null && text.trim()) {
+      element.text = text.trim();
+    }
   }
 
   deleteLabel(element: RaumElement): void {
@@ -703,10 +1039,18 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   duplicateSelectedElement(): void {
-    if (!this.raum || !this.ausgewaehltesElement) return;
+    if (!this.raum || !this.ausgewaehltesElement) {
+      return;
+    }
     this.recordUndoState();
     const element = this.ausgewaehltesElement;
-    const kopie = this.createFloorPlanElement(element.typ, element.x + 3, element.y + 3, element.breite, element.hoehe);
+    const kopie = this.createFloorPlanElement(
+      element.typ,
+      element.x + 3,
+      element.y + 3,
+      element.breite,
+      element.hoehe,
+    );
     kopie.text = element.text;
     kopie.rotation = element.rotation;
     this.raum.elemente.push(kopie);
@@ -714,7 +1058,9 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   rotateSelectedElement(): void {
-    if (!this.ausgewaehltesElement) return;
+    if (!this.ausgewaehltesElement) {
+      return;
+    }
     this.recordUndoState();
     if (this.ausgewaehltesElement.typ === 'wand' || this.ausgewaehltesElement.typ === 'fenster') {
       const element = this.ausgewaehltesElement;
@@ -726,7 +1072,11 @@ export class AdminBuilderComponent implements OnInit {
       element.x = this.clamp(mitteX - element.breite / 2, 0, 100 - element.breite);
       element.y = this.clamp(mitteY - element.hoehe / 2, 0, 100 - element.hoehe);
       element.rotation = 0;
-      if (element.typ === 'wand') this.snapWallToWalls(element); else this.snapElementToWall(element);
+      if (element.typ === 'wand') {
+        this.snapWallToWalls(element);
+      } else {
+        this.snapElementToWall(element);
+      }
       return;
     }
     this.ausgewaehltesElement.rotation = ((this.ausgewaehltesElement.rotation || 0) + 90) % 360;
@@ -748,18 +1098,24 @@ export class AdminBuilderComponent implements OnInit {
       element.breite = 2;
       element.hoehe = this.clamp(laenge, 2, 100 - element.y);
     }
-    if (element.typ === 'wand') this.snapWallToWalls(element); else this.snapElementToWall(element);
+    if (element.typ === 'wand') {
+      this.snapWallToWalls(element);
+    } else {
+      this.snapElementToWall(element);
+    }
   }
 
   setDoorSize(element: RaumElement, wert: number): void {
     const seite = this.clamp(Number(wert), 4, 25);
     element.breite = seite;
-    element.hoehe = seite * 16 / 9;
+    element.hoehe = (seite * 16) / 9;
     this.snapElementToWall(element);
   }
 
   discardFloorPlanChanges(): void {
-    if (this.raum) this.loadRoom(this.raum.id);
+    if (this.raum) {
+      this.loadRoom(this.raum.id);
+    }
   }
 
   get hasUnsavedFloorPlanChanges(): boolean {
@@ -768,7 +1124,7 @@ export class AdminBuilderComponent implements OnInit {
 
   get svgViewBox(): string {
     const groesse = 100 / this.zoom;
-    return `${this.ansichtX * 1.6} ${this.ansichtY * .9} ${groesse * 1.6} ${groesse * .9}`;
+    return `${this.ansichtX * 1.6} ${this.ansichtY * 0.9} ${groesse * 1.6} ${groesse * 0.9}`;
   }
 
   changeZoom(richtung: number): void {
@@ -793,66 +1149,107 @@ export class AdminBuilderComponent implements OnInit {
 
   handleWheelZoom(event: WheelEvent): void {
     event.preventDefault();
-    this.changeZoom(event.deltaY < 0 ? .2 : -.2);
+    this.changeZoom(event.deltaY < 0 ? 0.2 : -0.2);
   }
 
   toggleFloorPlanFullscreen(): void {
     this.grundrissVollbild = !this.grundrissVollbild;
-    if (!this.grundrissVollbild) this.resetViewport();
+    if (!this.grundrissVollbild) {
+      this.resetViewport();
+    }
   }
 
   resetEditor(): void {
-    if (!this.raum || !confirm('Grundriss wirklich auf die rechteckige Standardvorlage zurücksetzen?')) return;
+    if (
+      !this.raum ||
+      !confirm('Grundriss wirklich auf die rechteckige Standardvorlage zurücksetzen?')
+    ) {
+      return;
+    }
     this.applyRectangularRoomTemplate();
     this.resetViewport();
     this.werkzeug = 'auswahl';
   }
 
   undo(): void {
-    if (!this.raum || this.historie.length === 0) return;
+    if (!this.raum || this.historie.length === 0) {
+      return;
+    }
     this.wiederholenHistorie.push(this.cloneElements(this.raum.elemente));
     this.raum.elemente = this.historie.pop()!;
     this.clearSelection();
   }
 
   redo(): void {
-    if (!this.raum || this.wiederholenHistorie.length === 0) return;
+    if (!this.raum || this.wiederholenHistorie.length === 0) {
+      return;
+    }
     this.historie.push(this.cloneElements(this.raum.elemente));
     this.raum.elemente = this.wiederholenHistorie.pop()!;
     this.clearSelection();
   }
 
   alignSelectedElements(richtung: 'links' | 'oben' | 'horizontal' | 'vertikal'): void {
-    if (!this.raum) return;
-    const elemente = this.raum.elemente.filter((element) => this.ausgewaehlteElementIds.includes(element.id));
-    if (elemente.length < 2) return;
+    if (!this.raum) {
+      return;
+    }
+    const elemente = this.raum.elemente.filter((element) =>
+      this.ausgewaehlteElementIds.includes(element.id),
+    );
+    if (elemente.length < 2) {
+      return;
+    }
     this.recordUndoState();
-    if (richtung === 'links') { const x = Math.min(...elemente.map((e) => e.x)); elemente.forEach((e) => e.x = x); }
-    if (richtung === 'oben') { const y = Math.min(...elemente.map((e) => e.y)); elemente.forEach((e) => e.y = y); }
-    if (richtung === 'horizontal') { const y = elemente.reduce((summe, e) => summe + e.y, 0) / elemente.length; elemente.forEach((e) => e.y = y); }
-    if (richtung === 'vertikal') { const x = elemente.reduce((summe, e) => summe + e.x, 0) / elemente.length; elemente.forEach((e) => e.x = x); }
+    if (richtung === 'links') {
+      const x = Math.min(...elemente.map((e) => e.x));
+      elemente.forEach((e) => (e.x = x));
+    }
+    if (richtung === 'oben') {
+      const y = Math.min(...elemente.map((e) => e.y));
+      elemente.forEach((e) => (e.y = y));
+    }
+    if (richtung === 'horizontal') {
+      const y = elemente.reduce((summe, e) => summe + e.y, 0) / elemente.length;
+      elemente.forEach((e) => (e.y = y));
+    }
+    if (richtung === 'vertikal') {
+      const x = elemente.reduce((summe, e) => summe + e.x, 0) / elemente.length;
+      elemente.forEach((e) => (e.x = x));
+    }
   }
 
   changeElementLayer(nachVorne: boolean): void {
-    if (!this.raum || !this.ausgewaehltesElement) return;
+    if (!this.raum || !this.ausgewaehltesElement) {
+      return;
+    }
     this.recordUndoState();
     const index = this.raum.elemente.findIndex((e) => e.id === this.ausgewaehltesElement!.id);
     const [element] = this.raum.elemente.splice(index, 1);
-    if (nachVorne) this.raum.elemente.push(element); else this.raum.elemente.unshift(element);
+    if (nachVorne) {
+      this.raum.elemente.push(element);
+    } else {
+      this.raum.elemente.unshift(element);
+    }
   }
 
   applyRectangularRoomTemplate(): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     this.recordUndoState();
     this.raum.elemente = [
-      this.createFloorPlanElement('wand', 50, 3, 94, 2), this.createFloorPlanElement('wand', 50, 97, 94, 2),
-      this.createFloorPlanElement('wand', 3, 50, 2, 94), this.createFloorPlanElement('wand', 97, 50, 2, 94),
-      this.createFloorPlanElement('tuer', 20, 92, 10, 10)
+      this.createFloorPlanElement('wand', 50, 3, 94, 2),
+      this.createFloorPlanElement('wand', 50, 97, 94, 2),
+      this.createFloorPlanElement('wand', 3, 50, 2, 94),
+      this.createFloorPlanElement('wand', 97, 50, 2, 94),
+      this.createFloorPlanElement('tuer', 20, 92, 10, 10),
     ];
   }
 
   applyLShapedRoomTemplate(): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     this.recordUndoState();
     this.raum.elemente = [
       this.createFloorPlanElement('wand', 50, 3, 94, 2),
@@ -861,7 +1258,7 @@ export class AdminBuilderComponent implements OnInit {
       this.createFloorPlanElement('wand', 51, 74, 2, 48),
       this.createFloorPlanElement('wand', 74, 51, 48, 2),
       this.createFloorPlanElement('wand', 97, 27, 2, 48),
-      this.createFloorPlanElement('tuer', 18, 92, 10, 10)
+      this.createFloorPlanElement('tuer', 18, 92, 10, 10),
     ];
   }
 
@@ -870,8 +1267,15 @@ export class AdminBuilderComponent implements OnInit {
     this.tischWirdGezogen = true;
     this.tischAktion = 'verschieben';
     this.selectDesk(tisch);
-    this.tischStart = { mausX: 0, mausY: 0, x: this.tischForm.x, y: this.tischForm.y,
-      breite: this.tischForm.breite, hoehe: this.tischForm.hoehe, rotation: this.tischForm.rotation };
+    this.tischStart = {
+      mausX: 0,
+      mausY: 0,
+      x: this.tischForm.x,
+      y: this.tischForm.y,
+      breite: this.tischForm.breite,
+      hoehe: this.tischForm.hoehe,
+      rotation: this.tischForm.rotation,
+    };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
@@ -879,18 +1283,28 @@ export class AdminBuilderComponent implements OnInit {
     event.stopPropagation();
     this.tischWirdGezogen = true;
     this.tischAktion = 'verschieben';
-    this.tischStart = { mausX: 0, mausY: 0, x: this.tischForm.x, y: this.tischForm.y,
-      breite: this.tischForm.breite, hoehe: this.tischForm.hoehe, rotation: this.tischForm.rotation };
+    this.tischStart = {
+      mausX: 0,
+      mausY: 0,
+      x: this.tischForm.x,
+      y: this.tischForm.y,
+      breite: this.tischForm.breite,
+      hoehe: this.tischForm.hoehe,
+      rotation: this.tischForm.rotation,
+    };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
   updateDeskDrag(event: PointerEvent): void {
-    if (!this.tischWirdGezogen || this.tischAktion !== 'verschieben') return;
+    if (!this.tischWirdGezogen || this.tischAktion !== 'verschieben') {
+      return;
+    }
     const raum = (event.currentTarget as HTMLElement).parentElement!;
     const rect = raum.getBoundingClientRect();
     const x = this.clamp(((event.clientX - rect.left) / rect.width) * 100, 8, 92);
     const y = this.clamp(((event.clientY - rect.top) / rect.height) * 100, 12, 86);
-    this.tischForm.x = Math.round(x); this.tischForm.y = Math.round(y);
+    this.tischForm.x = Math.round(x);
+    this.tischForm.y = Math.round(y);
     if (this.ausgewaehlterTisch) {
       this.ausgewaehlterTisch.x = this.tischForm.x;
       this.ausgewaehlterTisch.y = this.tischForm.y;
@@ -898,12 +1312,16 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   finishDeskDrag(event: PointerEvent): void {
-    if (!this.tischWirdGezogen) return;
+    if (!this.tischWirdGezogen) {
+      return;
+    }
     if (event.type === 'pointercancel') {
       this.restoreDeskBeforeDrag();
       return;
     }
-    if (this.tischAktion === 'verschieben') this.updateDeskDrag(event);
+    if (this.tischAktion === 'verschieben') {
+      this.updateDeskDrag(event);
+    }
     this.applyDeskFormToRoom();
     this.tischWirdGezogen = false;
     this.tischAktion = '';
@@ -935,8 +1353,15 @@ export class AdminBuilderComponent implements OnInit {
     this.tischWirdGezogen = true;
     this.tischAktion = 'groesse';
     this.tischResizeRichtung = richtung;
-    this.tischStart = { mausX: punkt.x, mausY: punkt.y, x: this.tischForm.x, y: this.tischForm.y,
-      breite: this.tischForm.breite, hoehe: this.tischForm.hoehe, rotation: this.tischForm.rotation };
+    this.tischStart = {
+      mausX: punkt.x,
+      mausY: punkt.y,
+      x: this.tischForm.x,
+      y: this.tischForm.y,
+      breite: this.tischForm.breite,
+      hoehe: this.tischForm.hoehe,
+      rotation: this.tischForm.rotation,
+    };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
@@ -944,25 +1369,41 @@ export class AdminBuilderComponent implements OnInit {
     event.stopPropagation();
     this.tischWirdGezogen = true;
     this.tischAktion = 'drehen';
-    this.tischStart = { mausX: 0, mausY: 0, x: this.tischForm.x, y: this.tischForm.y,
-      breite: this.tischForm.breite, hoehe: this.tischForm.hoehe, rotation: this.tischForm.rotation };
+    this.tischStart = {
+      mausX: 0,
+      mausY: 0,
+      x: this.tischForm.x,
+      y: this.tischForm.y,
+      breite: this.tischForm.breite,
+      hoehe: this.tischForm.hoehe,
+      rotation: this.tischForm.rotation,
+    };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
   handleDeskPointerMove(event: PointerEvent): void {
-    if (!this.tischWirdGezogen) return;
-    if (this.tischAktion === 'verschieben') { this.updateDeskDrag(event); return; }
+    if (!this.tischWirdGezogen) {
+      return;
+    }
+    if (this.tischAktion === 'verschieben') {
+      this.updateDeskDrag(event);
+      return;
+    }
     if (this.tischAktion === 'drehen') {
       const raum = (event.currentTarget as HTMLElement).closest('.builder-room') as HTMLElement;
       const rect = raum.getBoundingClientRect();
-      const mitteX = rect.left + rect.width * this.tischForm.x / 100;
-      const mitteY = rect.top + rect.height * this.tischForm.y / 100;
-      const winkel = (Math.atan2(event.clientY - mitteY, event.clientX - mitteX) * 180 / Math.PI + 90 + 360) % 360;
+      const mitteX = rect.left + (rect.width * this.tischForm.x) / 100;
+      const mitteY = rect.top + (rect.height * this.tischForm.y) / 100;
+      const winkel =
+        ((Math.atan2(event.clientY - mitteY, event.clientX - mitteX) * 180) / Math.PI + 90 + 360) %
+        360;
       this.tischForm.rotation = Math.round(winkel * 10) / 10;
       this.applyDeskFormToRoom();
       return;
     }
-    if (this.tischAktion !== 'groesse' || !this.tischStart) return;
+    if (this.tischAktion !== 'groesse' || !this.tischStart) {
+      return;
+    }
     const punkt = this.getDeskCoordinates(event);
     const links = this.tischResizeRichtung.includes('w');
     const oben = this.tischResizeRichtung.includes('n');
@@ -974,7 +1415,9 @@ export class AdminBuilderComponent implements OnInit {
   }
 
   private applyDeskFormToRoom(): void {
-    if (!this.ausgewaehlterTisch) return;
+    if (!this.ausgewaehlterTisch) {
+      return;
+    }
     this.ausgewaehlterTisch.x = this.tischForm.x;
     this.ausgewaehlterTisch.y = this.tischForm.y;
     this.ausgewaehlterTisch.breite = this.tischForm.breite;
@@ -985,86 +1428,177 @@ export class AdminBuilderComponent implements OnInit {
   private getDeskCoordinates(event: PointerEvent): { x: number; y: number } {
     const raum = (event.currentTarget as HTMLElement).closest('.builder-room') as HTMLElement;
     const rect = raum.getBoundingClientRect();
-    return { x: ((event.clientX - rect.left) / rect.width) * 100, y: ((event.clientY - rect.top) / rect.height) * 100 };
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
+    };
   }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardShortcut(event: KeyboardEvent): void {
-    if (this.modus !== 'grundriss' || !this.raum) return;
-    const ziel = event.target as HTMLElement;
-    if (ziel.matches('input, textarea, select')) return;
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? this.redo() : this.undo(); return; }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); this.redo(); return; }
-    if (event.key === 'Escape') {
-      if (this.grundrissVollbild) this.grundrissVollbild = false;
-      this.clearSelection(); this.werkzeug = 'auswahl'; return;
+    if (this.modus !== 'grundriss' || !this.raum) {
+      return;
     }
-    if ((event.key === 'Delete' || event.key === 'Backspace') && this.ausgewaehltesElement) { event.preventDefault(); this.deleteSelectedElement(); return; }
-    if (this.ausgewaehltesElement && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) {
-      event.preventDefault(); this.recordUndoState(); const schritt = event.shiftKey ? 5 : 1;
-      if (event.key === 'ArrowLeft') this.ausgewaehltesElement.x -= schritt;
-      if (event.key === 'ArrowRight') this.ausgewaehltesElement.x += schritt;
-      if (event.key === 'ArrowUp') this.ausgewaehltesElement.y -= schritt;
-      if (event.key === 'ArrowDown') this.ausgewaehltesElement.y += schritt;
-      this.ausgewaehltesElement.x = this.clamp(this.ausgewaehltesElement.x, 0, 100 - this.ausgewaehltesElement.breite);
-      this.ausgewaehltesElement.y = this.clamp(this.ausgewaehltesElement.y, 0, 100 - this.ausgewaehltesElement.hoehe);
-      if (this.ausgewaehltesElement.typ === 'wand') this.snapWallToWalls(this.ausgewaehltesElement);
-      if (this.ausgewaehltesElement.typ === 'tuer' || this.ausgewaehltesElement.typ === 'fenster') this.snapElementToWall(this.ausgewaehltesElement);
+    const ziel = event.target as HTMLElement;
+    if (ziel.matches('input, textarea, select')) {
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      event.shiftKey ? this.redo() : this.undo();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      this.redo();
+      return;
+    }
+    if (event.key === 'Escape') {
+      if (this.grundrissVollbild) {
+        this.grundrissVollbild = false;
+      }
+      this.clearSelection();
+      this.werkzeug = 'auswahl';
+      return;
+    }
+    if ((event.key === 'Delete' || event.key === 'Backspace') && this.ausgewaehltesElement) {
+      event.preventDefault();
+      this.deleteSelectedElement();
+      return;
+    }
+    if (
+      this.ausgewaehltesElement &&
+      ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+    ) {
+      event.preventDefault();
+      this.recordUndoState();
+      const schritt = event.shiftKey ? 5 : 1;
+      if (event.key === 'ArrowLeft') {
+        this.ausgewaehltesElement.x -= schritt;
+      }
+      if (event.key === 'ArrowRight') {
+        this.ausgewaehltesElement.x += schritt;
+      }
+      if (event.key === 'ArrowUp') {
+        this.ausgewaehltesElement.y -= schritt;
+      }
+      if (event.key === 'ArrowDown') {
+        this.ausgewaehltesElement.y += schritt;
+      }
+      this.ausgewaehltesElement.x = this.clamp(
+        this.ausgewaehltesElement.x,
+        0,
+        100 - this.ausgewaehltesElement.breite,
+      );
+      this.ausgewaehltesElement.y = this.clamp(
+        this.ausgewaehltesElement.y,
+        0,
+        100 - this.ausgewaehltesElement.hoehe,
+      );
+      if (this.ausgewaehltesElement.typ === 'wand') {
+        this.snapWallToWalls(this.ausgewaehltesElement);
+      }
+      if (this.ausgewaehltesElement.typ === 'tuer' || this.ausgewaehltesElement.typ === 'fenster') {
+        this.snapElementToWall(this.ausgewaehltesElement);
+      }
     }
   }
 
   @HostListener('window:beforeunload', ['$event'])
   warnBeforeUnload(event: BeforeUnloadEvent): void {
-    if (this.hasUnsavedFloorPlanChanges) event.preventDefault();
+    if (this.hasUnsavedFloorPlanChanges) {
+      event.preventDefault();
+    }
   }
 
   createDepartment(): void {
-    if (!this.neueAbteilung.trim()) return;
+    if (!this.neueAbteilung.trim()) {
+      return;
+    }
     this.service.createDepartment(this.admin.id, this.neueAbteilung).subscribe({
-      next: () => { this.neueAbteilung = ''; this.loadMasterData(); this.nachricht.emit('Abteilung wurde angelegt.'); },
-      error: () => this.fehler.emit('Abteilung existiert bereits oder ist ungültig.')
+      next: () => {
+        this.neueAbteilung = '';
+        this.loadMasterData();
+        this.nachricht.emit('Abteilung wurde angelegt.');
+      },
+      error: () => this.fehler.emit('Abteilung existiert bereits oder ist ungültig.'),
     });
   }
 
   deleteDepartment(id: string): void {
-    if (!confirm('Abteilung und zugehörige Testnutzer wirklich löschen?')) return;
+    if (!confirm('Abteilung und zugehörige Testnutzer wirklich löschen?')) {
+      return;
+    }
     this.service.deleteDepartment(this.admin.id, id).subscribe({
-      next: () => { this.loadMasterData(); this.nachricht.emit('Abteilung wurde gelöscht.'); },
-      error: () => this.fehler.emit('Abteilung wird noch von Räumen oder Testnutzern verwendet.')
+      next: () => {
+        this.loadMasterData();
+        this.nachricht.emit('Abteilung wurde gelöscht.');
+      },
+      error: () => this.fehler.emit('Abteilung wird noch von Räumen oder Testnutzern verwendet.'),
     });
   }
 
   createEquipment(): void {
-    if (!this.neuesEquipment.trim()) return;
+    if (!this.neuesEquipment.trim()) {
+      return;
+    }
     this.service.createEquipment(this.admin.id, this.neuesEquipment).subscribe({
-      next: () => { this.neuesEquipment = ''; this.loadMasterData(); this.nachricht.emit('Equipment wurde angelegt.'); },
-      error: () => this.fehler.emit('Equipment existiert bereits oder ist ungültig.')
+      next: () => {
+        this.neuesEquipment = '';
+        this.loadMasterData();
+        this.nachricht.emit('Equipment wurde angelegt.');
+      },
+      error: () => this.fehler.emit('Equipment existiert bereits oder ist ungültig.'),
     });
   }
 
   deleteEquipment(name: string): void {
-    if (!confirm(`Equipment „${name}“ wirklich löschen?`)) return;
+    if (!confirm(`Equipment „${name}“ wirklich löschen?`)) {
+      return;
+    }
     this.service.deleteEquipment(this.admin.id, name).subscribe({
-      next: () => { this.loadMasterData(); this.nachricht.emit('Equipment wurde gelöscht.'); },
-      error: () => this.fehler.emit('Equipment wird noch von Arbeitsplätzen verwendet.')
+      next: () => {
+        this.loadMasterData();
+        this.nachricht.emit('Equipment wurde gelöscht.');
+      },
+      error: () => this.fehler.emit('Equipment wird noch von Arbeitsplätzen verwendet.'),
     });
   }
 
   private loadMasterData(): void {
-    this.service.getDepartments(this.admin.id).subscribe((daten) => { this.abteilungen = daten; this.cdr.detectChanges(); });
-    this.service.getEquipmentCatalog(this.admin.id).subscribe((daten) => { this.equipmentListe = daten; this.cdr.detectChanges(); });
-    if (this.isSuperadmin) this.loadMasterDataRooms();
+    this.service.getDepartments(this.admin.id).subscribe((daten) => {
+      this.abteilungen = daten;
+      this.cdr.detectChanges();
+    });
+    this.service.getEquipmentCatalog(this.admin.id).subscribe((daten) => {
+      this.equipmentListe = daten;
+      this.cdr.detectChanges();
+    });
+    if (this.isSuperadmin) {
+      this.loadMasterDataRooms();
+    }
   }
 
   private loadMasterDataRooms(): void {
-    if (this.standorte.length === 0) { this.stammdatenRaeume = []; return; }
-    forkJoin(this.standorte.map((standort) => this.service.getRoomsByLocation(standort.id))).subscribe({
+    if (this.standorte.length === 0) {
+      this.stammdatenRaeume = [];
+      return;
+    }
+    forkJoin(
+      this.standorte.map((standort) => this.service.getRoomsByLocation(standort.id)),
+    ).subscribe({
       next: (listen) => {
-        this.stammdatenRaeume = listen.flat().sort((a, b) =>
-          this.getLocationName(a.standortId).localeCompare(this.getLocationName(b.standortId)) || a.name.localeCompare(b.name));
+        this.stammdatenRaeume = listen
+          .flat()
+          .sort(
+            (a, b) =>
+              this.getLocationName(a.standortId).localeCompare(
+                this.getLocationName(b.standortId),
+              ) || a.name.localeCompare(b.name),
+          );
         this.cdr.detectChanges();
       },
-      error: () => this.fehler.emit('Räume konnten nicht geladen werden.')
+      error: () => this.fehler.emit('Räume konnten nicht geladen werden.'),
     });
   }
 
@@ -1075,115 +1609,224 @@ export class AdminBuilderComponent implements OnInit {
   loadReservations(): void {
     this.reservierungenWerdenGeladen = true;
     this.service.getAllReservations(this.admin.id).subscribe({
-      next: (daten) => { this.alleReservierungen = daten; this.reservierungenWerdenGeladen = false; this.cdr.detectChanges(); },
-      error: () => { this.reservierungenWerdenGeladen = false; this.fehler.emit('Reservierungen konnten nicht geladen werden.'); this.cdr.detectChanges(); }
+      next: (daten) => {
+        this.alleReservierungen = daten;
+        this.reservierungenWerdenGeladen = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.reservierungenWerdenGeladen = false;
+        this.fehler.emit('Reservierungen konnten nicht geladen werden.');
+        this.cdr.detectChanges();
+      },
     });
   }
 
   cancelReservation(reservierung: Reservierung): void {
-    if (reservierung.status !== 'reserviert') return;
-    if (!this.stornierungsgrund.trim()) { this.fehler.emit('Bitte zuerst einen Stornierungsgrund angeben.'); return; }
-    if (!confirm(`Reservierung von ${reservierung.benutzerName} wirklich stornieren?`)) return;
-    this.service.cancelReservationAsAdmin(this.admin.id, reservierung.id, this.stornierungsgrund).subscribe({
-      next: () => { this.nachricht.emit('Reservierung wurde administrativ storniert.'); this.loadReservations(); },
-      error: () => this.fehler.emit('Reservierung konnte nicht storniert werden.')
-    });
+    if (reservierung.status !== 'reserviert') {
+      return;
+    }
+    if (!this.stornierungsgrund.trim()) {
+      this.fehler.emit('Bitte zuerst einen Stornierungsgrund angeben.');
+      return;
+    }
+    if (!confirm(`Reservierung von ${reservierung.benutzerName} wirklich stornieren?`)) {
+      return;
+    }
+    this.service
+      .cancelReservationAsAdmin(this.admin.id, reservierung.id, this.stornierungsgrund)
+      .subscribe({
+        next: () => {
+          this.nachricht.emit('Reservierung wurde administrativ storniert.');
+          this.loadReservations();
+        },
+        error: () => this.fehler.emit('Reservierung konnte nicht storniert werden.'),
+      });
   }
 
   get filteredReservations(): Reservierung[] {
     const suche = this.reservierungsSuche.trim().toLowerCase();
-    return this.alleReservierungen.filter((eintrag) =>
-      (!suche || `${eintrag.benutzerName} ${eintrag.arbeitsplatzName} ${eintrag.raumName}`.toLowerCase().includes(suche)) &&
-      (!this.reservierungsStandort || eintrag.standortId === this.reservierungsStandort) &&
-      (!this.reservierungsRaum || eintrag.raumId === this.reservierungsRaum) &&
-      (!this.reservierungsStatus || this.getReservationStatusLabel(eintrag) === this.reservierungsStatus) &&
-      (!this.reservierungsDatum || eintrag.reservierungAnfang.slice(0, 10) === this.reservierungsDatum));
+    return this.alleReservierungen.filter(
+      (eintrag) =>
+        (!suche ||
+          `${eintrag.benutzerName} ${eintrag.arbeitsplatzName} ${eintrag.raumName}`
+            .toLowerCase()
+            .includes(suche)) &&
+        (!this.reservierungsStandort || eintrag.standortId === this.reservierungsStandort) &&
+        (!this.reservierungsRaum || eintrag.raumId === this.reservierungsRaum) &&
+        (!this.reservierungsStatus ||
+          this.getReservationStatusLabel(eintrag) === this.reservierungsStatus) &&
+        (!this.reservierungsDatum ||
+          eintrag.reservierungAnfang.slice(0, 10) === this.reservierungsDatum),
+    );
   }
 
   get reservationRooms(): { id: string; name: string }[] {
-    const eindeutig = new Map<string,string>();
-    this.alleReservierungen.filter((r) => !this.reservierungsStandort || r.standortId === this.reservierungsStandort)
+    const eindeutig = new Map<string, string>();
+    this.alleReservierungen
+      .filter((r) => !this.reservierungsStandort || r.standortId === this.reservierungsStandort)
       .forEach((r) => eindeutig.set(r.raumId, r.raumName));
-    return [...eindeutig].map(([id,name]) => ({ id,name })).sort((a,b) => a.name.localeCompare(b.name));
+    return [...eindeutig]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   exportReservationsCsv(): void {
-    const kopf = ['Mitarbeiter','Arbeitsplatz','Raum','Standort','Beginn','Ende','Status'];
-    const zeilen = this.filteredReservations.map((r) => [r.benutzerName,r.arbeitsplatzName,r.raumName,r.standortName,r.reservierungAnfang,r.reservierungEnde,r.status]);
-    const csv = [kopf, ...zeilen].map((zeile) => zeile.map((wert) => `"${String(wert).replaceAll('"','""')}"`).join(';')).join('\n');
-    const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
-    link.download = 'reservierungen.csv'; link.click(); URL.revokeObjectURL(link.href);
+    const kopf = ['Mitarbeiter', 'Arbeitsplatz', 'Raum', 'Standort', 'Beginn', 'Ende', 'Status'];
+    const zeilen = this.filteredReservations.map((r) => [
+      r.benutzerName,
+      r.arbeitsplatzName,
+      r.raumName,
+      r.standortName,
+      r.reservierungAnfang,
+      r.reservierungEnde,
+      r.status,
+    ]);
+    const csv = [kopf, ...zeilen]
+      .map((zeile) => zeile.map((wert) => `"${String(wert).replaceAll('"', '""')}"`).join(';'))
+      .join('\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    link.download = 'reservierungen.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   loadUsers(): void {
     this.benutzerWerdenGeladen = true;
     this.service.getManagedUsers(this.admin.id).subscribe({
       next: (daten) => {
-        this.benutzerListe = this.isSuperadmin ? daten : daten.filter((benutzer) => benutzer.rolle === 'USER');
+        this.benutzerListe = this.isSuperadmin
+          ? daten
+          : daten.filter((benutzer) => benutzer.rolle === 'USER');
         this.benutzerWerdenGeladen = false;
         this.cdr.detectChanges();
       },
-      error: () => { this.benutzerWerdenGeladen = false; this.fehler.emit('Mitarbeiter konnten nicht geladen werden.'); this.cdr.detectChanges(); }
+      error: () => {
+        this.benutzerWerdenGeladen = false;
+        this.fehler.emit('Mitarbeiter konnten nicht geladen werden.');
+        this.cdr.detectChanges();
+      },
     });
   }
 
-  startNewUser(): void { this.ausgewaehlterBenutzerId = ''; this.benutzerForm = this.createEmptyUserForm(); }
+  startNewUser(): void {
+    this.ausgewaehlterBenutzerId = '';
+    this.benutzerForm = this.createEmptyUserForm();
+  }
 
   selectUser(benutzer: Benutzer): void {
     this.ausgewaehlterBenutzerId = benutzer.id;
-    this.benutzerForm = { vorname:benutzer.vorname, nachname:benutzer.nachname, email:benutzer.email, rolle:benutzer.rolle,
-      abteilungId:benutzer.abteilungId, abteilungName:benutzer.abteilungName, bevorzugterRaumId:benutzer.bevorzugterRaumId, aktiv:benutzer.aktiv };
+    this.benutzerForm = {
+      vorname: benutzer.vorname,
+      nachname: benutzer.nachname,
+      email: benutzer.email,
+      rolle: benutzer.rolle,
+      abteilungId: benutzer.abteilungId,
+      abteilungName: benutzer.abteilungName,
+      bevorzugterRaumId: benutzer.bevorzugterRaumId,
+      aktiv: benutzer.aktiv,
+    };
   }
 
   saveUser(): void {
     const abteilung = this.abteilungen.find((a) => a.id === this.benutzerForm.abteilungId);
-    if (abteilung) this.benutzerForm.abteilungName = abteilung.name;
+    if (abteilung) {
+      this.benutzerForm.abteilungName = abteilung.name;
+    }
     const aufruf = this.ausgewaehlterBenutzerId
       ? this.service.updateUser(this.admin.id, this.ausgewaehlterBenutzerId, this.benutzerForm)
       : this.service.createUser(this.admin.id, this.benutzerForm);
-    aufruf.subscribe({ next: () => { this.nachricht.emit('Mitarbeiter wurde gespeichert.'); this.loadUsers(); this.loadReservations(); this.startNewUser(); },
-      error: () => this.fehler.emit('Mitarbeiter konnte nicht gespeichert werden.') });
+    aufruf.subscribe({
+      next: () => {
+        this.nachricht.emit('Mitarbeiter wurde gespeichert.');
+        this.loadUsers();
+        this.loadReservations();
+        this.startNewUser();
+      },
+      error: () => this.fehler.emit('Mitarbeiter konnte nicht gespeichert werden.'),
+    });
   }
 
   deleteUser(): void {
     const ziel = this.benutzerListe.find((eintrag) => eintrag.id === this.ausgewaehlterBenutzerId);
-    if (!this.isSuperadmin || !ziel || ziel.rolle !== 'USER') return;
-    if (!confirm(`Mitarbeiter ${ziel.vorname} ${ziel.nachname} wirklich entfernen? Alle Reservierungen werden gelöscht.`)) return;
+    if (!this.isSuperadmin || !ziel || ziel.rolle !== 'USER') {
+      return;
+    }
+    if (
+      !confirm(
+        `Mitarbeiter ${ziel.vorname} ${ziel.nachname} wirklich entfernen? Alle Reservierungen werden gelöscht.`,
+      )
+    ) {
+      return;
+    }
     this.service.deleteUser(this.admin.id, ziel.id).subscribe({
-      next: () => { this.nachricht.emit('Mitarbeiter wurde gelöscht.'); this.startNewUser(); this.loadUsers(); this.loadReservations(); },
-      error: (error) => this.fehler.emit(error?.error?.details || 'Mitarbeiter konnte nicht gelöscht werden.')
+      next: () => {
+        this.nachricht.emit('Mitarbeiter wurde gelöscht.');
+        this.startNewUser();
+        this.loadUsers();
+        this.loadReservations();
+      },
+      error: (error) =>
+        this.fehler.emit(error?.error?.details || 'Mitarbeiter konnte nicht gelöscht werden.'),
     });
   }
 
   editLocation(standort: Standort): void {
     this.bearbeiteterStandortId = standort.id;
-    this.standortForm = { name:standort.name, adresse:standort.adresse, ort:standort.ort };
+    this.standortForm = { name: standort.name, adresse: standort.adresse, ort: standort.ort };
   }
 
-  startNewLocation(): void { this.bearbeiteterStandortId = ''; this.standortForm = { name:'', adresse:'', ort:'' }; }
+  startNewLocation(): void {
+    this.bearbeiteterStandortId = '';
+    this.standortForm = { name: '', adresse: '', ort: '' };
+  }
 
   saveLocation(): void {
     const aufruf = this.bearbeiteterStandortId
       ? this.service.updateLocation(this.admin.id, this.bearbeiteterStandortId, this.standortForm)
       : this.service.createLocation(this.admin.id, this.standortForm);
-    aufruf.subscribe({ next: () => { this.nachricht.emit('Standort wurde gespeichert.'); this.standorteGeaendert.emit(); this.startNewLocation(); },
-      error: () => this.fehler.emit('Standort konnte nicht gespeichert werden.') });
+    aufruf.subscribe({
+      next: () => {
+        this.nachricht.emit('Standort wurde gespeichert.');
+        this.standorteGeaendert.emit();
+        this.startNewLocation();
+      },
+      error: () => this.fehler.emit('Standort konnte nicht gespeichert werden.'),
+    });
   }
 
   deleteLocation(id: string): void {
-    if (!confirm('Standort wirklich löschen?')) return;
-    this.service.deleteLocation(this.admin.id, id).subscribe({ next: () => { this.nachricht.emit('Standort wurde gelöscht.'); this.standorteGeaendert.emit(); },
-      error: () => this.fehler.emit('Standort besitzt noch Räume und kann nicht gelöscht werden.') });
+    if (!confirm('Standort wirklich löschen?')) {
+      return;
+    }
+    this.service.deleteLocation(this.admin.id, id).subscribe({
+      next: () => {
+        this.nachricht.emit('Standort wurde gelöscht.');
+        this.standorteGeaendert.emit();
+      },
+      error: () => this.fehler.emit('Standort besitzt noch Räume und kann nicht gelöscht werden.'),
+    });
   }
 
-  loadAuditLog(): void { this.service.getAuditLog(this.admin.id).subscribe((daten) => { this.auditEintraege = daten; this.cdr.detectChanges(); }); }
+  loadAuditLog(): void {
+    this.service.getAuditLog(this.admin.id).subscribe((daten) => {
+      this.auditEintraege = daten;
+      this.cdr.detectChanges();
+    });
+  }
 
   isReservationActive(reservierung: Reservierung): boolean {
-    return reservierung.status === 'reserviert' && new Date(reservierung.reservierungEnde).getTime() >= Date.now();
+    return (
+      reservierung.status === 'reserviert' &&
+      new Date(reservierung.reservierungEnde).getTime() >= Date.now()
+    );
   }
 
   getReservationStatusLabel(reservierung: Reservierung): string {
-    if (reservierung.status === 'storniert') return 'storniert';
+    if (reservierung.status === 'storniert') {
+      return 'storniert';
+    }
     return this.isReservationActive(reservierung) ? 'aktiv' : 'abgelaufen';
   }
 
@@ -1193,55 +1836,103 @@ export class AdminBuilderComponent implements OnInit {
     punkt.x = event.clientX;
     punkt.y = event.clientY;
     const umgerechnet = punkt.matrixTransform(svg.getScreenCTM()!.inverse());
-    return { x: umgerechnet.x / 1.6, y: umgerechnet.y / .9 };
+    return { x: umgerechnet.x / 1.6, y: umgerechnet.y / 0.9 };
   }
 
-  private calculateWallGeometry(start: { x: number; y: number }, ende: { x: number; y: number }, ignorierteId = ''): { x: number; y: number; breite: number; hoehe: number } {
+  private calculateWallGeometry(
+    start: { x: number; y: number },
+    ende: { x: number; y: number },
+    ignorierteId = '',
+  ): { x: number; y: number; breite: number; hoehe: number } {
     const deltaX = Math.abs(ende.x - start.x);
     const deltaY = Math.abs(ende.y - start.y);
     const staerke = 2;
     if (deltaX >= deltaY) {
-      const linieY = this.snapWallCoordinate(true, start.y, Math.min(start.x, ende.x), Math.max(start.x, ende.x), ignorierteId);
+      const linieY = this.snapWallCoordinate(
+        true,
+        start.y,
+        Math.min(start.x, ende.x),
+        Math.max(start.x, ende.x),
+        ignorierteId,
+      );
       const startAngedockt = this.snapPointToWall({ x: start.x, y: linieY }, ignorierteId);
       const endeAngedockt = this.snapPointToWall({ x: ende.x, y: linieY }, ignorierteId);
       return {
-        x: this.clamp(this.snapToGrid(Math.min(startAngedockt.x, endeAngedockt.x)), 0, 100 - staerke),
+        x: this.clamp(
+          this.snapToGrid(Math.min(startAngedockt.x, endeAngedockt.x)),
+          0,
+          100 - staerke,
+        ),
         y: this.clamp(this.snapToGrid(linieY - staerke / 2), 0, 100 - staerke),
         breite: Math.max(2, this.snapToGrid(Math.abs(endeAngedockt.x - startAngedockt.x))),
-        hoehe: staerke
+        hoehe: staerke,
       };
     }
-    const linieX = this.snapWallCoordinate(false, start.x, Math.min(start.y, ende.y), Math.max(start.y, ende.y), ignorierteId);
+    const linieX = this.snapWallCoordinate(
+      false,
+      start.x,
+      Math.min(start.y, ende.y),
+      Math.max(start.y, ende.y),
+      ignorierteId,
+    );
     const startAngedockt = this.snapPointToWall({ x: linieX, y: start.y }, ignorierteId);
     const endeAngedockt = this.snapPointToWall({ x: linieX, y: ende.y }, ignorierteId);
     return {
       x: this.clamp(this.snapToGrid(linieX - staerke / 2), 0, 100 - staerke),
       y: this.clamp(this.snapToGrid(Math.min(startAngedockt.y, endeAngedockt.y)), 0, 100 - staerke),
       breite: staerke,
-      hoehe: Math.max(2, this.snapToGrid(Math.abs(endeAngedockt.y - startAngedockt.y)))
+      hoehe: Math.max(2, this.snapToGrid(Math.abs(endeAngedockt.y - startAngedockt.y))),
     };
   }
 
-  private createFloorPlanElement(typ: RaumElement['typ'], x: number, y: number, breite: number, hoehe: number): RaumElement {
-    return { id: `${typ.toUpperCase()}-${Date.now()}-${Math.round(Math.random() * 999)}`, typ,
+  private createFloorPlanElement(
+    typ: RaumElement['typ'],
+    x: number,
+    y: number,
+    breite: number,
+    hoehe: number,
+  ): RaumElement {
+    return {
+      id: `${typ.toUpperCase()}-${Date.now()}-${Math.round(Math.random() * 999)}`,
+      typ,
       x: this.clamp(this.snapToGrid(x - breite / 2), 0, 100 - breite),
-      y: this.clamp(this.snapToGrid(y - hoehe / 2), 0, 100 - hoehe), breite, hoehe,
-      text: typ === 'beschriftung' ? 'Beschriftung' : undefined, rotation: 0 };
+      y: this.clamp(this.snapToGrid(y - hoehe / 2), 0, 100 - hoehe),
+      breite,
+      hoehe,
+      text: typ === 'beschriftung' ? 'Beschriftung' : undefined,
+      rotation: 0,
+    };
   }
 
   private getDefaultElementSize(typ: RaumElement['typ']): { breite: number; hoehe: number } {
-    if (typ === 'gesperrt') return { breite: 18, hoehe: 12 };
-    if (typ === 'tuer') return { breite: 10, hoehe: 10 * 16 / 9 };
-    if (typ === 'fenster') return { breite: 14, hoehe: 2 };
-    if (typ === 'klima') return { breite: 10, hoehe: 5 };
-    if (typ === 'saeule') return { breite: 5, hoehe: 5 * 16 / 9 };
-    if (typ === 'feuerloescher') return { breite: 4, hoehe: 6 };
-    if (typ === 'beschriftung') return { breite: 18, hoehe: 5 };
-    return { breite: 7, hoehe: 7 * 16 / 9 };
+    if (typ === 'gesperrt') {
+      return { breite: 18, hoehe: 12 };
+    }
+    if (typ === 'tuer') {
+      return { breite: 10, hoehe: (10 * 16) / 9 };
+    }
+    if (typ === 'fenster') {
+      return { breite: 14, hoehe: 2 };
+    }
+    if (typ === 'klima') {
+      return { breite: 10, hoehe: 5 };
+    }
+    if (typ === 'saeule') {
+      return { breite: 5, hoehe: (5 * 16) / 9 };
+    }
+    if (typ === 'feuerloescher') {
+      return { breite: 4, hoehe: 6 };
+    }
+    if (typ === 'beschriftung') {
+      return { breite: 18, hoehe: 5 };
+    }
+    return { breite: 7, hoehe: (7 * 16) / 9 };
   }
 
   private snapElementToWall(element: RaumElement): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     const waende = this.raum.elemente.filter((eintrag) => eintrag.typ === 'wand');
     let besteWand: RaumElement | undefined;
     let kleinsterAbstand = 8;
@@ -1253,25 +1944,38 @@ export class AdminBuilderComponent implements OnInit {
       const naechstesY = this.clamp(mitteY, wand.y, wand.y + wand.hoehe);
       const deltaX = waagrecht ? mitteX - naechstesX : mitteX - (wand.x + wand.breite / 2);
       const deltaY = waagrecht ? mitteY - (wand.y + wand.hoehe / 2) : mitteY - naechstesY;
-      const abstand = Math.hypot(deltaX * 1.6, deltaY * .9);
-      if (abstand < kleinsterAbstand) { kleinsterAbstand = abstand; besteWand = wand; }
+      const abstand = Math.hypot(deltaX * 1.6, deltaY * 0.9);
+      if (abstand < kleinsterAbstand) {
+        kleinsterAbstand = abstand;
+        besteWand = wand;
+      }
     }
-    if (!besteWand) return;
+    if (!besteWand) {
+      return;
+    }
     const waagrecht = besteWand.breite >= besteWand.hoehe;
     if (element.typ === 'tuer') {
       const seite = Math.max(4, Math.min(25, element.breite));
-      const hoehe = seite * 16 / 9;
+      const hoehe = (seite * 16) / 9;
       element.breite = seite;
       element.hoehe = hoehe;
       if (waagrecht) {
         const wandMitte = besteWand.y + besteWand.hoehe / 2;
-        element.x = this.clamp(mitteX - seite / 2, besteWand.x, besteWand.x + besteWand.breite - seite);
+        element.x = this.clamp(
+          mitteX - seite / 2,
+          besteWand.x,
+          besteWand.x + besteWand.breite - seite,
+        );
         element.y = mitteY <= wandMitte ? wandMitte - hoehe : wandMitte;
         element.rotation = mitteY <= wandMitte ? 0 : 180;
       } else {
         const wandMitte = besteWand.x + besteWand.breite / 2;
         element.x = mitteX <= wandMitte ? wandMitte - seite : wandMitte;
-        element.y = this.clamp(mitteY - hoehe / 2, besteWand.y, besteWand.y + besteWand.hoehe - hoehe);
+        element.y = this.clamp(
+          mitteY - hoehe / 2,
+          besteWand.y,
+          besteWand.y + besteWand.hoehe - hoehe,
+        );
         element.rotation = mitteX <= wandMitte ? 270 : 90;
       }
       return;
@@ -1281,7 +1985,11 @@ export class AdminBuilderComponent implements OnInit {
       element.breite = laenge;
       element.hoehe = Math.min(element.breite, 3);
       element.y = besteWand.y + besteWand.hoehe / 2 - element.hoehe / 2;
-      element.x = this.clamp(element.x, besteWand.x, besteWand.x + besteWand.breite - element.breite);
+      element.x = this.clamp(
+        element.x,
+        besteWand.x,
+        besteWand.x + besteWand.breite - element.breite,
+      );
     } else {
       const laenge = Math.max(element.breite, element.hoehe);
       element.breite = Math.min(element.breite, 3);
@@ -1311,11 +2019,18 @@ export class AdminBuilderComponent implements OnInit {
     wand.rotation = 0;
   }
 
-  private snapPointToWall(punkt: { x: number; y: number }, ignorierteId = ''): { x: number; y: number } {
-    if (!this.raum) return punkt;
+  private snapPointToWall(
+    punkt: { x: number; y: number },
+    ignorierteId = '',
+  ): { x: number; y: number } {
+    if (!this.raum) {
+      return punkt;
+    }
     let ergebnis = { ...punkt };
     let kleinsterAbstand = 7;
-    for (const wand of this.raum.elemente.filter((element) => element.typ === 'wand' && element.id !== ignorierteId)) {
+    for (const wand of this.raum.elemente.filter(
+      (element) => element.typ === 'wand' && element.id !== ignorierteId,
+    )) {
       const waagrecht = wand.breite >= wand.hoehe;
       const x = waagrecht
         ? this.clamp(punkt.x, wand.x, wand.x + wand.breite)
@@ -1323,7 +2038,7 @@ export class AdminBuilderComponent implements OnInit {
       const y = waagrecht
         ? wand.y + wand.hoehe / 2
         : this.clamp(punkt.y, wand.y, wand.y + wand.hoehe);
-      const abstand = Math.hypot((punkt.x - x) * 1.6, (punkt.y - y) * .9);
+      const abstand = Math.hypot((punkt.x - x) * 1.6, (punkt.y - y) * 0.9);
       if (abstand < kleinsterAbstand) {
         kleinsterAbstand = abstand;
         ergebnis = { x, y };
@@ -1332,16 +2047,30 @@ export class AdminBuilderComponent implements OnInit {
     return ergebnis;
   }
 
-  private snapWallCoordinate(waagrecht: boolean, wert: number, von: number, bis: number, ignorierteId: string): number {
-    if (!this.raum) return wert;
+  private snapWallCoordinate(
+    waagrecht: boolean,
+    wert: number,
+    von: number,
+    bis: number,
+    ignorierteId: string,
+  ): number {
+    if (!this.raum) {
+      return wert;
+    }
     let ergebnis = wert;
     let kleinsterAbstand = 3;
-    for (const wand of this.raum.elemente.filter((element) => element.typ === 'wand' && element.id !== ignorierteId)) {
+    for (const wand of this.raum.elemente.filter(
+      (element) => element.typ === 'wand' && element.id !== ignorierteId,
+    )) {
       const andereWaagrecht = wand.breite >= wand.hoehe;
-      if (andereWaagrecht !== waagrecht) continue;
+      if (andereWaagrecht !== waagrecht) {
+        continue;
+      }
       const andereVon = waagrecht ? wand.x : wand.y;
       const andereBis = waagrecht ? wand.x + wand.breite : wand.y + wand.hoehe;
-      if (bis < andereVon - 4 || von > andereBis + 4) continue;
+      if (bis < andereVon - 4 || von > andereBis + 4) {
+        continue;
+      }
       const linie = waagrecht ? wand.y + wand.hoehe / 2 : wand.x + wand.breite / 2;
       const abstand = Math.abs(wert - linie);
       if (abstand < kleinsterAbstand) {
@@ -1352,37 +2081,76 @@ export class AdminBuilderComponent implements OnInit {
     return ergebnis;
   }
 
-  private snapToGrid(wert: number): number { return this.rasterAktiv ? Math.round(wert) : Math.round(wert * 10) / 10; }
-  private clamp(wert: number, min: number, max: number): number { return Math.max(min, Math.min(max, wert)); }
+  private snapToGrid(wert: number): number {
+    return this.rasterAktiv ? Math.round(wert) : Math.round(wert * 10) / 10;
+  }
+  private clamp(wert: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, wert));
+  }
 
   private recordUndoState(): void {
-    if (!this.raum) return;
+    if (!this.raum) {
+      return;
+    }
     this.historie.push(this.cloneElements(this.raum.elemente));
-    if (this.historie.length > 30) this.historie.shift();
+    if (this.historie.length > 30) {
+      this.historie.shift();
+    }
     this.wiederholenHistorie = [];
   }
 
-  private cloneElements(elemente: RaumElement[]): RaumElement[] { return elemente.map((element) => ({ ...element })); }
-  private clearSelection(): void { this.ausgewaehltesElement = null; this.ausgewaehlteElementIds = []; }
-  private canLeaveFloorPlan(): boolean { return !this.hasUnsavedFloorPlanChanges || confirm('Ungespeicherte Grundrissänderungen verwerfen?'); }
+  private cloneElements(elemente: RaumElement[]): RaumElement[] {
+    return elemente.map((element) => ({ ...element }));
+  }
+  private clearSelection(): void {
+    this.ausgewaehltesElement = null;
+    this.ausgewaehlteElementIds = [];
+  }
+  private canLeaveFloorPlan(): boolean {
+    return (
+      !this.hasUnsavedFloorPlanChanges || confirm('Ungespeicherte Grundrissänderungen verwerfen?')
+    );
+  }
 
   private hasDeskCollision(x: number, y: number, eigeneId?: string): boolean {
-    if (!this.raum) return false;
+    if (!this.raum) {
+      return false;
+    }
     const eigenerTisch = this.raum.arbeitsplaetze.find((tisch) => tisch.id === eigeneId);
-    const eigeneBreite = eigeneId ? this.tischForm.breite : eigenerTisch?.breite || this.tischForm.breite;
-    const eigeneHoehe = eigeneId ? this.tischForm.hoehe : eigenerTisch?.hoehe || this.tischForm.hoehe;
-    const eigeneRotation = eigeneId ? this.tischForm.rotation : eigenerTisch?.rotation || this.tischForm.rotation;
+    const eigeneBreite = eigeneId
+      ? this.tischForm.breite
+      : eigenerTisch?.breite || this.tischForm.breite;
+    const eigeneHoehe = eigeneId
+      ? this.tischForm.hoehe
+      : eigenerTisch?.hoehe || this.tischForm.hoehe;
+    const eigeneRotation = eigeneId
+      ? this.tischForm.rotation
+      : eigenerTisch?.rotation || this.tischForm.rotation;
     const eigeneFlaeche = this.getRotatedSize(eigeneBreite, eigeneHoehe, eigeneRotation);
     const trifft = (links: number, oben: number, breite: number, hoehe: number) =>
-      x + eigeneFlaeche.breite / 2 > links && x - eigeneFlaeche.breite / 2 < links + breite &&
-      y + eigeneFlaeche.hoehe / 2 > oben && y - eigeneFlaeche.hoehe / 2 < oben + hoehe;
-    const elementTreffer = this.raum.elemente.some((element) =>
-      (element.typ === 'wand' || element.typ === 'gesperrt' || element.typ === 'saeule' ||
-        element.typ === 'pflanze' || element.typ === 'klima' || element.typ === 'feuerloescher') &&
-      trifft(element.x, element.y, element.breite, element.hoehe));
+      x + eigeneFlaeche.breite / 2 > links &&
+      x - eigeneFlaeche.breite / 2 < links + breite &&
+      y + eigeneFlaeche.hoehe / 2 > oben &&
+      y - eigeneFlaeche.hoehe / 2 < oben + hoehe;
+    const elementTreffer = this.raum.elemente.some(
+      (element) =>
+        (element.typ === 'wand' ||
+          element.typ === 'gesperrt' ||
+          element.typ === 'saeule' ||
+          element.typ === 'pflanze' ||
+          element.typ === 'klima' ||
+          element.typ === 'feuerloescher') &&
+        trifft(element.x, element.y, element.breite, element.hoehe),
+    );
     const tischTreffer = this.raum.arbeitsplaetze.some((tisch) => {
-      if (tisch.id === eigeneId) return false;
-      const andereFlaeche = this.getRotatedSize(tisch.breite || 12, tisch.hoehe || 12, tisch.rotation || 0);
+      if (tisch.id === eigeneId) {
+        return false;
+      }
+      const andereFlaeche = this.getRotatedSize(
+        tisch.breite || 12,
+        tisch.hoehe || 12,
+        tisch.rotation || 0,
+      );
       const mindestAbstandX = Math.max(2, (eigeneFlaeche.breite + andereFlaeche.breite) / 2 - 3);
       const mindestAbstandY = Math.max(2, (eigeneFlaeche.hoehe + andereFlaeche.hoehe) / 2 - 3);
       return Math.abs(tisch.x - x) < mindestAbstandX && Math.abs(tisch.y - y) < mindestAbstandY;
@@ -1390,31 +2158,68 @@ export class AdminBuilderComponent implements OnInit {
     return elementTreffer || tischTreffer;
   }
 
-  private getRotatedSize(breite: number, hoehe: number, rotation: number): { breite: number; hoehe: number } {
-    const winkel = rotation * Math.PI / 180;
+  private getRotatedSize(
+    breite: number,
+    hoehe: number,
+    rotation: number,
+  ): { breite: number; hoehe: number } {
+    const winkel = (rotation * Math.PI) / 180;
     return {
       breite: Math.abs(breite * Math.cos(winkel)) + Math.abs(hoehe * Math.sin(winkel)),
-      hoehe: Math.abs(breite * Math.sin(winkel)) + Math.abs(hoehe * Math.cos(winkel))
+      hoehe: Math.abs(breite * Math.sin(winkel)) + Math.abs(hoehe * Math.cos(winkel)),
     };
   }
 
   private createEmptyRoomForm(): RaumRequest {
-    return { name: '', stockwerk: 'EG', standortId: this.standortId, abteilungId: 'ABT-IT', abteilungName: 'IT', elemente: [] };
+    return {
+      name: '',
+      stockwerk: 'EG',
+      standortId: this.standortId,
+      abteilungId: 'ABT-IT',
+      abteilungName: 'IT',
+      elemente: [],
+    };
   }
 
   private createEmptyDeskForm(): ArbeitsplatzRequest {
-    return { tischnr: '1', name: '', raumId: '', standortId: '', abteilungId: '', abteilungName: '', x: 50, y: 45, rotation: 0, breite: 12, hoehe: 11, equipment: [] };
+    return {
+      tischnr: '1',
+      name: '',
+      raumId: '',
+      standortId: '',
+      abteilungId: '',
+      abteilungName: '',
+      x: 50,
+      y: 45,
+      rotation: 0,
+      breite: 12,
+      hoehe: 11,
+      equipment: [],
+    };
   }
 
   private createEmptyUserForm(): BenutzerRequest {
-    return { vorname:'', nachname:'', email:'', rolle:'USER', abteilungId:this.abteilungen[0]?.id ?? 'ABT-IT',
-      abteilungName:this.abteilungen[0]?.name ?? 'IT', bevorzugterRaumId:'', aktiv:true };
+    return {
+      vorname: '',
+      nachname: '',
+      email: '',
+      rolle: 'USER',
+      abteilungId: this.abteilungen[0]?.id ?? 'ABT-IT',
+      abteilungName: this.abteilungen[0]?.name ?? 'IT',
+      bevorzugterRaumId: '',
+      aktiv: true,
+    };
   }
 
   private getNextDeskNumber(): string {
-    const nummern = this.raum?.arbeitsplaetze.map((tisch) => Number(tisch.tischnr)).filter((wert) => Number.isFinite(wert)) ?? [];
+    const nummern =
+      this.raum?.arbeitsplaetze
+        .map((tisch) => Number(tisch.tischnr))
+        .filter((wert) => Number.isFinite(wert)) ?? [];
     return String(Math.max(0, ...nummern) + 1);
   }
 
-  private getCurrentDate(): string { return new Date().toISOString().slice(0, 10); }
+  private getCurrentDate(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
 }

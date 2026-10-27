@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
-import { AccountInfo, InteractionRequiredAuthError, PublicClientApplication } from '@azure/msal-browser';
+import {
+  AccountInfo,
+  InteractionRequiredAuthError,
+  PublicClientApplication,
+} from '@azure/msal-browser';
 import { entraLoginRequest, entraScopes, msalConfig } from './entra-config';
 
 @Injectable({ providedIn: 'root' })
@@ -24,7 +28,9 @@ export class EntraAuthService {
     }
 
     const konto = this.getActiveAccount();
-    if (konto) this.msal.setActiveAccount(konto);
+    if (konto) {
+      this.msal.setActiveAccount(konto);
+    }
     return !!konto;
   }
 
@@ -33,7 +39,9 @@ export class EntraAuthService {
 
     try {
       const ergebnis = await this.msal.handleRedirectPromise();
-      if (ergebnis?.account) this.msal.setActiveAccount(ergebnis.account);
+      if (ergebnis?.account) {
+        this.msal.setActiveAccount(ergebnis.account);
+      }
     } catch (fehler) {
       // Der fehlerhafte Redirect wird entfernt, damit ein neuer Versuch möglich
       // ist. Der Fehler wird trotzdem weitergegeben und dadurch sichtbar.
@@ -53,14 +61,21 @@ export class EntraAuthService {
   async logout(): Promise<void> {
     await this.initialize();
     const konto = this.getActiveAccount();
-    if (!konto) return;
-    await this.msal.logoutRedirect({ account: konto, postLogoutRedirectUri: window.location.origin });
+    if (!konto) {
+      return;
+    }
+    await this.msal.logoutRedirect({
+      account: konto,
+      postLogoutRedirectUri: window.location.origin,
+    });
   }
 
   async getIdentityToken(interaktiv = false): Promise<string | null> {
     await this.initialize();
     const konto = this.getActiveAccount();
-    if (!konto) return null;
+    if (!konto) {
+      return null;
+    }
 
     try {
       const ergebnis = await this.msal.acquireTokenSilent({ account: konto, scopes: entraScopes });

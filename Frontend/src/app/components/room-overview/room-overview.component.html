@@ -1,6 +1,14 @@
 <section class="workspace">
   <div class="room-header">
-    <button type="button" class="room-close" aria-label="Raum schließen und zur Startseite zurückkehren" (click)="schliessen.emit()">Schließen <span aria-hidden="true">×</span></button>
+    <button
+      type="button"
+      class="room-close"
+      aria-label="Raum schließen und zur Startseite zurückkehren"
+      (click)="schliessen.emit()"
+    >
+      Schließen
+      <span aria-hidden="true">×</span>
+    </button>
     <div class="room-title">
       <p>Raumübersicht</p>
       <h1>{{ raum.name }}</h1>
@@ -9,83 +17,108 @@
 
     <div class="header-tools">
       <div class="booking-panel">
-      <div class="room-switcher" *ngIf="canSwitchRooms" aria-label="Raum wechseln">
-        <button
+        <div
+          class="room-switcher"
           *ngIf="canSwitchRooms"
-          type="button"
-          class="room-arrow"
-          [attr.aria-label]="'Zu ' + previousRoom.name + ' wechseln'"
-          (click)="raumWechseln.emit(previousRoom.id)"
+          aria-label="Raum wechseln"
         >
-          <span aria-hidden="true">&#8249;</span>
-        </button>
+          <button
+            *ngIf="canSwitchRooms"
+            type="button"
+            class="room-arrow"
+            [attr.aria-label]="'Zu ' + previousRoom.name + ' wechseln'"
+            (click)="raumWechseln.emit(previousRoom.id)"
+          >
+            <span aria-hidden="true">&#8249;</span>
+          </button>
 
-        <div class="switcher-current">
-          <span>Raum</span>
-          <strong>{{ raum.name }}</strong>
+          <div class="switcher-current">
+            <span>Raum</span>
+            <strong>{{ raum.name }}</strong>
+          </div>
+
+          <button
+            *ngIf="canSwitchRooms"
+            type="button"
+            class="room-arrow"
+            [attr.aria-label]="'Zu ' + nextRoom.name + ' wechseln'"
+            (click)="raumWechseln.emit(nextRoom.id)"
+          >
+            <span aria-hidden="true">&#8250;</span>
+          </button>
         </div>
 
-        <button
-          *ngIf="canSwitchRooms"
-          type="button"
-          class="room-arrow"
-          [attr.aria-label]="'Zu ' + nextRoom.name + ' wechseln'"
-          (click)="raumWechseln.emit(nextRoom.id)"
-        >
-          <span aria-hidden="true">&#8250;</span>
-        </button>
-      </div>
+        <p *ngIf="buchbarBis">Reservierbar bis {{ buchbarBis | date: 'dd.MM.yyyy' }}</p>
+        <div class="time-box">
+          <label>
+            Von
+            <input
+              type="date"
+              [max]="buchbarBis"
+              [min]="today"
+              [value]="zeitraumSignal().datum"
+              (input)="updateTimeRange('datum', $event)"
+            />
+          </label>
 
-      <p *ngIf="buchbarBis">Reservierbar bis {{ buchbarBis | date:'dd.MM.yyyy' }}</p>
-      <div class="time-box">
-        <label>
-          Von
-          <input
-            type="date"
-            [max]="buchbarBis"
-            [min]="today"
-            [value]="zeitraumSignal().datum"
-            (input)="updateTimeRange('datum', $event)"
-          />
-        </label>
+          <label>
+            Bis
+            <input
+              type="date"
+              [max]="buchbarBis"
+              [min]="zeitraumSignal().datum"
+              [value]="zeitraumSignal().endDatum"
+              (input)="updateTimeRange('endDatum', $event)"
+            />
+          </label>
 
-        <label>
-          Bis
-          <input
-            type="date"
-            [max]="buchbarBis"
-            [min]="zeitraumSignal().datum"
-            [value]="zeitraumSignal().endDatum"
-            (input)="updateTimeRange('endDatum', $event)"
-          />
-        </label>
+          <label>
+            Beginn
+            <input
+              type="time"
+              [value]="zeitraumSignal().beginn"
+              (input)="updateTimeRange('beginn', $event)"
+            />
+          </label>
 
-        <label>
-          Beginn
-          <input
-            type="time"
-            [value]="zeitraumSignal().beginn"
-            (input)="updateTimeRange('beginn', $event)"
-          />
-        </label>
-
-        <label>
-          Ende
-          <input
-            type="time"
-            [value]="zeitraumSignal().ende"
-            (input)="updateTimeRange('ende', $event)"
-          />
-        </label>
-
-      </div>
-      <div class="quick-times"><button type="button" (click)="applyTimePreset('ganztag')">Ganztägig</button><button type="button" (click)="applyTimePreset('vormittag')">Vormittag</button><button type="button" (click)="applyTimePreset('nachmittag')">Nachmittag</button></div>
+          <label>
+            Ende
+            <input
+              type="time"
+              [value]="zeitraumSignal().ende"
+              (input)="updateTimeRange('ende', $event)"
+            />
+          </label>
+        </div>
+        <div class="quick-times">
+          <button
+            type="button"
+            (click)="applyTimePreset('ganztag')"
+          >
+            Ganztägig
+          </button>
+          <button
+            type="button"
+            (click)="applyTimePreset('vormittag')"
+          >
+            Vormittag
+          </button>
+          <button
+            type="button"
+            (click)="applyTimePreset('nachmittag')"
+          >
+            Nachmittag
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="layout">
-    <section class="plan" [class.fullscreen-plan]="vollbild()">
+    <section
+      class="plan"
+      [class.fullscreen-plan]="vollbild()"
+    >
       <div class="plan-head">
         <div>
           <span class="plan-title">Verfügbarkeit</span>
@@ -93,38 +126,238 @@
         </div>
 
         <div class="legend">
-          <span><i class="free"></i>frei</span>
-          <span><i class="reserved"></i>reserviert</span>
-          <span><i class="locked"></i>andere Abteilung</span>
-          <span><i class="own"></i>deine Reservierung</span>
+          <span>
+            <i class="free"></i>
+            frei
+          </span>
+          <span>
+            <i class="reserved"></i>
+            reserviert
+          </span>
+          <span>
+            <i class="locked"></i>
+            andere Abteilung
+          </span>
+          <span>
+            <i class="own"></i>
+            deine Reservierung
+          </span>
         </div>
-        <button type="button" class="fullscreen-button" (click)="toggleFullscreen()" [attr.aria-label]="vollbild() ? 'Vollbild schließen' : 'Raum im Vollbild öffnen'">{{ vollbild() ? '× Schließen' : '⛶ Vollbild' }}</button>
+        <button
+          type="button"
+          class="fullscreen-button"
+          (click)="toggleFullscreen()"
+          [attr.aria-label]="vollbild() ? 'Vollbild schließen' : 'Raum im Vollbild öffnen'"
+        >
+          {{ vollbild() ? '× Schließen' : '⛶ Vollbild' }}
+        </button>
       </div>
 
       <div class="filter-row">
         <strong>Ausstattung</strong>
         <div class="filter-options">
-          <label class="equipment-check" *ngFor="let ausstattung of availableEquipment">
-            <input type="checkbox" [checked]="ausstattungFilter().includes(ausstattung)" (change)="updateEquipmentFilter(ausstattung, $any($event.target).checked)" />
+          <label
+            class="equipment-check"
+            *ngFor="let ausstattung of availableEquipment"
+          >
+            <input
+              type="checkbox"
+              [checked]="ausstattungFilter().includes(ausstattung)"
+              (change)="updateEquipmentFilter(ausstattung, $any($event.target).checked)"
+            />
             <span>{{ ausstattung }}</span>
           </label>
         </div>
-        <span class="filter-result">{{ visibleDesks.length }} von {{ raum.arbeitsplaetze.length }} Tischen</span>
+        <span class="filter-result">
+          {{ visibleDesks.length }} von {{ raum.arbeitsplaetze.length }} Tischen
+        </span>
       </div>
 
       <div class="room">
-        <svg class="saved-layout" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid meet" aria-label="Gespeicherter Raumgrundriss">
-          <defs><pattern id="room-stripes" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#b23542" stroke-width="1" /></pattern></defs>
-          <g *ngFor="let element of raum.elemente" [attr.transform]="'rotate(' + (element.rotation || 0) + ' ' + ((element.x + element.breite / 2) * 1.6) + ' ' + ((element.y + element.hoehe / 2) * .9) + ') scale(1.6 .9)'">
-            <line *ngIf="element.typ === 'wand'" class="layout-wall" [attr.x1]="element.breite >= element.hoehe ? element.x : element.x + element.breite / 2" [attr.y1]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y" [attr.x2]="element.breite >= element.hoehe ? element.x + element.breite : element.x + element.breite / 2" [attr.y2]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y + element.hoehe" />
-            <g *ngIf="element.typ === 'tuer'" class="layout-door"><rect [attr.x]="element.x" [attr.y]="element.y + element.hoehe / 2 - element.breite * 8 / 9" [attr.width]="element.breite" [attr.height]="element.breite * 16 / 9" /><line [attr.x1]="element.x" [attr.y1]="element.y + element.hoehe / 2 + element.breite * 8 / 9" [attr.x2]="element.x" [attr.y2]="element.y + element.hoehe / 2 - element.breite * 8 / 9" /><path [attr.d]="'M ' + element.x + ' ' + (element.y + element.hoehe / 2 - element.breite * 8 / 9) + ' A ' + element.breite + ' ' + (element.breite * 16 / 9) + ' 0 0 1 ' + (element.x + element.breite) + ' ' + (element.y + element.hoehe / 2 + element.breite * 8 / 9)" /></g>
-            <ellipse *ngIf="element.typ === 'pflanze'" class="layout-plant" [attr.cx]="element.x + element.breite / 2" [attr.cy]="element.y + element.hoehe / 2" [attr.rx]="element.breite / 2" [attr.ry]="element.breite * 8 / 9" />
-            <line *ngIf="element.typ === 'fenster'" class="layout-window" [attr.x1]="element.breite >= element.hoehe ? element.x : element.x + element.breite / 2" [attr.y1]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y" [attr.x2]="element.breite >= element.hoehe ? element.x + element.breite : element.x + element.breite / 2" [attr.y2]="element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y + element.hoehe" />
-            <g *ngIf="element.typ === 'klima'" class="layout-ac"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .7">AC</text></g>
-            <rect *ngIf="element.typ === 'saeule'" class="layout-column" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
-            <g *ngIf="element.typ === 'feuerloescher'" class="layout-fire"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .72">F</text></g>
-            <g *ngIf="element.typ === 'beschriftung'" class="layout-label"><rect [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" /><text [attr.x]="element.x + element.breite / 2" [attr.y]="element.y + element.hoehe * .68">{{ element.text }}</text></g>
-            <rect *ngIf="element.typ === 'gesperrt'" class="layout-blocked" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.breite" [attr.height]="element.hoehe" />
+        <svg
+          class="saved-layout"
+          viewBox="0 0 160 90"
+          preserveAspectRatio="xMidYMid meet"
+          aria-label="Gespeicherter Raumgrundriss"
+        >
+          <defs>
+            <pattern
+              id="room-stripes"
+              width="3"
+              height="3"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="3"
+                stroke="#b23542"
+                stroke-width="1"
+              />
+            </pattern>
+          </defs>
+          <g
+            *ngFor="let element of raum.elemente"
+            [attr.transform]="
+              'rotate(' +
+              (element.rotation || 0) +
+              ' ' +
+              (element.x + element.breite / 2) * 1.6 +
+              ' ' +
+              (element.y + element.hoehe / 2) * 0.9 +
+              ') scale(1.6 .9)'
+            "
+          >
+            <line
+              *ngIf="element.typ === 'wand'"
+              class="layout-wall"
+              [attr.x1]="
+                element.breite >= element.hoehe ? element.x : element.x + element.breite / 2
+              "
+              [attr.y1]="
+                element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y
+              "
+              [attr.x2]="
+                element.breite >= element.hoehe
+                  ? element.x + element.breite
+                  : element.x + element.breite / 2
+              "
+              [attr.y2]="
+                element.breite >= element.hoehe
+                  ? element.y + element.hoehe / 2
+                  : element.y + element.hoehe
+              "
+            />
+            <g
+              *ngIf="element.typ === 'tuer'"
+              class="layout-door"
+            >
+              <rect
+                [attr.x]="element.x"
+                [attr.y]="element.y + element.hoehe / 2 - (element.breite * 8) / 9"
+                [attr.width]="element.breite"
+                [attr.height]="(element.breite * 16) / 9"
+              />
+              <line
+                [attr.x1]="element.x"
+                [attr.y1]="element.y + element.hoehe / 2 + (element.breite * 8) / 9"
+                [attr.x2]="element.x"
+                [attr.y2]="element.y + element.hoehe / 2 - (element.breite * 8) / 9"
+              />
+              <path
+                [attr.d]="
+                  'M ' +
+                  element.x +
+                  ' ' +
+                  (element.y + element.hoehe / 2 - (element.breite * 8) / 9) +
+                  ' A ' +
+                  element.breite +
+                  ' ' +
+                  (element.breite * 16) / 9 +
+                  ' 0 0 1 ' +
+                  (element.x + element.breite) +
+                  ' ' +
+                  (element.y + element.hoehe / 2 + (element.breite * 8) / 9)
+                "
+              />
+            </g>
+            <ellipse
+              *ngIf="element.typ === 'pflanze'"
+              class="layout-plant"
+              [attr.cx]="element.x + element.breite / 2"
+              [attr.cy]="element.y + element.hoehe / 2"
+              [attr.rx]="element.breite / 2"
+              [attr.ry]="(element.breite * 8) / 9"
+            />
+            <line
+              *ngIf="element.typ === 'fenster'"
+              class="layout-window"
+              [attr.x1]="
+                element.breite >= element.hoehe ? element.x : element.x + element.breite / 2
+              "
+              [attr.y1]="
+                element.breite >= element.hoehe ? element.y + element.hoehe / 2 : element.y
+              "
+              [attr.x2]="
+                element.breite >= element.hoehe
+                  ? element.x + element.breite
+                  : element.x + element.breite / 2
+              "
+              [attr.y2]="
+                element.breite >= element.hoehe
+                  ? element.y + element.hoehe / 2
+                  : element.y + element.hoehe
+              "
+            />
+            <g
+              *ngIf="element.typ === 'klima'"
+              class="layout-ac"
+            >
+              <rect
+                [attr.x]="element.x"
+                [attr.y]="element.y"
+                [attr.width]="element.breite"
+                [attr.height]="element.hoehe"
+              />
+              <text
+                [attr.x]="element.x + element.breite / 2"
+                [attr.y]="element.y + element.hoehe * 0.7"
+              >
+                AC
+              </text>
+            </g>
+            <rect
+              *ngIf="element.typ === 'saeule'"
+              class="layout-column"
+              [attr.x]="element.x"
+              [attr.y]="element.y"
+              [attr.width]="element.breite"
+              [attr.height]="element.hoehe"
+            />
+            <g
+              *ngIf="element.typ === 'feuerloescher'"
+              class="layout-fire"
+            >
+              <rect
+                [attr.x]="element.x"
+                [attr.y]="element.y"
+                [attr.width]="element.breite"
+                [attr.height]="element.hoehe"
+              />
+              <text
+                [attr.x]="element.x + element.breite / 2"
+                [attr.y]="element.y + element.hoehe * 0.72"
+              >
+                F
+              </text>
+            </g>
+            <g
+              *ngIf="element.typ === 'beschriftung'"
+              class="layout-label"
+            >
+              <rect
+                [attr.x]="element.x"
+                [attr.y]="element.y"
+                [attr.width]="element.breite"
+                [attr.height]="element.hoehe"
+              />
+              <text
+                [attr.x]="element.x + element.breite / 2"
+                [attr.y]="element.y + element.hoehe * 0.68"
+              >
+                {{ element.text }}
+              </text>
+            </g>
+            <rect
+              *ngIf="element.typ === 'gesperrt'"
+              class="layout-blocked"
+              [attr.x]="element.x"
+              [attr.y]="element.y"
+              [attr.width]="element.breite"
+              [attr.height]="element.hoehe"
+            />
           </g>
         </svg>
 
@@ -140,13 +373,16 @@
           [style.left.%]="tisch.x"
           [style.top.%]="tisch.y"
           [style.--rotation]="(tisch.rotation || 0) + 'deg'"
-          [style.--counter-rotation]="(0 - (tisch.rotation || 0)) + 'deg'"
+          [style.--counter-rotation]="0 - (tisch.rotation || 0) + 'deg'"
           [style.--desk-width]="(tisch.breite || 12) + '%'"
           [style.--desk-height]="(tisch.hoehe || 12) + '%'"
           [attr.title]="getDeskTooltip(tisch)"
           (click)="tischAuswaehlen.emit(tisch)"
         >
-          <span class="desk-label"><strong [class.long-number]="tisch.tischnr.length > 5">{{ tisch.tischnr }}</strong><small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small></span>
+          <span class="desk-label">
+            <strong [class.long-number]="tisch.tischnr.length > 5">{{ tisch.tischnr }}</strong>
+            <small *ngIf="tisch.reserviertVon">{{ tisch.reserviertVon }}</small>
+          </span>
         </button>
       </div>
     </section>

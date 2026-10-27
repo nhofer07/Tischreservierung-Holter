@@ -79,3 +79,9 @@ ehthumbs.db
 # Optional (wenn ihr Uploads habt)
 # =========================
 uploads/
+
+# Firmenpakete, Zugangsdaten und Datenbanksicherungen
+release/
+deployment/holter/secrets/
+deployment/holter/backups/
+__pycache__/

@@ -1,7 +1,7 @@
 package at.htlleonding.boundary;
 
 import at.htlleonding.DTOs.FirmenEinstellungDTO;
-import at.htlleonding.repo.ArbeitsplatzRepo;
+import at.htlleonding.repo.EinstellungRepo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -15,16 +15,16 @@ import jakarta.ws.rs.core.MediaType;
 public class einstellungBoundary {
 
     @Inject
-    ArbeitsplatzRepo arbeitsplatzRepo;
+    EinstellungRepo einstellungRepo;
 
     @GET
     @Path("/reservierung")
     public at.htlleonding.DTOs.ReservierungsEinstellungDTO getBookingSettings() {
-        return arbeitsplatzRepo.getBookingSettings();
+        return einstellungRepo.getBookingSettings();
     }
 
     @GET
     public FirmenEinstellungDTO getCompanySettings() {
-        return arbeitsplatzRepo.getCompanySettings();
+        return einstellungRepo.getCompanySettings();
     }
 }

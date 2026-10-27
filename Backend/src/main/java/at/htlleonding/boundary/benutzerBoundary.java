@@ -1,26 +1,25 @@
 package at.htlleonding.boundary;
 
 import at.htlleonding.DTOs.BenutzerDTO;
-import at.htlleonding.repo.ArbeitsplatzRepo;
+import at.htlleonding.repo.BenutzerRepo;
+import io.quarkus.security.Authenticated;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import io.quarkus.security.Authenticated;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import org.eclipse.microprofile.jwt.JsonWebToken;
-
 import java.util.List;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @Path("/api/benutzer")
 @ApplicationScoped
 public class benutzerBoundary {
 
     @Inject
-    ArbeitsplatzRepo arbeitsplatzRepo;
+    BenutzerRepo benutzerRepo;
 
     @Inject
     JsonWebToken token;
@@ -28,7 +27,7 @@ public class benutzerBoundary {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<BenutzerDTO> getUsers() {
-        return arbeitsplatzRepo.getUsers();
+        return benutzerRepo.getUsers();
     }
 
     @POST
@@ -36,7 +35,7 @@ public class benutzerBoundary {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BenutzerDTO loginWithTestAccount(at.htlleonding.DTOs.LoginRequestDTO request) {
-        return arbeitsplatzRepo.loginWithTestAccount(request);
+        return benutzerRepo.loginWithTestAccount(request);
     }
 
     @GET
@@ -45,9 +44,13 @@ public class benutzerBoundary {
     @Produces(MediaType.APPLICATION_JSON)
     public BenutzerDTO getCurrentEntraUser() {
         String email = getTokenClaim("email");
-        if (email == null) email = getTokenClaim("preferred_username");
-        if (email == null) email = getTokenClaim("upn");
-        return arbeitsplatzRepo.loginWithEntra(email);
+        if (email == null) {
+            email = getTokenClaim("preferred_username");
+        }
+        if (email == null) {
+            email = getTokenClaim("upn");
+        }
+        return benutzerRepo.loginWithEntra(email);
     }
 
     private String getTokenClaim(String name) {

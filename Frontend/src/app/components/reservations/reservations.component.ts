@@ -7,10 +7,10 @@ import { Benutzer, Reservierung } from '../../models';
   selector: 'app-reservations',
   imports: [CommonModule, FormsModule],
   templateUrl: './reservations.component.html',
-  styleUrl: './reservations.component.css'
+  styleUrl: './reservations.component.css',
 })
 export class ReservationsComponent {
-  @Input() buchbarBis = "";
+  @Input() buchbarBis = '';
 
   @Input({ required: true }) benutzer!: Benutzer;
   @Input() reservierungen: Reservierung[] = [];
@@ -18,7 +18,11 @@ export class ReservationsComponent {
 
   @Output() stornieren = new EventEmitter<string>();
   @Output() arbeitsplatzSuchen = new EventEmitter<void>();
-  @Output() bearbeiten = new EventEmitter<{ reservierung: Reservierung; anfang: string; ende: string }>();
+  @Output() bearbeiten = new EventEmitter<{
+    reservierung: Reservierung;
+    anfang: string;
+    ende: string;
+  }>();
 
   ansicht: 'liste' | 'kalender' = 'liste';
   bearbeiteteId = '';
@@ -27,22 +31,32 @@ export class ReservationsComponent {
 
   get activeReservations(): Reservierung[] {
     const jetzt = Date.now();
-    return this.reservierungen.filter((r) => r.status === 'reserviert' && new Date(r.reservierungEnde).getTime() >= jetzt);
+    return this.reservierungen.filter(
+      (r) => r.status === 'reserviert' && new Date(r.reservierungEnde).getTime() >= jetzt,
+    );
   }
 
   get pastReservations(): Reservierung[] {
     const jetzt = Date.now();
-    return this.reservierungen.filter((r) => r.status !== 'reserviert' || new Date(r.reservierungEnde).getTime() < jetzt);
+    return this.reservierungen.filter(
+      (r) => r.status !== 'reserviert' || new Date(r.reservierungEnde).getTime() < jetzt,
+    );
   }
 
   get calendarDays(): { datum: Date; reservierungen: Reservierung[] }[] {
-    const start = new Date(); start.setHours(0,0,0,0);
-    return Array.from({length:14}, (_, index) => {
-      const datum = new Date(start); datum.setDate(start.getDate() + index);
-      const tagesEnde = new Date(datum); tagesEnde.setDate(datum.getDate() + 1);
-      return { datum, reservierungen:this.activeReservations.filter((r) =>
-        new Date(r.reservierungAnfang) < tagesEnde && new Date(r.reservierungEnde) > datum
-      ) };
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return Array.from({ length: 14 }, (_, index) => {
+      const datum = new Date(start);
+      datum.setDate(start.getDate() + index);
+      const tagesEnde = new Date(datum);
+      tagesEnde.setDate(datum.getDate() + 1);
+      return {
+        datum,
+        reservierungen: this.activeReservations.filter(
+          (r) => new Date(r.reservierungAnfang) < tagesEnde && new Date(r.reservierungEnde) > datum,
+        ),
+      };
     });
   }
 
@@ -53,13 +67,18 @@ export class ReservationsComponent {
   }
 
   saveReservationChanges(reservierung: Reservierung): void {
-    this.bearbeiten.emit({ reservierung, anfang:this.bearbeitungAnfang, ende:this.bearbeitungEnde });
+    this.bearbeiten.emit({
+      reservierung,
+      anfang: this.bearbeitungAnfang,
+      ende: this.bearbeitungEnde,
+    });
     this.bearbeiteteId = '';
   }
 
   private toLocalDateTimeInput(iso: string): string {
-    const datum = new Date(iso); const lokal = new Date(datum.getTime() - datum.getTimezoneOffset() * 60000);
-    return lokal.toISOString().slice(0,16);
+    const datum = new Date(iso);
+    const lokal = new Date(datum.getTime() - datum.getTimezoneOffset() * 60000);
+    return lokal.toISOString().slice(0, 16);
   }
 
   formatDate(isoDatum: string): string {
@@ -67,14 +86,14 @@ export class ReservationsComponent {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
     }).format(new Date(isoDatum));
   }
 
   formatTime(isoDatum: string): string {
     return new Intl.DateTimeFormat('de-AT', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(new Date(isoDatum));
   }
 

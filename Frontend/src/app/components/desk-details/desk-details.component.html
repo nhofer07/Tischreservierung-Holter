@@ -1,8 +1,18 @@
 <aside class="details">
   <p>Arbeitsplatz {{ tisch.tischnr }}</p>
   <h2>{{ tisch.name }}</h2>
-  <span class="status" [class]="tisch.status">{{ tisch.status }}</span>
-  <p class="notice" *ngIf="tisch.hinweis">{{ tisch.hinweis }}</p>
+  <span
+    class="status"
+    [class]="tisch.status"
+  >
+    {{ tisch.status }}
+  </span>
+  <p
+    class="notice"
+    *ngIf="tisch.hinweis"
+  >
+    {{ tisch.hinweis }}
+  </p>
 
   <dl>
     <div>
@@ -13,28 +23,44 @@
       <dt>Raum</dt>
       <dd>{{ raum.name }}</dd>
     </div>
-    <div>
-    </div>
+    <div></div>
     <div *ngIf="tisch.reserviertVon">
       <dt>Reserviert von</dt>
       <dd>{{ tisch.reserviertVon }}</dd>
     </div>
-    <div>
-    </div>
+    <div></div>
   </dl>
 
-  <section class="reservation-time" *ngIf="tisch.reservierungAnfang">
+  <section
+    class="reservation-time"
+    *ngIf="tisch.reservierungAnfang"
+  >
     <span>Reservierungszeitraum</span>
-    <strong>{{ tisch.reservierungAnfang | date:'EEEE, dd.MM.yyyy' }}</strong>
-    <div><b>{{ tisch.reservierungAnfang | date:'HH:mm' }}</b><i>bis</i><b>{{ tisch.reservierungEnde | date:'HH:mm' }}</b><small>Uhr</small></div>
-    <small>Wieder frei ab {{ tisch.reservierungEnde | date:'dd.MM.yyyy, HH:mm' }} Uhr.</small>
+    <strong>{{ tisch.reservierungAnfang | date: 'EEEE, dd.MM.yyyy' }}</strong>
+    <div>
+      <b>{{ tisch.reservierungAnfang | date: 'HH:mm' }}</b>
+      <i>bis</i>
+      <b>{{ tisch.reservierungEnde | date: 'HH:mm' }}</b>
+      <small>Uhr</small>
+    </div>
+    <small>Wieder frei ab {{ tisch.reservierungEnde | date: 'dd.MM.yyyy, HH:mm' }} Uhr.</small>
   </section>
 
-  <section class="future-booking" *ngIf="!tisch.reservierungAnfang && tisch.naechsteReservierungAnfang">
+  <section
+    class="future-booking"
+    *ngIf="!tisch.reservierungAnfang && tisch.naechsteReservierungAnfang"
+  >
     <span>Nächste Belegung</span>
-    <strong>{{ tisch.naechsteReservierungAnfang | date:'EEEE, dd.MM.yyyy' }}</strong>
-    <div>{{ tisch.naechsteReservierungAnfang | date:'HH:mm' }}–{{ tisch.naechsteReservierungEnde | date:'HH:mm' }} Uhr</div>
-    <small>Danach wieder frei ab {{ tisch.naechsteReservierungEnde | date:'dd.MM.yyyy, HH:mm' }} Uhr.</small>
+    <strong>{{ tisch.naechsteReservierungAnfang | date: 'EEEE, dd.MM.yyyy' }}</strong>
+    <div>
+      {{ tisch.naechsteReservierungAnfang | date: 'HH:mm' }}–{{
+        tisch.naechsteReservierungEnde | date: 'HH:mm'
+      }}
+      Uhr
+    </div>
+    <small>
+      Danach wieder frei ab {{ tisch.naechsteReservierungEnde | date: 'dd.MM.yyyy, HH:mm' }} Uhr.
+    </small>
   </section>
 
   <h3>Ausstattung</h3>
@@ -42,8 +68,17 @@
     <li *ngFor="let item of tisch.equipment">{{ item.name }}</li>
   </ul>
 
-  <p class="error" *ngIf="fehler">{{ fehler }}</p>
-  <button type="button" [disabled]="!tisch.reservierbar || !zeitraumGueltig" (click)="reservieren.emit()">
+  <p
+    class="error"
+    *ngIf="fehler"
+  >
+    {{ fehler }}
+  </p>
+  <button
+    type="button"
+    [disabled]="!tisch.reservierbar || !zeitraumGueltig"
+    (click)="reservieren.emit()"
+  >
     Arbeitsplatz für Zeitraum reservieren
   </button>
 </aside>

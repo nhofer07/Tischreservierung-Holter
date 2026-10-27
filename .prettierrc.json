@@ -1,0 +1,24 @@
+{
+  "plugins": [
+    "prettier-plugin-java"
+  ],
+  "printWidth": 100,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "overrides": [
+    {
+      "files": "*.java",
+      "options": {
+        "tabWidth": 4
+      }
+    },
+    {
+      "files": "Frontend/src/**/*.html",
+      "options": {
+        "parser": "angular",
+        "singleAttributePerLine": true,
+        "htmlWhitespaceSensitivity": "ignore"
+      }
+    }
+  ]
+}

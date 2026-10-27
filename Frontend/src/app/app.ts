@@ -5,15 +5,31 @@ import { ReservationsComponent } from './components/reservations/reservations.co
 import { RoomOverviewComponent } from './components/room-overview/room-overview.component';
 import { LoginComponent } from './components/login/login.component';
 import { AdminBuilderComponent } from './components/admin-builder/admin-builder.component';
-import { Arbeitsplatz, Benutzer, FirmenEinstellung, Raum, RaumAuswahl, Reservierung, Standort, Zeitraum } from './models';
+import {
+  Arbeitsplatz,
+  Benutzer,
+  FirmenEinstellung,
+  Raum,
+  RaumAuswahl,
+  Reservierung,
+  Standort,
+  Zeitraum,
+} from './models';
 import { ArbeitsplatzService } from './services/arbeitsplatz.service';
 import { EntraAuthService } from './auth/entra-auth.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, IntroComponent, RoomOverviewComponent, ReservationsComponent, LoginComponent, AdminBuilderComponent],
+  imports: [
+    CommonModule,
+    IntroComponent,
+    RoomOverviewComponent,
+    ReservationsComponent,
+    LoginComponent,
+    AdminBuilderComponent,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App implements OnInit {
   benutzer = signal<Benutzer[]>([]);
@@ -27,12 +43,18 @@ export class App implements OnInit {
   fehler = signal('');
   nachricht = signal('');
   laden = signal(false);
-  firmenEinstellung = signal<FirmenEinstellung>({ firmenname: 'HOLTER', produktname: 'DeskVision', primaerfarbe: '#a51e2d', akzentfarbe: '#343638', logoUrl: '/holter-logo.png' });
+  firmenEinstellung = signal<FirmenEinstellung>({
+    firmenname: 'HOLTER',
+    produktname: 'DeskVision',
+    primaerfarbe: '#a51e2d',
+    akzentfarbe: '#343638',
+    logoUrl: '/holter-logo.png',
+  });
   buchbarBis = signal('');
   loadBookingSettings(): void {
     this.arbeitsplatzService.getBookingSettings().subscribe({
       next: (wert) => this.buchbarBis.set(wert.buchbarBis),
-      error: () => this.fehler.set('Buchungsgrenze konnte nicht geladen werden.')
+      error: () => this.fehler.set('Buchungsgrenze konnte nicht geladen werden.'),
     });
   }
   private raumAnfrage = 0;
@@ -40,23 +62,29 @@ export class App implements OnInit {
     datum: this.getCurrentDate(),
     endDatum: this.getCurrentDate(),
     beginn: '08:00',
-    ende: '16:00'
+    ende: '16:00',
   });
 
-  constructor(private arbeitsplatzService: ArbeitsplatzService, private entraAuth: EntraAuthService) {}
+  constructor(
+    private arbeitsplatzService: ArbeitsplatzService,
+    private entraAuth: EntraAuthService,
+  ) {}
 
   ngOnInit(): void {
     this.laden.set(true);
     this.loadCompanySettings();
     this.loadBookingSettings();
-    this.entraAuth.initialize()
-      .then((angemeldet) => angemeldet ? this.loadCurrentEntraUser() : this.laden.set(false))
+    this.entraAuth
+      .initialize()
+      .then((angemeldet) => (angemeldet ? this.loadCurrentEntraUser() : this.laden.set(false)))
       .catch((fehler) => {
         console.error('Microsoft-Anmeldung konnte nicht initialisiert werden:', fehler);
         const grund = fehler?.errorMessage || fehler?.message || '';
-        this.fehler.set(grund
-          ? `Microsoft-Anmeldung fehlgeschlagen: ${grund}`
-          : 'Microsoft-Anmeldung konnte nicht initialisiert werden. Bitte Verbindung und Entra-Konfiguration prüfen.');
+        this.fehler.set(
+          grund
+            ? `Microsoft-Anmeldung fehlgeschlagen: ${grund}`
+            : 'Microsoft-Anmeldung konnte nicht initialisiert werden. Bitte Verbindung und Entra-Konfiguration prüfen.',
+        );
         this.laden.set(false);
       });
   }
@@ -64,7 +92,7 @@ export class App implements OnInit {
   loadCompanySettings(): void {
     this.arbeitsplatzService.getCompanySettings().subscribe({
       next: (einstellung) => this.applyCompanyBranding(einstellung),
-      error: () => this.applyCompanyBranding(this.firmenEinstellung())
+      error: () => this.applyCompanyBranding(this.firmenEinstellung()),
     });
   }
 
@@ -76,8 +104,11 @@ export class App implements OnInit {
 
   loadLocations(nachLaden?: () => void): void {
     this.arbeitsplatzService.getLocations().subscribe({
-      next: (standorte) => { this.standorte.set(standorte); nachLaden?.(); },
-      error: () => this.fehler.set('Standorte konnten nicht geladen werden. Läuft MongoDB?')
+      next: (standorte) => {
+        this.standorte.set(standorte);
+        nachLaden?.();
+      },
+      error: () => this.fehler.set('Standorte konnten nicht geladen werden. Läuft MongoDB?'),
     });
   }
 
@@ -89,7 +120,7 @@ export class App implements OnInit {
       error: () => {
         this.fehler.set('E-Mail oder Passwort ist falsch.');
         this.laden.set(false);
-      }
+      },
     });
   }
 
@@ -106,11 +137,13 @@ export class App implements OnInit {
     this.arbeitsplatzService.getCurrentEntraUser().subscribe({
       next: (benutzer) => this.completeLogin(benutzer),
       error: (error) => {
-        this.fehler.set(error?.status === 404
-          ? 'Dein Microsoft-Konto ist gültig, aber noch keinem Mitarbeiterprofil zugeordnet. Bitte die Entra-E-Mail in der Mitarbeiterverwaltung eintragen.'
-          : 'Microsoft-Anmeldung war erfolgreich, aber das Mitarbeiterprofil konnte nicht geladen werden. Bitte Backend und E-Mail-Zuordnung prüfen.');
+        this.fehler.set(
+          error?.status === 404
+            ? 'Dein Microsoft-Konto ist gültig, aber noch keinem Mitarbeiterprofil zugeordnet. Bitte die Entra-E-Mail in der Mitarbeiterverwaltung eintragen.'
+            : 'Microsoft-Anmeldung war erfolgreich, aber das Mitarbeiterprofil konnte nicht geladen werden. Bitte Backend und E-Mail-Zuordnung prüfen.',
+        );
         this.laden.set(false);
-      }
+      },
     });
   }
 
@@ -137,7 +170,9 @@ export class App implements OnInit {
     this.aktiveAnsicht.set('start');
     this.fehler.set('');
     this.nachricht.set('');
-    if (warEntraAnmeldung) this.entraAuth.logout();
+    if (warEntraAnmeldung) {
+      this.entraAuth.logout();
+    }
   }
 
   openAdmin(): void {
@@ -181,17 +216,21 @@ export class App implements OnInit {
     this.fehler.set('');
     this.arbeitsplatzService.getRoomsByLocation(standortId).subscribe({
       next: (raeume) => {
-        if (anfrage !== this.raumAnfrage) return;
+        if (anfrage !== this.raumAnfrage) {
+          return;
+        }
         this.raeume.set(raeume);
         if (!raeume.length) {
           this.fehler.set('An diesem Standort gibt es noch keine Räume.');
           return;
         }
 
-        const eigeneAbteilung = raeume.find((raum) => raum.abteilungName === benutzer.abteilungName);
+        const eigeneAbteilung = raeume.find(
+          (raum) => raum.abteilungName === benutzer.abteilungName,
+        );
         this.loadRoomPreview((eigeneAbteilung ?? raeume[0]).id);
       },
-      error: () => this.fehler.set('Räume konnten nicht geladen werden.')
+      error: () => this.fehler.set('Räume konnten nicht geladen werden.'),
     });
   }
 
@@ -200,12 +239,16 @@ export class App implements OnInit {
     this.raum.set(null);
     this.fehler.set('');
     const raum = this.raeume().find((eintrag) => eintrag.abteilungName === abteilungName);
-    if (raum) this.loadRoomPreview(raum.id);
+    if (raum) {
+      this.loadRoomPreview(raum.id);
+    }
   }
 
   openLocation(standortId: string): void {
     const raum = this.raum();
-    if (raum && raum.standortId === standortId) this.openRoom(raum.id);
+    if (raum && raum.standortId === standortId) {
+      this.openRoom(raum.id);
+    }
   }
 
   openRoom(raumId: string): void {
@@ -224,7 +267,7 @@ export class App implements OnInit {
       error: () => {
         this.fehler.set('Der Raum konnte nicht geladen werden.');
         this.laden.set(false);
-      }
+      },
     });
   }
 
@@ -239,7 +282,9 @@ export class App implements OnInit {
   }
 
   openHome(): void {
-    if (this.aktiveAnsicht() !== 'start') this.loadInitialRoomPreview();
+    if (this.aktiveAnsicht() !== 'start') {
+      this.loadInitialRoomPreview();
+    }
     this.aktiveAnsicht.set('start');
     this.nachricht.set('');
   }
@@ -277,16 +322,22 @@ export class App implements OnInit {
     this.laden.set(true);
     this.arbeitsplatzService.createReservation(benutzer.id, tisch.id, this.zeitraum()).subscribe({
       next: () => {
-        this.nachricht.set(`Arbeitsplatz ${tisch.tischnr} wurde für den gewählten Zeitraum reserviert.`);
+        this.nachricht.set(
+          `Arbeitsplatz ${tisch.tischnr} wurde für den gewählten Zeitraum reserviert.`,
+        );
         const aktuellerRaum = this.raum();
         if (aktuellerRaum) {
           this.openRoom(aktuellerRaum.id);
         }
       },
       error: (error) => {
-        this.fehler.set(error?.error?.details || error?.error?.message || 'Die Reservierung ist nicht möglich. Zeitraum oder Abteilung prüfen.');
+        this.fehler.set(
+          error?.error?.details ||
+            error?.error?.message ||
+            'Die Reservierung ist nicht möglich. Zeitraum oder Abteilung prüfen.',
+        );
         this.laden.set(false);
-      }
+      },
     });
   }
 
@@ -305,17 +356,32 @@ export class App implements OnInit {
       error: () => {
         this.fehler.set('Reservierung konnte nicht storniert werden.');
         this.laden.set(false);
-      }
+      },
     });
   }
 
   updateReservation(aenderung: { reservierung: Reservierung; anfang: string; ende: string }): void {
-    const benutzer = this.aktiverBenutzer(); if (!benutzer) return;
+    const benutzer = this.aktiverBenutzer();
+    if (!benutzer) {
+      return;
+    }
     this.laden.set(true);
-    this.arbeitsplatzService.updateReservation(aenderung.reservierung, benutzer.id, aenderung.anfang, aenderung.ende).subscribe({
-      next: () => { this.nachricht.set('Reservierungszeitraum wurde geändert.'); this.loadReservations(); },
-      error: (error) => { this.fehler.set(error?.error?.details || error?.error?.message || 'Zeitraum konnte nicht geändert werden. Bitte Buchungsgrenze und Überschneidungen prüfen.'); this.laden.set(false); }
-    });
+    this.arbeitsplatzService
+      .updateReservation(aenderung.reservierung, benutzer.id, aenderung.anfang, aenderung.ende)
+      .subscribe({
+        next: () => {
+          this.nachricht.set('Reservierungszeitraum wurde geändert.');
+          this.loadReservations();
+        },
+        error: (error) => {
+          this.fehler.set(
+            error?.error?.details ||
+              error?.error?.message ||
+              'Zeitraum konnte nicht geändert werden. Bitte Buchungsgrenze und Überschneidungen prüfen.',
+          );
+          this.laden.set(false);
+        },
+      });
   }
 
   private loadReservations(): void {
@@ -333,7 +399,7 @@ export class App implements OnInit {
       error: () => {
         this.fehler.set('Reservierungen konnten nicht geladen werden.');
         this.laden.set(false);
-      }
+      },
     });
   }
 
@@ -343,21 +409,28 @@ export class App implements OnInit {
       return;
     }
 
-    if (!raumId) { this.raum.set(null); return; }
+    if (!raumId) {
+      this.raum.set(null);
+      return;
+    }
     const anfrage = ++this.raumAnfrage;
     this.arbeitsplatzService.getRoom(raumId, this.zeitraum(), benutzer.id).subscribe({
       next: (raum) => {
-        if (anfrage !== this.raumAnfrage) return;
+        if (anfrage !== this.raumAnfrage) {
+          return;
+        }
         this.raum.set(raum);
         this.ausgewaehlterTisch.set(null);
       },
-      error: () => this.fehler.set('Der vorgeschlagene Raum konnte nicht geladen werden.')
+      error: () => this.fehler.set('Der vorgeschlagene Raum konnte nicht geladen werden.'),
     });
   }
 
   private loadInitialRoomPreview(): void {
     const ersterStandort = this.standorte()[0];
-    if (ersterStandort) this.loadLocationPreview(ersterStandort.id);
+    if (ersterStandort) {
+      this.loadLocationPreview(ersterStandort.id);
+    }
   }
 
   isAdmin(benutzer: Benutzer | null): boolean {
@@ -374,11 +447,16 @@ export class App implements OnInit {
   private setRoom(raum: Raum): void {
     const bisherigeId = this.ausgewaehlterTisch()?.id;
     this.raum.set(raum);
-    this.ausgewaehlterTisch.set(raum.arbeitsplaetze.find((tisch) => tisch.id === bisherigeId)
-      ?? raum.arbeitsplaetze.find((tisch) => tisch.reservierbar) ?? raum.arbeitsplaetze[0]);
+    this.ausgewaehlterTisch.set(
+      raum.arbeitsplaetze.find((tisch) => tisch.id === bisherigeId) ??
+        raum.arbeitsplaetze.find((tisch) => tisch.reservierbar) ??
+        raum.arbeitsplaetze[0],
+    );
 
     this.arbeitsplatzService
       .getRoomsByLocation(raum.standortId)
-      .subscribe((raeume) => this.raeume.set(raeume.filter((eintrag) => eintrag.abteilungName === raum.abteilungName)));
+      .subscribe((raeume) =>
+        this.raeume.set(raeume.filter((eintrag) => eintrag.abteilungName === raum.abteilungName)),
+      );
   }
 }

@@ -1,22 +1,35 @@
 package at.htlleonding.repo;
 
+import static org.bson.codecs.configuration.CodecRegistries.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 import at.htlleonding.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClientSettings;
+import java.util.List;
 import org.bson.BsonDocument;
 import org.bson.BsonDocumentWriter;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.bson.codecs.configuration.CodecRegistries.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 class ModelSerializationTest {
-    private final Arbeitsplatz desk = new Arbeitsplatz("DESK", "101", "ROOM", "LOCATION", "IT", "IT",
-            "Desk", "frei", new Position(20, 30), List.of(new Equipment("Monitor")), 0, 12, 11);
+
+    private final Arbeitsplatz desk = new Arbeitsplatz(
+        "DESK",
+        "101",
+        "ROOM",
+        "LOCATION",
+        "IT",
+        "IT",
+        "Desk",
+        "frei",
+        new Position(20, 30),
+        List.of(new Equipment("Monitor")),
+        0,
+        12,
+        11
+    );
 
     @Test
     void englishAccessorsPreserveExistingJsonFields() {
@@ -31,7 +44,19 @@ class ModelSerializationTest {
         assertFalse(json.has("departmentId"));
         assertFalse(json.has("width"));
 
-        var user = mapper.valueToTree(new Benutzer("USER", "Anna", "Test", "test@example.test", "USER", "IT", "IT", "ROOM", true));
+        var user = mapper.valueToTree(
+            new Benutzer(
+                "USER",
+                "Anna",
+                "Test",
+                "test@example.test",
+                "USER",
+                "IT",
+                "IT",
+                "ROOM",
+                true
+            )
+        );
         assertEquals("Anna", user.get("vorname").asText());
         assertTrue(user.get("aktiv").asBoolean());
         assertFalse(user.has("firstName"));
@@ -40,11 +65,14 @@ class ModelSerializationTest {
 
     @Test
     void englishAccessorsPreserveExistingMongoFields() {
-        var registry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(),
-                fromProviders(PojoCodecProvider.builder().automatic(true).build()));
+        var registry = fromRegistries(
+            MongoClientSettings.getDefaultCodecRegistry(),
+            fromProviders(PojoCodecProvider.builder().automatic(true).build())
+        );
         var document = new BsonDocument();
-        registry.get(Arbeitsplatz.class).encode(new BsonDocumentWriter(document), desk,
-                EncoderContext.builder().build());
+        registry
+            .get(Arbeitsplatz.class)
+            .encode(new BsonDocumentWriter(document), desk, EncoderContext.builder().build());
         assertEquals("101", document.getString("tischnr").getValue());
         assertEquals("ROOM", document.getString("raumId").getValue());
         assertEquals("LOCATION", document.getString("standortId").getValue());

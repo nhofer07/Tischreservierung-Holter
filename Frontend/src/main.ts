@@ -6,5 +6,4 @@ import localeDeAt from '@angular/common/locales/de-AT';
 
 registerLocaleData(localeDeAt);
 
-bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));

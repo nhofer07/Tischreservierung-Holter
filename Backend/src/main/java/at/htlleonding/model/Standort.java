@@ -1,24 +1,27 @@
 package at.htlleonding.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @MongoEntity(collection = "standorte")
 public class Standort {
+
     @BsonId
     private String id;
+
     private String name;
+
     @BsonProperty("adresse")
     @JsonProperty("adresse")
     private String address;
+
     @BsonProperty("ort")
     @JsonProperty("ort")
     private String city;
 
-    public Standort() {
-    }
+    public Standort() {}
 
     public Standort(String id, String name, String address, String city) {
         this.id = id;

@@ -1,14 +1,13 @@
 package at.htlleonding.boundary;
 
 import at.htlleonding.DTOs.StandortDTO;
-import at.htlleonding.repo.ArbeitsplatzRepo;
+import at.htlleonding.repo.StandortRepo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-
 import java.util.List;
 
 @Path("/api/standorte")
@@ -16,11 +15,11 @@ import java.util.List;
 public class standortBoundary {
 
     @Inject
-    ArbeitsplatzRepo arbeitsplatzRepo;
+    StandortRepo standortRepo;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<StandortDTO> getLocations() {
-        return arbeitsplatzRepo.getLocations();
+        return standortRepo.getLocations();
     }
 }

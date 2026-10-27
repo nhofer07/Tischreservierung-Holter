@@ -1,0 +1,12 @@
+{
+  "name": "deskvision-code-formatting",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"Backend/src/**/*.java\" \"Frontend/src/**/*.{ts,html,css}\" \"Frontend/public/runtime-config.js\" \"Datenbank/*.js\" \"deployment/holter/*.js\"",
+    "format:check": "prettier --check \"Backend/src/**/*.java\" \"Frontend/src/**/*.{ts,html,css}\" \"Frontend/public/runtime-config.js\" \"Datenbank/*.js\" \"deployment/holter/*.js\""
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "prettier-plugin-java": "2.11.0"
+  }
+}

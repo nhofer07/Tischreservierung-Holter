@@ -1,0 +1,93 @@
+name: deskvision-holter
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  mongodb:
+    image: deskvision/mongodb:7-${DESKVISION_ARCH:?Architektur fehlt}
+    platform: linux/${DESKVISION_ARCH}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Vienna
+      MONGO_INITDB_ROOT_USERNAME: deskvision-root
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+      MONGO_INITDB_DATABASE: tischreservierung
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:?Administrator-E-Mail fehlt}
+    secrets:
+      - mongo_root_password
+      - mongo_app_password
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/10-deskvision.js:ro
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "const d=db.getSiblingDB('tischreservierung'); d.auth('deskvision-app',require('fs').readFileSync('/run/secrets/mongo_app_password','utf8').trim()); if(d.benutzer.countDocuments({_id:'SUPERADMIN-HOLTER'})!==1) quit(1);"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    logging: *logging
+
+  backend:
+    image: deskvision/backend:${DESKVISION_VERSION:?Version fehlt}-${DESKVISION_ARCH}
+    platform: linux/${DESKVISION_ARCH}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Vienna
+      QUARKUS_PROFILE: prod
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_CORS_ENABLED: "false"
+      QUARKUS_MONGODB_CONNECTION_STRING: mongodb://mongodb:27017/tischreservierung
+      QUARKUS_MONGODB_CREDENTIALS_USERNAME: deskvision-app
+      QUARKUS_MONGODB_CREDENTIALS_AUTH_SOURCE: tischreservierung
+      MONGODB_PASSWORD_FILE: /run/secrets/mongo_app_password
+      QUARKUS_OIDC_AUTH_SERVER_URL: https://login.microsoftonline.com/${ENTRA_TENANT_ID:?Tenant-ID fehlt}/v2.0
+      QUARKUS_OIDC_CLIENT_ID: ${ENTRA_CLIENT_ID:?Client-ID fehlt}
+      QUARKUS_OIDC_TOKEN_AUDIENCE: ${ENTRA_CLIENT_ID}
+    secrets:
+      - mongo_app_password
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost:8082/api/einstellungen]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging: *logging
+
+  frontend:
+    image: deskvision/frontend:${DESKVISION_VERSION}-${DESKVISION_ARCH}
+    platform: linux/${DESKVISION_ARCH}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      ENTRA_TENANT_ID: ${ENTRA_TENANT_ID}
+      ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID}
+      ENABLE_LOCAL_TEST_LOGIN: "false"
+    ports:
+      - "${DESKVISION_BIND_ADDRESS:-127.0.0.1}:${DESKVISION_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging: *logging
+
+secrets:
+  mongo_root_password:
+    file: ./secrets/mongo-root-password.txt
+  mongo_app_password:
+    file: ./secrets/mongo-app-password.txt
+
+volumes:
+  mongodb-data:

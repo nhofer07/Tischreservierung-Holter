@@ -38,7 +38,16 @@ export interface Raum {
 
 export interface RaumElement {
   id: string;
-  typ: 'wand' | 'tuer' | 'fenster' | 'pflanze' | 'klima' | 'saeule' | 'feuerloescher' | 'gesperrt' | 'beschriftung';
+  typ:
+    | 'wand'
+    | 'tuer'
+    | 'fenster'
+    | 'pflanze'
+    | 'klima'
+    | 'saeule'
+    | 'feuerloescher'
+    | 'gesperrt'
+    | 'beschriftung';
   x: number;
   y: number;
   breite: number;
@@ -81,11 +90,21 @@ export interface Benutzer {
 }
 
 export interface BenutzerRequest {
-  vorname: string; nachname: string; email: string; rolle: string; abteilungId: string;
-  abteilungName: string; bevorzugterRaumId: string; aktiv: boolean;
+  vorname: string;
+  nachname: string;
+  email: string;
+  rolle: string;
+  abteilungId: string;
+  abteilungName: string;
+  bevorzugterRaumId: string;
+  aktiv: boolean;
 }
 
-export interface StandortRequest { name: string; adresse: string; ort: string; }
+export interface StandortRequest {
+  name: string;
+  adresse: string;
+  ort: string;
+}
 
 export interface FirmenEinstellung {
   firmenname: string;
@@ -100,7 +119,13 @@ export interface FirmenDesignHistorie extends FirmenEinstellung {
   zeitpunkt: string;
 }
 
-export interface AuditEintrag { _id: string; adminId: string; aktion: string; details: string; zeitpunkt: string; }
+export interface AuditEintrag {
+  _id: string;
+  adminId: string;
+  aktion: string;
+  details: string;
+  zeitpunkt: string;
+}
 
 export interface Reservierung {
   id: string;

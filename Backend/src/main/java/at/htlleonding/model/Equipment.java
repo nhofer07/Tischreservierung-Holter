@@ -1,10 +1,10 @@
 package at.htlleonding.model;
 
 public class Equipment {
+
     private String name;
 
-    public Equipment() {
-    }
+    public Equipment() {}
 
     public Equipment(String name) {
         this.name = name;

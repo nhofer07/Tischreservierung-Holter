@@ -19,6 +19,56 @@ DeskVision ist ein Prototyp fuer die Arbeitsplatzreservierung bei HOLTER. Benutz
 - `docker-compose.yml`: alle drei Dienste mit Builds, Datenvolume und Healthchecks
 - `Dokumentation/`: Anforderungsdokument und Diplomarbeitsbeschreibung
 
+## Backend-Repositories
+
+Die REST-Boundaries rufen das fachlich zuständige Repository auf. Die bisherigen
+Operationen aus `ArbeitsplatzRepo` sind auf folgende Klassen unter
+`Backend/src/main/java/at/htlleonding/repo/` verteilt:
+
+| Repository | Zuständigkeit |
+| --- | --- |
+| `ArbeitsplatzRepo` | Arbeitsplätze anlegen, bearbeiten und löschen |
+| `RaumRepo` | Räume, Grundrisse und Raumansicht mit Belegung |
+| `ReservierungRepo` | Buchungen, Serien, Zeitraumkonflikte und Stornierungen |
+| `BenutzerRepo` | Mitarbeiterverwaltung und Anmeldung |
+| `StandortRepo` | Standorte lesen und verwalten |
+| `AbteilungRepo` | Abteilungen lesen und verwalten |
+| `EquipmentRepo` | Equipment-Katalog verwalten |
+| `EinstellungRepo` | Firmendesign, Designhistorie und Buchungsgrenze |
+| `AuditRepo` | Audit-Einträge schreiben und lesen |
+
+`MongoRepository` stellt als abstrakte Basisklasse den gemeinsamen Datenbankzugriff
+bereit. `BenutzerZugriff` prüft zentral die Microsoft-Identität, den Kontostatus und
+Administratorrechte. `RepositoryMapper` enthält die Dokument-/Modell-/DTO-Abbildungen,
+`RepositorySupport` gemeinsame Validierungen. Abhängigkeiten zwischen den Repositories
+werden über CDI mit `@Inject` eingebunden. REST-Pfade und Datenbankstruktur bleiben
+bei dieser Aufteilung unverändert.
+
+## Code formatieren
+
+Die gemeinsame Prettier-Konfiguration formatiert Java mit vier und TypeScript,
+HTML, CSS sowie Datenbank-JavaScript mit zwei Leerzeichen. Die Richtbreite beträgt
+100 Zeichen; Angular-Templates haben ein Attribut pro Zeile. `.editorconfig`
+übernimmt die Einrückung auch im Editor.
+
+Einmalig im Projektordner die Formatierungswerkzeuge installieren:
+
+```bash
+npm ci
+```
+
+Danach den Anwendungscode formatieren oder die Formatierung nur prüfen:
+
+```bash
+npm run format
+npm run format:check
+```
+
+Die npm-Abhängigkeiten im Projektordner dienen ausschließlich der Formatierung.
+Das Frontend wird weiterhin im Ordner `Frontend/` installiert und gebaut.
+Die interaktiven mongosh-Beispiele in `queries/Query.js` sind wegen der
+Shell-Anweisung `use tischreservierung` vom JavaScript-Formatter ausgenommen.
+
 ## Umgesetzte Funktionen
 
 - Standorte Wels und Linz mit jeweils einem IT- und Marketingraum
@@ -64,6 +114,39 @@ DeskVision ist ein Prototyp fuer die Arbeitsplatzreservierung bei HOLTER. Benutz
 - Mitarbeiter koennen durch den Superadmin sicher entfernt werden; das Konto wird deaktiviert und aus der Verwaltung ausgeblendet, wobei alle zugehörigen Reservierungen gelöscht werden
 
 ## Gesamte Anwendung mit Docker starten
+
+Für die **Übergabe an HOLTER ohne Docker Hub** gibt es ein separates Firmenpaket:
+Anleitung und Laufzeitkonfiguration stehen in [deployment/holter/README.md](deployment/holter/README.md).
+Es enthält fertige Images, eine eigene Datenbankinitialisierung ohne Schul-Testkonten
+und benötigt auf dem Zielrechner nur Docker mit Compose sowie Microsoft-Zugang.
+
+Ein solches Paket inklusive aller Images lokal erstellen (Docker muss laufen;
+Internet für den Build und Python 3 für das Verpacken erforderlich):
+
+```bash
+python3 scripts/prepare-company-release.py 1.0.0
+```
+
+Standardziel ist Linux/AMD64 für Intel-/AMD-Rechner, auch mit Docker Desktop unter
+Windows. Für Apple Silicon bzw. ARM-Server `--arch arm64` ergänzen. Das fertige
+Archiv und seine SHA-256-Prüfsumme liegen unter `release/`; diese Dateien werden
+nicht in Git eingecheckt. Jede Veröffentlichung erhält eine neue Versionsnummer.
+Das Paket enthält keine `.env`, Datenbankpasswörter oder Datenbanksicherungen.
+
+Das entpackte Paket kann mit einem isolierten Docker-Test geprüft werden:
+
+```bash
+python3 scripts/check-company-release.py release/deskvision-holter-1.0.0-amd64
+```
+
+Dieser Test importiert die Images, verwendet einen eigenen Compose-Projektnamen
+und prüft Start, API-Schutz, Erstadmin, Backup, Wiederherstellung und Persistenz.
+Er entfernt anschließend ausschließlich seine eigenen Testcontainer und sein
+Testvolume. Port 13000 muss frei sein; mit `--port` lässt sich ein anderer wählen.
+Eine Anmeldung mit einem echten Microsoft-Firmenkonto bleibt Teil der Firmenabnahme.
+
+Die nachfolgenden Befehle beziehen sich auf die bisherige lokale Entwicklungs-
+und Präsentationsumgebung mit Schul-Startdaten.
 
 Docker Desktop starten, danach im Projektordner:
 
